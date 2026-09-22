@@ -8,7 +8,7 @@
 ## 1. Current Slice & Checkpoint
 
 - **Current Slice:** **Slice 3 — Communications, Operations & Platform Polish**
-- **Current Checkpoint:** Slice 3 Implementation & Polish Completed
+- **Current Checkpoint:** Final Slice 3 QA & Multi-User Verification Completed (100% Verified)
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 
@@ -58,20 +58,20 @@
   - User Directories: Dedicated directory views for registered Farmers (`/admin/farmers`) and Commercial Buyers (`/admin/businesses`).
 - [x] **Sidebar Navigation & Routing Alignment:**
   - Cleaned up navigation items in `src/components/dashboard/sidebar.tsx` removing any placeholder links.
-  - All navigation links route to functional, styled pages with active route highlighting.
+  - All navigation links route to functional, styled pages with active route highlighting (16 routes verified with 0 404s).
 
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Final Slice 3 git checkpoint commit and deployment verification.
-- Preparing documentation and handoff for production evaluation.
+- Completed Slice 3 QA checkpoint and pushed to `origin/main`.
+- Awaiting user direction for subsequent phase.
 
 ---
 
 ## 4. Known Issues
 
-- **None.** Build passes cleanly, ESLint passes with 0 warnings, remote Supabase database and RPCs verified.
+- **None.** Build passes cleanly (25 routes compiled, 0 errors), ESLint passes with 0 warnings, remote Supabase database and RPCs verified.
 
 ---
 
@@ -111,13 +111,21 @@
 
 ---
 
-## 7. Latest Verification Results
+## 7. Latest Verification Results (Slice 3 Live QA)
 
 - **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 25 routes compiled cleanly with Turbopack)
 - **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings/errors)
-- **Slice 3 Profile Operations:** ✅ **PASS** (Contact update, RLS ownership validation, type-safe schema)
-- **Slice 3 B2B Messaging:** ✅ **PASS** (Threaded order chat, participant RLS verification, centralized buyer/farmer inboxes)
-- **Slice 3 Admin Oversight:** ✅ **PASS** (Live KPIs, catalog moderation action, audit table, user directories)
-- **Live Multi-User Verification (Slice 2):** ✅ **PASS** (All 15 verification criteria passed using real signed Clerk JWTs against remote Supabase)
-- **Backend RPC Guards & Logic:** ✅ **PASS** (`place_order` and `update_order_status` verified for all valid and invalid cases)
-- **Cross-Tenant Data Isolation:** ✅ **PASS** (RLS enforced across carts, orders, and products)
+- **Farmer Profile Operations:** ✅ **PASS** (Loaded live profile, updated bio/phone via RLS, refreshed verification)
+- **Business Profile Operations:** ✅ **PASS** (Loaded live profile, updated bio/phone via RLS, refreshed verification)
+- **Profile Cross-User Security:** ✅ **PASS** (Buyer2, Farmer2, and Buyer1 blocked from modifying unowned profiles; 0 rows affected)
+- **Order-Threaded Messaging (Business Send):** ✅ **PASS** (Sent message on real order `2c33a782-...`, persisted in remote `messages` table)
+- **Order-Threaded Messaging (Farmer Read):** ✅ **PASS** (Farmer queried and received message via RLS participant policy)
+- **Order-Threaded Messaging (Farmer Reply):** ✅ **PASS** (Farmer sent reply, persisted in remote `messages` table)
+- **Order-Threaded Messaging (Business Read):** ✅ **PASS** (Business queried and received reply via RLS participant policy)
+- **Messaging Cross-Tenant Privacy:** ✅ **PASS** (Unrelated Buyer2 and Farmer2 queried conversation and received 0 rows via RLS)
+- **Messaging Anti-Tamper & Anti-Spoofing:** ✅ **PASS** (Unrelated insertion blocked by RLS; spoofing sender ID blocked by RLS)
+- **Admin Live Metrics:** ✅ **PASS** (2 farmers, 2 buyers, 2 active produce items, ₱1,625 volume)
+- **Admin Produce Catalog & Moderation:** ✅ **PASS** (Archived produce and restored to active; verified in database)
+- **Admin Audit Log & Directories:** ✅ **PASS** (Wholesale orders audit and user directories queried successfully)
+- **Admin Server-Side Action Protection:** ✅ **PASS** (Non-admin claims rejected from `moderateProductStatus`)
+- **Navigation Integrity:** ✅ **PASS** (All 16 dashboard routes verified; zero 404 errors)
