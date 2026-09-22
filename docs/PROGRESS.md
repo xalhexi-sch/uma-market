@@ -138,7 +138,33 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+## Slice 4 — Production Readiness, Visual Commerce & Mobile Polish
+**Status:** ⏳ **In Progress (Checkpoint 4.1 Verified)**
+
+### Checkpoint 4.1: Visual Commerce & Supabase Storage (Verified ✅)
+- **Database & Storage Migration (`20260923000001_slice4_storage.sql`):**
+  - Added canonical `image_path TEXT` column to `public.products`.
+  - Created public bucket `product-images` (max 5MB, JPEG/PNG/WebP).
+  - Configured Storage RLS: public read, authenticated farmer upload/edit/delete isolated strictly to `products/{auth.jwt()->>'sub'}/*`.
+  - Added `public.messages` to `supabase_realtime` publication.
+- **Client & Upload Architecture:**
+  - Used `useSupabase()` browser client with active Clerk session for direct storage uploads.
+  - Added `validateProductImageFile` and `getProductImageUrl` in `src/lib/supabase/storage.ts`.
+  - Updated `ProductForm` with drag/click upload, live thumbnail preview, and removal.
+  - Server actions `createProduct` / `updateProduct` validate path ownership (`products/${userId}/...`) before saving.
+  - Updated `ProductCard` and `/business/products/[id]` to render live produce photography.
+- **Verification Results (Live Remote Supabase):**
+  - Farmer uploaded image to own storage folder: ✅ **PASS**
+  - Public CDN served image without auth (HTTP 200): ✅ **PASS**
+  - Intruder farmer upload to other farmer folder rejected by Storage RLS: ✅ **PASS**
+  - Buyer upload to farmer storage rejected by Storage RLS: ✅ **PASS**
+  - Database `image_path` persisted and queried back: ✅ **PASS**
+  - `npm run lint` & `npm run build`: ✅ **PASS** (0 errors, 0 warnings, 25 routes compiled)
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
 - **Slice 3:** ✅ Complete & Verified Across All Checkpoints & Security Matrix
+- **Slice 4:** ⏳ In Progress (Checkpoint 4.1 Verified)

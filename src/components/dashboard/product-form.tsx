@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { RiImageAddLine, RiDeleteBinLine, RiUploadCloud2Line } from "@remixicon/react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { createProduct, updateProduct, archiveProduct } from "@/app/(dashboard)/farmer/products/actions";
+import { useSupabase } from "@/hooks/use-supabase";
+import { getProductImageUrl, validateProductImageFile, PRODUCT_IMAGES_BUCKET } from "@/lib/supabase/storage";
 import type { Category, Product } from "@/lib/types";
 import { PRODUCT_UNITS } from "@/lib/constants";
 
@@ -17,6 +21,11 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ categories, mode, product }: ProductFormProps) {
+  const { user } = useUser();
+  const supabase = useSupabase();
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [form, setForm] = useState({
     name: product?.name ?? "",
     category_id: product?.category_id ?? "",
@@ -29,25 +38,87 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
     available_until: product?.available_until ?? "",
     status: (product?.status === "active" || product?.status === "draft" ? product.status : "draft") as "active" | "draft",
   });
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    getProductImageUrl(product?.image_path, product?.image_url)
+  );
+  const [imagePath, setImagePath] = useState<string | null>(product?.image_path ?? null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isArchiving, startArchive] = useTransition();
-  const router = useRouter();
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setUploadError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateProductImageFile(file);
+    if (!validation.valid) {
+      setUploadError(validation.error || "Invalid file");
+      return;
+    }
+
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  }
+
+  function handleRemoveImage() {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setImagePath(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setUploadError(null);
 
     startTransition(async () => {
+      let finalImagePath = imagePath;
+
+      // Handle file upload if a new image file was selected
+      if (selectedFile) {
+        if (!user?.id) {
+          setError("User session not found. Please refresh and try again.");
+          return;
+        }
+
+        const ext = selectedFile.name.split(".").pop()?.toLowerCase() || "webp";
+        const fileId = product?.id || crypto.randomUUID();
+        const objectPath = `products/${user.id}/${fileId}.${ext}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from(PRODUCT_IMAGES_BUCKET)
+          .upload(objectPath, selectedFile, {
+            upsert: true,
+            contentType: selectedFile.type,
+          });
+
+        if (uploadErr) {
+          console.error("Storage upload error:", uploadErr.message);
+          setError(`Failed to upload photo: ${uploadErr.message}`);
+          return;
+        }
+
+        finalImagePath = objectPath;
+      }
+
       const data = {
         ...form,
         price_per_unit: Number(form.price_per_unit),
         quantity_available: Number(form.quantity_available),
         min_order_quantity: Number(form.min_order_quantity),
+        image_path: finalImagePath,
       };
 
       const result =
@@ -123,6 +194,89 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
             rows={3}
             className="resize-none"
           />
+        </div>
+      </section>
+
+      {/* Produce Photography */}
+      <section className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Produce Photography
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Real photos of your harvest help commercial buyers verify grade, freshness, and packaging.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {previewUrl ? (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-xl border border-border bg-card p-4">
+              <div className="relative aspect-square w-28 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Produce preview"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-medium text-foreground">
+                  {selectedFile ? selectedFile.name : "Current listing photo"}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-xs"
+                  >
+                    <RiUploadCloud2Line className="size-3.5 mr-1" />
+                    Change photo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveImage}
+                    className="text-xs text-destructive hover:text-destructive"
+                  >
+                    <RiDeleteBinLine className="size-3.5 mr-1" />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="group flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/20 p-8 text-center cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/40"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3 group-hover:scale-105 transition-transform">
+                <RiImageAddLine className="size-6" />
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                Click to upload a produce photo
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                JPEG, PNG, or WebP up to 5MB
+              </p>
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          {uploadError && (
+            <p className="text-xs font-medium text-destructive">
+              {uploadError}
+            </p>
+          )}
         </div>
       </section>
 

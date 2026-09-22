@@ -103,11 +103,16 @@ This document records the binding architectural, product, and engineering decisi
 
 ---
 
-## 10. Product Imagery & Storage
+## 10. Product Imagery & Storage (Slice 4)
 
-- **Status:** **Future scope.**
-- **Current Approach:** Standardized category badges and curated local photography.
-- **Rationale:** Supabase Storage bucket integration will be introduced in an upcoming slice to avoid blocking core commerce workflows on image upload pipelines.
+- **Status:** **Implemented & Enforced via Storage RLS.**
+- **Bucket:** `product-images` (Public read, 5MB file limit, MIME types: `image/jpeg`, `image/png`, `image/webp`).
+- **Data Model:** Canonical `image_path` on `products` table (relative object path: `products/{farmer_clerk_id}/{product_id}.{ext}`). Avoids storing fragile absolute URLs.
+- **Upload Architecture:**
+  - Browser's authenticated Supabase client (`useSupabase()` with active Clerk session) performs the upload directly to Supabase Storage.
+  - Storage RLS policy enforces folder isolation: `name LIKE ('products/' || (auth.jwt()->>'sub') || '/%')`. Farmers cannot write or delete outside their own folder.
+  - Server actions `createProduct` and `updateProduct` validate that any submitted `image_path` matches `products/${userId}/` before persisting to PostgreSQL.
+- **Serving:** Helper `getProductImageUrl(imagePath, legacyImageUrl)` constructs the public CDN URL dynamically, falling back gracefully to category icons when no photo is provided.
 
 ---
 

@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { RiPlantLine } from "@remixicon/react";
+import { RiPlantLine, RiCheckboxCircleFill } from "@remixicon/react";
 import { Badge } from "@/components/ui/badge";
 import { CURRENCY } from "@/lib/constants";
+import { getProductImageUrl } from "@/lib/supabase/storage";
 import type { Product } from "@/lib/types";
 
 interface ProductCardProps {
@@ -28,6 +29,8 @@ export function ProductCard({ product }: ProductCardProps) {
     product.farmer?.full_name ||
     "Local Farm";
 
+  const imageUrl = getProductImageUrl(product.image_path, product.image_url);
+
   return (
     <Link
       href={`/business/products/${product.id}`}
@@ -35,10 +38,10 @@ export function ProductCard({ product }: ProductCardProps) {
     >
       {/* Image */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
-        {product.image_url ? (
+        {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.image_url}
+            src={imageUrl}
             alt={product.name}
             className="h-full w-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
           />
@@ -79,6 +82,11 @@ export function ProductCard({ product }: ProductCardProps) {
             From {farmerName}
             {product.farmer?.city ? `, ${product.farmer.city}` : ""}
           </span>
+          {product.farmer?.is_verified && (
+            <span title="Verified Local Producer" className="inline-flex items-center">
+              <RiCheckboxCircleFill className="size-3.5 text-emerald-600 shrink-0" />
+            </span>
+          )}
         </div>
       </div>
     </Link>

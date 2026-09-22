@@ -21,6 +21,7 @@ export interface ProductFormData {
   harvest_date: string;
   available_until: string;
   status: "active" | "draft";
+  image_path?: string | null;
 }
 
 /**
@@ -40,6 +41,11 @@ export async function createProduct(data: ProductFormData) {
   if (data.quantity_available < 0) return { success: false, error: "Quantity cannot be negative." };
   if (data.min_order_quantity <= 0) return { success: false, error: "Minimum order must be greater than 0." };
 
+  // Validate image path belongs to this farmer if provided
+  if (data.image_path && !data.image_path.startsWith(`products/${userId}/`)) {
+    return { success: false, error: "Invalid image path ownership." };
+  }
+
   const supabase = await createClient();
 
   const { data: created, error } = await supabase
@@ -56,6 +62,7 @@ export async function createProduct(data: ProductFormData) {
       harvest_date: data.harvest_date || null,
       available_until: data.available_until || null,
       status: data.status,
+      image_path: data.image_path || null,
     })
     .select("id")
     .single();
@@ -81,6 +88,11 @@ export async function updateProduct(productId: string, data: Partial<ProductForm
     return { success: false, error: "Unauthorized" };
   }
 
+  // Validate image path belongs to this farmer if provided
+  if (data.image_path && !data.image_path.startsWith(`products/${userId}/`)) {
+    return { success: false, error: "Invalid image path ownership." };
+  }
+
   const supabase = await createClient();
 
   const updates: Record<string, unknown> = {};
@@ -94,6 +106,7 @@ export async function updateProduct(productId: string, data: Partial<ProductForm
   if (data.harvest_date !== undefined) updates.harvest_date = data.harvest_date || null;
   if (data.available_until !== undefined) updates.available_until = data.available_until || null;
   if (data.status !== undefined) updates.status = data.status;
+  if (data.image_path !== undefined) updates.image_path = data.image_path || null;
 
   const { error } = await supabase
     .from("products")

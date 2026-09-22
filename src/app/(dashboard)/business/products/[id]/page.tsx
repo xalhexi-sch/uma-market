@@ -2,11 +2,12 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { RiArrowLeftLine, RiPlantLine, RiMapPinLine } from "@remixicon/react";
+import { RiArrowLeftLine, RiPlantLine, RiMapPinLine, RiCheckboxCircleFill } from "@remixicon/react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AddToCartControls } from "@/components/dashboard/add-to-cart-controls";
 import { getProductById } from "@/lib/supabase/queries/products";
+import { getProductImageUrl } from "@/lib/supabase/storage";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -41,6 +42,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     product.farmer?.full_name ||
     "Local Farm";
   const isAvailable = product.quantity_available > 0;
+  const imageUrl = getProductImageUrl(product.image_path, product.image_url);
 
   return (
     <div className="flex flex-col gap-0 min-h-full">
@@ -59,10 +61,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
         {/* Image */}
         <div className="w-full lg:w-[420px] shrink-0">
           <div className="aspect-square w-full rounded-xl overflow-hidden bg-muted">
-            {product.image_url ? (
+            {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={product.image_url}
+                src={imageUrl}
                 alt={product.name}
                 className="h-full w-full object-cover"
               />
@@ -116,6 +118,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
             <div className="flex items-center gap-2">
               <RiPlantLine className="size-4 text-primary" />
               <span className="text-sm font-medium text-foreground">{farmerName}</span>
+              {product.farmer?.is_verified && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                  <RiCheckboxCircleFill className="size-3.5" />
+                  Verified Local Producer
+                </span>
+              )}
             </div>
             {product.farmer?.city && (
               <div className="flex items-center gap-2 ml-6">

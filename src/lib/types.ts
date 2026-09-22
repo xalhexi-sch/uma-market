@@ -43,13 +43,14 @@ export interface Product {
   quantity_available: number;
   min_order_quantity: number;
   image_url: string | null;
+  image_path: string | null;
   harvest_date: string | null;
   available_until: string | null;
   status: ProductStatus;
   created_at: string;
   updated_at: string;
   // Joined
-  farmer?: Pick<Profile, "clerk_id" | "full_name" | "business_name" | "city" | "avatar_url" | "bio" | "phone">;
+  farmer?: Pick<Profile, "clerk_id" | "full_name" | "business_name" | "city" | "avatar_url" | "bio" | "phone" | "is_verified">;
   category?: Pick<Category, "id" | "name" | "slug">;
 }
 

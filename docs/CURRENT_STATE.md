@@ -7,10 +7,10 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Slice 3 — Communications, Operations & Platform Polish**
-- **Current Checkpoint:** Final Slice 3 QA & Multi-User Verification Completed (100% Verified)
-- **Slice 2 Status:** ✅ **Complete & Fully Verified**
+- **Current Slice:** **Slice 4 — Production Readiness, Visual Commerce & Mobile Polish**
+- **Current Checkpoint:** Checkpoint 4.1 Completed (Visual Commerce & Supabase Storage)
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
+- **Slice 4 Status:** ⏳ **IN PROGRESS (Checkpoint 4.1 Verified)**
 
 ---
 
@@ -60,12 +60,25 @@
   - Cleaned up navigation items in `src/components/dashboard/sidebar.tsx` removing any placeholder links.
   - All navigation links route to functional, styled pages with active route highlighting (16 routes verified with 0 404s).
 
+### Slice 4 — Production Readiness, Visual Commerce & Mobile Polish (In Progress ⏳)
+- [x] **Checkpoint 4.1: Visual Commerce & Supabase Storage (Verified ✅):**
+  - Added canonical `image_path TEXT` column to `public.products` (Migration `20260923000001_slice4_storage.sql`).
+  - Created public Supabase Storage bucket `product-images` with 5MB limit and JPEG/PNG/WebP constraints.
+  - Storage RLS: Public SELECT, authenticated farmer folder-isolated INSERT/UPDATE/DELETE (`products/{auth.jwt()->>'sub'}/*`).
+  - Browser-authenticated direct upload via `useSupabase()` with active Clerk session; zero secret key exposure.
+  - Farmer `ProductForm` client component with drag/click upload, live thumbnail preview, and removal.
+  - Server Action validation checking path ownership (`products/${userId}/...`) before persisting `image_path`.
+  - Dynamic CDN URL resolution (`getProductImageUrl`) on `ProductCard` and `/business/products/[id]`.
+
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Completed Slice 3 QA checkpoint and pushed to `origin/main`.
-- Awaiting user direction for subsequent phase.
+- Proceeding to **Checkpoint 4.2: Discovery, Sorting & Trust Verification**.
+  - Extending `getActiveProducts` with sorting (price low-high, harvest newest, alphabetical) and in-stock filtering.
+  - Implementing admin verification workflow (`toggleProfileVerification` server action) in `/admin/farmers` and `/admin/businesses`.
+  - Displaying green "Verified Local Producer" trust badge on product cards and farm profile.
+  - Adding structured cancellation reason modal in `order-status-actions.tsx`.
 
 ---
 

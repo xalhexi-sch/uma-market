@@ -26,8 +26,8 @@ export async function getActiveProducts({
       `
       id, farmer_clerk_id, category_id, name, description,
       price_per_unit, unit, quantity_available, min_order_quantity,
-      image_url, harvest_date, available_until, status, created_at, updated_at,
-      farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, phone),
+      image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
+      farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, phone, is_verified),
       category:categories(id, name, slug)
     `
     )
@@ -64,8 +64,8 @@ export async function getProductById(id: string): Promise<Product | null> {
       `
       id, farmer_clerk_id, category_id, name, description,
       price_per_unit, unit, quantity_available, min_order_quantity,
-      image_url, harvest_date, available_until, status, created_at, updated_at,
-      farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, phone),
+      image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
+      farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, phone, is_verified),
       category:categories(id, name, slug)
     `
     )
@@ -89,7 +89,7 @@ export async function getFarmerProducts(farmerClerkId: string): Promise<Product[
       `
       id, farmer_clerk_id, category_id, name, description,
       price_per_unit, unit, quantity_available, min_order_quantity,
-      image_url, harvest_date, available_until, status, created_at, updated_at,
+      image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
       category:categories(id, name, slug)
     `
     )
@@ -115,7 +115,7 @@ export async function getFarmerProductById(
       `
       id, farmer_clerk_id, category_id, name, description,
       price_per_unit, unit, quantity_available, min_order_quantity,
-      image_url, harvest_date, available_until, status, created_at, updated_at,
+      image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
       category:categories(id, name, slug)
     `
     )
