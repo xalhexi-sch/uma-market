@@ -74,7 +74,37 @@ All tests below were executed and verified against the **live remote Supabase da
 
 ---
 
+## Slice 3 — Communications, Operations & Platform Polish
+**Status:** ✅ **Complete & Verified**
+
+### Checkpoints:
+- [x] **Profile Operations:**
+  - Implemented `getProfileByClerkId` in `src/lib/supabase/queries/profiles.ts`.
+  - Implemented `updateProfile` Server Action in `src/app/(dashboard)/profile/actions.ts` with Clerk session auth and RLS ownership verification.
+  - Implemented `ProfileForm` client component in `src/components/dashboard/profile-form.tsx` supporting contact person, business/farm name, phone, city, delivery address / pickup notes, and bio.
+  - Built buyer profile page (`/business/profile`) and farmer profile page (`/farmer/profile`).
+- [x] **Order-Threaded Direct Messaging:**
+  - Implemented `getOrderMessages` and `getUserConversations` in `src/lib/supabase/queries/messages.ts` with resilient counterparty profile lookup.
+  - Implemented `sendMessage` Server Action in `src/app/(dashboard)/messages/actions.ts` checking order participant authorization.
+  - Implemented `OrderChat` component in `src/components/dashboard/order-chat.tsx` with optimistic UI append, auto-scroll, and sender/counterparty bubble distinction.
+  - Embedded `OrderChat` directly into order detail views: `/business/orders/[id]` and `/farmer/orders/[id]`.
+  - Implemented `ConversationsList` in `src/components/dashboard/conversations-list.tsx` and centralized inboxes: `/business/messages` and `/farmer/messages`.
+- [x] **Admin Oversight & Moderation:**
+  - Implemented `getAdminMetrics`, `getAdminProducts`, `getAdminOrders`, and `getAdminProfiles` in `src/lib/supabase/queries/admin.ts` using Supabase admin client.
+  - Implemented `moderateProductStatus` Server Action in `src/app/(dashboard)/admin/actions.ts` for instant catalog moderation (archiving / restoring listings).
+  - Built `/admin` dashboard overview with live KPI cards (Total Farmers, Active Buyers, Listed Produce, Wholesale Volume).
+  - Built `/admin/products` catalog moderation with status filters and listing action buttons.
+  - Built `/admin/orders` global wholesale audit log.
+  - Built `/admin/farmers` producer directory.
+  - Built `/admin/businesses` commercial buyer directory.
+- [x] **Navigation & Quality Polish:**
+  - Aligned navigation in `src/components/dashboard/sidebar.tsx` to remove non-existent placeholder routes and wire all implemented admin routes.
+  - Verified `npm run lint` passes with 0 errors and 0 warnings.
+  - Verified `npm run build` compiles 25 dynamic routes cleanly with Turbopack.
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
-- **Slice 3:** ⏳ **READY TO BEGIN**
+- **Slice 3:** ✅ Complete & Verified Across All Checkpoints

@@ -4,7 +4,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { RiArrowLeftLine, RiPlantLine, RiTruckLine, RiStore2Line } from "@remixicon/react";
 import { getBusinessOrderById } from "@/lib/supabase/queries/orders";
+import { getOrderMessages } from "@/lib/supabase/queries/messages";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
+import { OrderChat } from "@/components/dashboard/order-chat";
 import { CURRENCY, FULFILLMENT_LABELS, ORDER_STATUS_LABELS } from "@/lib/constants";
 import type { UserRole, OrderStatus } from "@/lib/constants";
 
@@ -30,10 +32,13 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
   const order = await getBusinessOrderById(id, userId);
   if (!order) notFound();
 
+  const messages = await getOrderMessages(order.id);
+
   const farmerName = order.farmer?.business_name || order.farmer?.full_name || "Local Farm";
   const isDelivery = order.fulfillment_type === "seller_delivery";
   const isCancelled = order.status === "cancelled";
   const activeIndex = isCancelled ? -1 : STATUS_FLOW.indexOf(order.status as OrderStatus);
+
 
   return (
     <div className="flex flex-col gap-0 min-h-full">
@@ -167,7 +172,16 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
             )}
           </div>
         </div>
+
+        {/* Order Communications */}
+        <OrderChat
+          orderId={order.id}
+          currentUserId={userId}
+          initialMessages={messages}
+          counterpartyName={farmerName}
+        />
       </div>
     </div>
   );
 }
+

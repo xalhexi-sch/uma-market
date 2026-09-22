@@ -115,3 +115,15 @@ This document records the binding architectural, product, and engineering decisi
 
 - **Core Rule:** Do NOT add features simply because other consumer marketplaces have them.
 - **Evaluation Filter:** Every capability must directly serve the core problem: **enabling predictable, direct B2B agricultural procurement between local Butuan farmers and commercial food establishments**.
+
+---
+
+## 12. Order-Threaded B2B Communications & Admin Oversight (Slice 3)
+
+- **Order-Threaded Messaging:**
+  - Communications in UMA Market are strictly structured around commercial transactions (orders). Unstructured global social chat or unsolicited buyer outreach is rejected in favor of transaction-contextual direct messaging.
+  - Every message is tied to an `order_id` between buyer and seller.
+  - Both parties can communicate directly regarding harvest readiness, fulfillment timing, pickup locations, or delivery adjustments.
+- **Admin Oversight:**
+  - The admin role maintains a read-all audit interface across all platform orders, registered farmers, commercial buyers, and produce listings.
+  - Listing moderation allows administrative intervention (archiving problematic listings or reactivating compliant produce) using authenticated admin server actions.

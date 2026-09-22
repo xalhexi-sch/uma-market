@@ -2,16 +2,22 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import {
-  RiUserLine,
+  RiPlantLine,
   RiStoreLine,
   RiShoppingBagLine,
-  RiAlertLine,
+  RiMoneyDollarCircleLine,
+  RiShieldCheckLine,
   RiArrowRightLine,
 } from "@remixicon/react";
 import Link from "next/link";
+import { getAdminMetrics } from "@/lib/supabase/queries/admin";
+import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
-export const metadata: Metadata = { title: "Admin Dashboard" };
+export const metadata: Metadata = {
+  title: "Admin Dashboard — UMA Market",
+  description: "Platform-wide operations, metrics, and marketplace governance.",
+};
 
 export default async function AdminDashboardPage() {
   const { sessionClaims } = await auth();
@@ -23,44 +29,72 @@ export default async function AdminDashboardPage() {
     redirect("/onboarding");
   }
 
+  const metrics = await getAdminMetrics();
+
   return (
-    <div className="flex flex-col gap-8 p-8">
+    <div className="flex flex-col gap-8 p-6 lg:p-8 max-w-6xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Admin Overview
-        </h1>
+        <div className="flex items-center gap-2">
+          <RiShieldCheckLine className="size-6 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Platform Administration
+          </h1>
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Platform-wide status and pending actions.
+          Platform-wide health, marketplace participants, and regional trade metrics for Butuan City.
         </p>
       </div>
 
       {/* Metric cards */}
-      <div className="grid gap-4 sm:grid-cols-4">
-        <MetricCard label="Farmers" value="—" icon={<RiUserLine className="size-5 text-primary" />} href="/admin/farmers" />
-        <MetricCard label="Businesses" value="—" icon={<RiStoreLine className="size-5 text-primary" />} href="/admin/businesses" />
-        <MetricCard label="Active Orders" value="—" icon={<RiShoppingBagLine className="size-5 text-amber-600" />} href="/admin/orders" />
-        <MetricCard label="Pending Verification" value="—" icon={<RiAlertLine className="size-5 text-destructive" />} href="/admin/verification" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          label="Registered Farmers"
+          value={metrics.totalFarmers.toString()}
+          icon={<RiPlantLine className="size-5 text-emerald-600" />}
+          href="/admin/products"
+          description="Local farm suppliers"
+        />
+        <MetricCard
+          label="Commercial Buyers"
+          value={metrics.totalBusinesses.toString()}
+          icon={<RiStoreLine className="size-5 text-blue-600" />}
+          href="/admin/orders"
+          description="Restaurants, hotels & caterers"
+        />
+        <MetricCard
+          label="Listed Produce"
+          value={metrics.totalProducts.toString()}
+          icon={<RiShoppingBagLine className="size-5 text-amber-600" />}
+          href="/admin/products"
+          description="Active agricultural listings"
+        />
+        <MetricCard
+          label="Wholesale Volume"
+          value={`${CURRENCY}${metrics.totalVolume.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
+          icon={<RiMoneyDollarCircleLine className="size-5 text-primary" />}
+          href="/admin/orders"
+          description="Gross marketplace orders"
+        />
       </div>
 
-      {/* Quick actions */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <ActionCard title="Manage farmers" description="View, verify, and moderate farmer accounts." href="/admin/farmers" label="View farmers" />
-        <ActionCard title="Manage businesses" description="Review and verify business registrations." href="/admin/businesses" label="View businesses" />
-        <ActionCard title="Verification queue" description="Review accounts pending identity verification." href="/admin/verification" label="Open queue" />
+      {/* Quick management hubs */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ActionCard
+          title="Produce Moderation"
+          description="Audit agricultural crop listings, review pricing per kg/unit, and toggle listing active/archived status."
+          href="/admin/products"
+          label="Review Produce Catalog"
+          icon={<RiShoppingBagLine className="size-5 text-primary" />}
+        />
+        <ActionCard
+          title="Wholesale Order Audits"
+          description="Inspect live purchase orders, monitor pickup and seller delivery execution, and review order timelines."
+          href="/admin/orders"
+          label="View All Orders"
+          icon={<RiStoreLine className="size-5 text-primary" />}
+        />
       </div>
-
-      {/* Recent activity placeholder */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Recent Activity</h2>
-        </div>
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 px-6 py-12 text-center">
-          <RiAlertLine className="size-8 text-muted-foreground/50" />
-          <p className="mt-3 text-sm font-medium text-foreground">No activity yet.</p>
-          <p className="mt-1 text-xs text-muted-foreground">Platform events will appear here.</p>
-        </div>
-      </section>
     </div>
   );
 }
@@ -70,22 +104,27 @@ function MetricCard({
   value,
   icon,
   href,
+  description,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
   href: string;
+  description: string;
 }) {
   return (
     <Link
       href={href}
-      className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+      className="flex flex-col justify-between rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
         {icon}
       </div>
-      <p className="text-2xl font-semibold text-foreground">{value}</p>
+      <div className="mt-3">
+        <p className="text-2xl font-bold tracking-tight text-foreground tabular-nums">{value}</p>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      </div>
     </Link>
   );
 }
@@ -95,22 +134,32 @@ function ActionCard({
   description,
   href,
   label,
+  icon,
 }: {
   title: string;
   description: string;
   href: string;
   label: string;
+  icon: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
+    <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-6 shadow-sm">
       <div>
-        <p className="font-medium text-foreground">{title}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <div className="flex items-center gap-2 mb-2">
+          {icon}
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        </div>
+        <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
       </div>
-      <Link href={href} className="flex w-fit items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-        {label}
-        <RiArrowRightLine className="size-3.5" />
-      </Link>
+      <div className="mt-6">
+        <Link
+          href={href}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+        >
+          <span>{label}</span>
+          <RiArrowRightLine className="size-4" />
+        </Link>
+      </div>
     </div>
   );
 }

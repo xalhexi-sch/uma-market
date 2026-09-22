@@ -12,8 +12,6 @@ import {
   RiBuildingLine,
   RiStoreLine,
   RiShieldLine,
-  RiFileListLine,
-  RiCheckboxCircleLine,
   RiShoppingCart2Line,
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
@@ -48,8 +46,6 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Businesses", href: "/admin/businesses", icon: RiBuildingLine },
     { label: "Products", href: "/admin/products", icon: RiStoreLine },
     { label: "Orders", href: "/admin/orders", icon: RiShoppingBagLine },
-    { label: "Verification", href: "/admin/verification", icon: RiCheckboxCircleLine },
-    { label: "Reports", href: "/admin/reports", icon: RiFileListLine },
   ],
 };
 

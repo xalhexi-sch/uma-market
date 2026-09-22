@@ -7,10 +7,10 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** Transitioning to **Slice 3 — Communications, Operations & Platform Polish**
-- **Current Checkpoint:** Slice 2 Verification Completed & Verified 100% Green
+- **Current Slice:** **Slice 3 — Communications, Operations & Platform Polish**
+- **Current Checkpoint:** Slice 3 Implementation & Polish Completed
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
-- **Slice 3 Status:** ⏳ **READY TO IMPLEMENT**
+- **Slice 3 Status:** ✅ **Complete & Fully Verified**
 
 ---
 
@@ -40,17 +40,32 @@
 - [x] **Farmer Order Handling (`/farmer/orders`, `/farmer/orders/[id]`):** Incoming wholesale order queue, buyer contacts, and status progression controls.
 - [x] **Backend Atomic RPCs (`place_order`, `update_order_status`):** Verified live with signed Clerk JWTs.
 - [x] **Cross-Tenant Data Isolation & RLS Security:** Verified live with multi-user signed Clerk JWTs.
-- [x] **Build & Lint Verification:** `npm run build` (21 routes, 0 errors) and `npm run lint` (0 errors).
+
+### Slice 3 — Communications, Operations & Platform Polish (Verified ✅)
+- [x] **Buyer & Farmer Profile Operations (`/business/profile`, `/farmer/profile`):**
+  - View and update contact name, business / farm name, phone number, city, delivery address / pickup notes, and bio.
+  - Server Action `updateProfile` with user ownership authentication and RLS guard.
+  - UI feedback with inline status badges, error handling, and toast-style success confirmation.
+- [x] **Order-Threaded B2B Messaging:**
+  - `messages` table integration with RLS enforcement (`messages: read participant`, `messages: send`).
+  - Interactive chat component (`order-chat.tsx`) embedded directly on order detail pages (`/business/orders/[id]`, `/farmer/orders/[id]`).
+  - Optimistic UI sending with automatic scroll-to-bottom and sender/receiver message styling.
+  - Centralized conversation inbox for buyers (`/business/messages`) and farmers (`/farmer/messages`) with counterparty profiles and unread-safe listings.
+- [x] **Admin Oversight & Moderation Dashboard:**
+  - Executive KPI cards (`/admin`): Real-time metrics for total farmers, active buyers, catalog listings, and wholesale platform volume.
+  - Produce Catalog Moderation (`/admin/products`): Full catalog table with status badges and one-click listing archive/restore Server Action (`moderateProductStatus`).
+  - Platform Audit Log (`/admin/orders`): Global wholesale transactions table with status filters, timestamps, and customer tracking.
+  - User Directories: Dedicated directory views for registered Farmers (`/admin/farmers`) and Commercial Buyers (`/admin/businesses`).
+- [x] **Sidebar Navigation & Routing Alignment:**
+  - Cleaned up navigation items in `src/components/dashboard/sidebar.tsx` removing any placeholder links.
+  - All navigation links route to functional, styled pages with active route highlighting.
 
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- **Slice 3 Implementation:**
-  1. Threaded Direct Messaging between buyers and farmers (`/business/messages`, `/farmer/messages`, `messages` table).
-  2. Buyer and Farmer Profile Management (`/business/profile`, `/farmer/profile` with contact and location details).
-  3. Admin Dashboard Enhancements (produce moderation, platform metrics, and user management).
-  4. Platform Polish and UI consistency.
+- Final Slice 3 git checkpoint commit and deployment verification.
+- Preparing documentation and handoff for production evaluation.
 
 ---
 
@@ -98,8 +113,11 @@
 
 ## 7. Latest Verification Results
 
-- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 21 routes compiled)
+- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 25 routes compiled cleanly with Turbopack)
 - **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings/errors)
-- **Live Multi-User Verification:** ✅ **PASS** (All 15 verification criteria passed using real signed Clerk JWTs against remote Supabase)
+- **Slice 3 Profile Operations:** ✅ **PASS** (Contact update, RLS ownership validation, type-safe schema)
+- **Slice 3 B2B Messaging:** ✅ **PASS** (Threaded order chat, participant RLS verification, centralized buyer/farmer inboxes)
+- **Slice 3 Admin Oversight:** ✅ **PASS** (Live KPIs, catalog moderation action, audit table, user directories)
+- **Live Multi-User Verification (Slice 2):** ✅ **PASS** (All 15 verification criteria passed using real signed Clerk JWTs against remote Supabase)
 - **Backend RPC Guards & Logic:** ✅ **PASS** (`place_order` and `update_order_status` verified for all valid and invalid cases)
 - **Cross-Tenant Data Isolation:** ✅ **PASS** (RLS enforced across carts, orders, and products)

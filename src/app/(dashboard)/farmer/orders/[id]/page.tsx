@@ -4,8 +4,10 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { RiArrowLeftLine, RiBuildingLine, RiTruckLine, RiStore2Line } from "@remixicon/react";
 import { getFarmerOrderById } from "@/lib/supabase/queries/orders";
+import { getOrderMessages } from "@/lib/supabase/queries/messages";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { OrderStatusActions } from "@/components/dashboard/order-status-actions";
+import { OrderChat } from "@/components/dashboard/order-chat";
 import { CURRENCY, FULFILLMENT_LABELS } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -29,8 +31,11 @@ export default async function FarmerOrderDetailPage({ params }: PageProps) {
   const order = await getFarmerOrderById(id, userId);
   if (!order) notFound();
 
+  const messages = await getOrderMessages(order.id);
+
   const bizName = order.business?.business_name || order.business?.full_name || "Business";
   const isDelivery = order.fulfillment_type === "seller_delivery";
+
 
   return (
     <div className="flex flex-col gap-0 min-h-full">
@@ -139,7 +144,16 @@ export default async function FarmerOrderDetailPage({ params }: PageProps) {
             )}
           </div>
         </div>
+
+        {/* Order Communications */}
+        <OrderChat
+          orderId={order.id}
+          currentUserId={userId}
+          initialMessages={messages}
+          counterpartyName={bizName}
+        />
       </div>
     </div>
   );
 }
+
