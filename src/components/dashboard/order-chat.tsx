@@ -5,6 +5,7 @@ import { RiSendPlane2Line, RiMessage2Line } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sendMessage } from "@/app/(dashboard)/messages/actions";
+import { useSupabase } from "@/hooks/use-supabase";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/lib/types";
 
@@ -31,6 +32,57 @@ export function OrderChat({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const supabase = useSupabase();
+
+  // Supabase Realtime subscription for incoming order messages
+  useEffect(() => {
+    const channel = supabase
+      .channel(`order-messages:${orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `order_id=eq.${orderId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as Message;
+          if (!newMsg || !newMsg.id) return;
+
+          setMessages((prev) => {
+            // Deduplicate if message ID already exists
+            if (prev.some((m) => m.id === newMsg.id)) {
+              return prev;
+            }
+
+            // Replace optimistic message from same sender if matching
+            const optimisticIndex = prev.findIndex(
+              (m) =>
+                m.id.startsWith("temp-") &&
+                m.sender_clerk_id === newMsg.sender_clerk_id &&
+                m.body === newMsg.body
+            );
+            if (optimisticIndex !== -1) {
+              const next = [...prev];
+              next[optimisticIndex] = newMsg;
+              return next;
+            }
+
+            return [...prev, newMsg];
+          });
+        }
+      )
+      .subscribe((status, err) => {
+        if (err) {
+          console.warn(`[realtime] Subscription error on order ${orderId}:`, err);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, orderId]);
 
   // Auto-scroll to bottom on new message
   useEffect(() => {

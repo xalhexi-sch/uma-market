@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "@clerk/nextjs";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -31,6 +31,17 @@ export function useSupabase() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [session?.id]
   );
+
+  // Synchronize Clerk session token with Supabase Realtime WebSocket
+  useEffect(() => {
+    if (session) {
+      session.getToken().then((token) => {
+        if (token) {
+          supabase.realtime.setAuth(token);
+        }
+      });
+    }
+  }, [session, supabase]);
 
   return supabase;
 }

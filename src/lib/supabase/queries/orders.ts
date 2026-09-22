@@ -151,3 +151,41 @@ export async function getFarmerOrderMetrics(farmerClerkId: string) {
     completed: orders.filter((o) => o.status === "completed").length,
   };
 }
+
+/**
+ * Fetch pending orders count for a farmer (drives sidebar operational badge).
+ */
+export async function getFarmerPendingOrderCount(farmerClerkId: string): Promise<number> {
+  const supabase = await createClient();
+
+  const { count, error } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("farmer_clerk_id", farmerClerkId)
+    .eq("status", "pending");
+
+  if (error) {
+    console.error("[orders] getFarmerPendingOrderCount error:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/**
+ * Fetch active orders in 'ready' or 'for_delivery' for a commercial buyer (drives sidebar operational badge).
+ */
+export async function getBusinessActiveOrderCount(businessClerkId: string): Promise<number> {
+  const supabase = await createClient();
+
+  const { count, error } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("business_clerk_id", businessClerkId)
+    .in("status", ["ready", "for_delivery"]);
+
+  if (error) {
+    console.error("[orders] getBusinessActiveOrderCount error:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}

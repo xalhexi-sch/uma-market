@@ -194,10 +194,38 @@ Executed and verified against the **live remote Supabase database** (`https://od
 | **Cross-Role Order RPC Guard** | Buyer Clerk JWT → `update_order_status` | ✅ **PASS** | Buyer rejected: `"Only farmers can update order status"` |
 | **Code Quality & Build** | `npm run lint` & `npm run build` | ✅ **PASS** | 0 errors, 0 warnings, 25 dynamic routes compiled cleanly via Turbopack |
 
+### Checkpoint 4.3: Realtime Coordination & Operational Alerts (Verified ✅)
+- **Supabase Realtime Architecture:**
+  - Verified remote publication `supabase_realtime` includes `public.messages`.
+  - Added Clerk session JWT synchronization with Supabase Realtime WebSocket client in `src/hooks/use-supabase.ts`.
+  - Upgraded `src/components/dashboard/order-chat.tsx` with `supabase.channel('order-messages:${orderId}')` listening to `postgres_changes` INSERT events.
+  - Implemented deduplication and optimistic message replacement logic with automatic scroll and cleanup on unmount.
+- **Operational Sidebar Badges:**
+  - Added `getFarmerPendingOrderCount` in `src/lib/supabase/queries/orders.ts` for farmer pending orders awaiting review.
+  - Added `getBusinessActiveOrderCount` in `src/lib/supabase/queries/orders.ts` for buyer active orders in `ready` or `for_delivery`.
+  - Updated `src/app/(dashboard)/layout.tsx` to fetch scoped operational counts per authenticated role.
+  - Updated `src/components/dashboard/sidebar.tsx` with color-coded badges (`amber-600` for Farmer pending orders, `emerald-600` for Business ready/delivery orders, `primary` for Cart) that automatically suppress when count = 0.
+- **Live Verification Results (Live Remote Supabase & Multi-User Signed Clerk JWTs):**
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **Realtime Channel Connect** | Authenticated Clerk JWT → Supabase Realtime | ✅ **PASS** | Subscribed status confirmed for Farmer and Buyer channels |
+| **Business → Farmer Realtime Message** | Buyer Insert → Farmer Realtime Listener | ✅ **PASS** | Farmer received new message in real time without page refresh |
+| **Farmer → Business Realtime Reply** | Farmer Insert → Buyer Realtime Listener | ✅ **PASS** | Buyer received farmer reply in real time without page refresh |
+| **Participant Privacy via Realtime** | Intruder Realtime Listener on shared order | ✅ **PASS** | Unrelated user received 0 events (RLS enforced at Realtime layer) |
+| **Anti-Tamper Message Injection** | Intruder Clerk JWT → `messages` insert | ✅ **PASS** | Blocked: `"new row violates row-level security policy for table messages"` |
+| **Realtime Channel Cleanup** | `removeChannel` on unmount/teardown | ✅ **PASS** | All channels cleanly removed; zero subscription leaks |
+| **Farmer Pending Orders Badge** | Server Component Query → `getFarmerPendingOrderCount` | ✅ **PASS** | Pending orders accurately counted and displayed on "Orders" nav |
+| **Farmer Badge Update on Transition** | `update_order_status` RPC (pending → accepted) | ✅ **PASS** | Badge count decremented accurately from 1 → 0 upon status transition |
+| **Business Active Orders Badge** | Server Component Query → `getBusinessActiveOrderCount` | ✅ **PASS** | Orders in `ready` or `for_delivery` counted and displayed |
+| **Business Badge Completion Update** | Order status transition to `completed` | ✅ **PASS** | Badge count decremented from 1 → 0; disappeared cleanly |
+| **Cross-Tenant Count Isolation** | Intruder query on Buyer1's orders | ✅ **PASS** | RLS returned count = 0; cross-user order counting blocked |
+| **Code Quality & Build** | `npm run lint` & `npm run build` | ✅ **PASS** | 0 errors, 0 warnings, 25 dynamic routes compiled cleanly via Turbopack |
+
 ---
 
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
 - **Slice 3:** ✅ Complete & Verified Across All Checkpoints & Security Matrix
-- **Slice 4:** ⏳ In Progress (Checkpoints 4.1 & 4.2 Verified)
+- **Slice 4:** ⏳ In Progress (Checkpoints 4.1, 4.2 & 4.3 Verified)

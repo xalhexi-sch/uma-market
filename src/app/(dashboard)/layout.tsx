@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import type { UserRole } from "@/lib/constants";
 import { getCartItemCount } from "@/lib/supabase/queries/cart";
+import {
+  getFarmerPendingOrderCount,
+  getBusinessActiveOrderCount,
+} from "@/lib/supabase/queries/orders";
 
 /**
  * Shared layout for all authenticated dashboards.
@@ -32,15 +36,31 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
-  // Fetch cart count for business users (drives sidebar badge)
+  // Fetch operational counts for sidebar badges
   let cartCount = 0;
+  let farmerPendingCount = 0;
+  let businessActiveOrderCount = 0;
+
   if (role === "business") {
-    cartCount = await getCartItemCount(userId);
+    const [cCount, oCount] = await Promise.all([
+      getCartItemCount(userId),
+      getBusinessActiveOrderCount(userId),
+    ]);
+    cartCount = cCount;
+    businessActiveOrderCount = oCount;
+  } else if (role === "farmer") {
+    farmerPendingCount = await getFarmerPendingOrderCount(userId);
   }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <DashboardSidebar role={role} userId={userId} cartCount={cartCount} />
+      <DashboardSidebar
+        role={role}
+        userId={userId}
+        cartCount={cartCount}
+        farmerPendingCount={farmerPendingCount}
+        businessActiveOrderCount={businessActiveOrderCount}
+      />
       <main className="flex flex-1 flex-col overflow-y-auto">
         {children}
       </main>

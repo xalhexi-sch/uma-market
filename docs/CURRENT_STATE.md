@@ -8,9 +8,9 @@
 ## 1. Current Slice & Checkpoint
 
 - **Current Slice:** **Slice 4 — Production Readiness, Visual Commerce & Mobile Polish**
-- **Current Checkpoint:** Checkpoint 4.2 Completed (Discovery, Sorting & Trust Verification)
+- **Current Checkpoint:** Checkpoint 4.3 Completed (Realtime Coordination & Operational Alerts)
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
-- **Slice 4 Status:** ⏳ **IN PROGRESS (Checkpoints 4.1 & 4.2 Verified)**
+- **Slice 4 Status:** ⏳ **IN PROGRESS (Checkpoints 4.1, 4.2 & 4.3 Verified)**
 
 ---
 
@@ -77,14 +77,22 @@
   - Displayed "Verified Local Producer" trust badge on `ProductCard` and product detail header when producer is verified.
   - Implemented structured cancellation reason modal flow in `order-status-actions.tsx` with preset reasons and custom detail notes, persisted via `update_order_status` RPC.
   - Verified 13/13 test cases against remote Supabase with signed Clerk JWTs.
+- [x] **Checkpoint 4.3: Realtime Coordination & Operational Alerts (Verified ✅):**
+  - Upgraded `OrderChat` component with Supabase Realtime Postgres Changes subscription for order-scoped `messages` INSERT events.
+  - Integrated Clerk session token sync with Supabase Realtime WebSocket client in `useSupabase()`.
+  - Implemented duplicate prevention and seamless optimistic-to-server message transition.
+  - Verified bidirectional live chat between Commercial Buyer and Farmer without manual page reload.
+  - Verified cross-tenant participant privacy (unrelated third-party receives 0 events; injection blocked by RLS).
+  - Implemented operational sidebar badges for Farmers (pending review orders) and Commercial Buyers (ready / for_delivery orders) with automatic zero-count suppression.
+  - Verified 8/8 test cases in live test suite against remote Supabase with multi-user signed Clerk JWTs.
 
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Checkpoint 4.2 completed and verified. Awaiting user direction to begin **Checkpoint 4.3: Realtime Coordination & Operational Alerts**.
-  - Supabase Realtime Postgres Changes subscription for order-threaded chat in `order-chat.tsx`.
-  - Pending orders operational count indicator on farmer sidebar.
+- Checkpoint 4.3 completed and verified. Awaiting user direction to begin **Checkpoint 4.4: Mobile Navigation & Production Hardening**.
+  - Mobile slide-over navigation drawer and viewport hamburger trigger for < 768px viewports.
+  - Global error boundaries (`error.tsx`) with retry recovery.
 
 ---
 

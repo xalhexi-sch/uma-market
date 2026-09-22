@@ -21,14 +21,14 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  badgeKey?: "cart"; // which badge to show
+  badgeKey?: "cart" | "farmerOrders" | "businessOrders";
 }
 
 const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   farmer: [
     { label: "Dashboard", href: "/farmer", icon: RiDashboardLine },
     { label: "My Products", href: "/farmer/products", icon: RiPlantLine },
-    { label: "Orders", href: "/farmer/orders", icon: RiShoppingBagLine },
+    { label: "Orders", href: "/farmer/orders", icon: RiShoppingBagLine, badgeKey: "farmerOrders" },
     { label: "Messages", href: "/farmer/messages", icon: RiMessage2Line },
     { label: "Profile", href: "/farmer/profile", icon: RiUserLine },
   ],
@@ -36,7 +36,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Dashboard", href: "/business", icon: RiDashboardLine },
     { label: "Products", href: "/business/products", icon: RiStoreLine },
     { label: "Cart", href: "/business/cart", icon: RiShoppingCart2Line, badgeKey: "cart" },
-    { label: "Orders", href: "/business/orders", icon: RiShoppingBagLine },
+    { label: "Orders", href: "/business/orders", icon: RiShoppingBagLine, badgeKey: "businessOrders" },
     { label: "Messages", href: "/business/messages", icon: RiMessage2Line },
     { label: "Profile", href: "/business/profile", icon: RiUserLine },
   ],
@@ -59,9 +59,16 @@ interface DashboardSidebarProps {
   role: UserRole;
   userId: string;
   cartCount?: number;
+  farmerPendingCount?: number;
+  businessActiveOrderCount?: number;
 }
 
-export function DashboardSidebar({ role, cartCount = 0 }: DashboardSidebarProps) {
+export function DashboardSidebar({
+  role,
+  cartCount = 0,
+  farmerPendingCount = 0,
+  businessActiveOrderCount = 0,
+}: DashboardSidebarProps) {
   const pathname = usePathname();
   const navItems = NAV_ITEMS[role];
 
@@ -86,7 +93,21 @@ export function DashboardSidebar({ role, cartCount = 0 }: DashboardSidebarProps)
               item.href === `/${role}`
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
-            const badge = item.badgeKey === "cart" && cartCount > 0 ? cartCount : null;
+
+            let badge: number | null = null;
+            let badgeVariant: "primary" | "amber" | "emerald" = "primary";
+
+            if (item.badgeKey === "cart" && cartCount > 0) {
+              badge = cartCount;
+              badgeVariant = "primary";
+            } else if (item.badgeKey === "farmerOrders" && farmerPendingCount > 0) {
+              badge = farmerPendingCount;
+              badgeVariant = "amber";
+            } else if (item.badgeKey === "businessOrders" && businessActiveOrderCount > 0) {
+              badge = businessActiveOrderCount;
+              badgeVariant = "emerald";
+            }
+
             return (
               <li key={item.href}>
                 <Link
@@ -101,7 +122,14 @@ export function DashboardSidebar({ role, cartCount = 0 }: DashboardSidebarProps)
                   <item.icon className="size-4 shrink-0" />
                   <span className="flex-1">{item.label}</span>
                   {badge !== null && (
-                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    <span
+                      className={cn(
+                        "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",
+                        badgeVariant === "primary" && "bg-primary text-primary-foreground",
+                        badgeVariant === "amber" && "bg-amber-600",
+                        badgeVariant === "emerald" && "bg-emerald-600"
+                      )}
+                    >
                       {badge > 99 ? "99+" : badge}
                     </span>
                   )}
