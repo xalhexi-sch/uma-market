@@ -1,9 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Product, Category } from "@/lib/types";
 
+export type ProductSort = "price_asc" | "price_desc" | "harvest_newest" | "newest" | "name_asc";
+
 export interface ProductFilters {
   search?: string;
   categorySlug?: string;
+  sort?: ProductSort;
+  inStockOnly?: boolean;
   page?: number;
   limit?: number;
 }
@@ -15,6 +19,8 @@ export interface ProductFilters {
 export async function getActiveProducts({
   search,
   categorySlug,
+  sort = "newest",
+  inStockOnly = true,
   page = 1,
   limit = 24,
 }: ProductFilters = {}): Promise<Product[]> {
@@ -31,14 +37,36 @@ export async function getActiveProducts({
       category:categories(id, name, slug)
     `
     )
-    .eq("status", "active")
-    .gt("quantity_available", 0)
-    .order("created_at", { ascending: false })
-    .range((page - 1) * limit, page * limit - 1);
+    .eq("status", "active");
+
+  if (inStockOnly) {
+    query = query.gt("quantity_available", 0);
+  }
 
   if (search) {
     query = query.ilike("name", `%${search}%`);
   }
+
+  switch (sort) {
+    case "price_asc":
+      query = query.order("price_per_unit", { ascending: true });
+      break;
+    case "price_desc":
+      query = query.order("price_per_unit", { ascending: false });
+      break;
+    case "harvest_newest":
+      query = query.order("harvest_date", { ascending: false, nullsFirst: false });
+      break;
+    case "name_asc":
+      query = query.order("name", { ascending: true });
+      break;
+    case "newest":
+    default:
+      query = query.order("created_at", { ascending: false });
+      break;
+  }
+
+  query = query.range((page - 1) * limit, page * limit - 1);
 
   const { data, error } = await query;
   if (error) throw error;

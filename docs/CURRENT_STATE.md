@@ -8,9 +8,9 @@
 ## 1. Current Slice & Checkpoint
 
 - **Current Slice:** **Slice 4 — Production Readiness, Visual Commerce & Mobile Polish**
-- **Current Checkpoint:** Checkpoint 4.1 Completed (Visual Commerce & Supabase Storage)
+- **Current Checkpoint:** Checkpoint 4.2 Completed (Discovery, Sorting & Trust Verification)
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
-- **Slice 4 Status:** ⏳ **IN PROGRESS (Checkpoint 4.1 Verified)**
+- **Slice 4 Status:** ⏳ **IN PROGRESS (Checkpoints 4.1 & 4.2 Verified)**
 
 ---
 
@@ -69,16 +69,22 @@
   - Farmer `ProductForm` client component with drag/click upload, live thumbnail preview, and removal.
   - Server Action validation checking path ownership (`products/${userId}/...`) before persisting `image_path`.
   - Dynamic CDN URL resolution (`getProductImageUrl`) on `ProductCard` and `/business/products/[id]`.
+- [x] **Checkpoint 4.2: Discovery, Sorting & Trust Verification (Verified ✅):**
+  - Extended `getActiveProducts` query with strict `ProductSort` typing (`price_asc`, `price_desc`, `harvest_newest`, `name_asc`, `newest`) and `inStockOnly` filtering.
+  - Added sorting dropdown and "In Stock Only" / "All Availability" select controls to `/business/products` with query parameter preservation across category navigation.
+  - Implemented `toggleProfileVerification(targetClerkId, isVerified)` server action guarded by `user_role === 'admin'`.
+  - Implemented interactive `AdminVerifyButton` in `/admin/farmers` and `/admin/businesses` directories with live optimistic UI state.
+  - Displayed "Verified Local Producer" trust badge on `ProductCard` and product detail header when producer is verified.
+  - Implemented structured cancellation reason modal flow in `order-status-actions.tsx` with preset reasons and custom detail notes, persisted via `update_order_status` RPC.
+  - Verified 13/13 test cases against remote Supabase with signed Clerk JWTs.
 
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Proceeding to **Checkpoint 4.2: Discovery, Sorting & Trust Verification**.
-  - Extending `getActiveProducts` with sorting (price low-high, harvest newest, alphabetical) and in-stock filtering.
-  - Implementing admin verification workflow (`toggleProfileVerification` server action) in `/admin/farmers` and `/admin/businesses`.
-  - Displaying green "Verified Local Producer" trust badge on product cards and farm profile.
-  - Adding structured cancellation reason modal in `order-status-actions.tsx`.
+- Checkpoint 4.2 completed and verified. Awaiting user direction to begin **Checkpoint 4.3: Realtime Coordination & Operational Alerts**.
+  - Supabase Realtime Postgres Changes subscription for order-threaded chat in `order-chat.tsx`.
+  - Pending orders operational count indicator on farmer sidebar.
 
 ---
 

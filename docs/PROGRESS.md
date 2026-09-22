@@ -139,7 +139,7 @@ Executed and verified against the **live remote Supabase database** (`https://od
 ---
 
 ## Slice 4 — Production Readiness, Visual Commerce & Mobile Polish
-**Status:** ⏳ **In Progress (Checkpoint 4.1 Verified)**
+**Status:** ⏳ **In Progress (Checkpoints 4.1 & 4.2 Verified)**
 
 ### Checkpoint 4.1: Visual Commerce & Supabase Storage (Verified ✅)
 - **Database & Storage Migration (`20260923000001_slice4_storage.sql`):**
@@ -161,10 +161,43 @@ Executed and verified against the **live remote Supabase database** (`https://od
   - Database `image_path` persisted and queried back: ✅ **PASS**
   - `npm run lint` & `npm run build`: ✅ **PASS** (0 errors, 0 warnings, 25 routes compiled)
 
+### Checkpoint 4.2: Discovery, Sorting & Trust Verification (Verified ✅)
+- **Query & Catalog Architecture:**
+  - Extended `getActiveProducts` in `src/lib/supabase/queries/products.ts` with typed sort (`price_asc`, `price_desc`, `harvest_newest`, `name_asc`, `newest`) and `inStockOnly` conditional filtering.
+  - Added sorting dropdown and "In Stock Only" / "All Availability" select controls in `/business/products` with query parameter preservation across category navigation.
+- **Trust & Verification Workflow:**
+  - Added `toggleProfileVerification(targetClerkId, isVerified)` server action in `src/app/(dashboard)/admin/actions.ts` with strict `user_role === 'admin'` authorization check.
+  - Built interactive `AdminVerifyButton` client component in `src/components/dashboard/admin-verify-button.tsx` with live optimistic transitions.
+  - Integrated verification toggle into `/admin/farmers` and `/admin/businesses` directory tables.
+  - Displayed "Verified Local Producer" trust badge on `ProductCard` and product detail header.
+- **Structured Order Cancellation Flow:**
+  - Implemented cancellation reason modal in `src/components/dashboard/order-status-actions.tsx` prompting farmers for structured reasons (`Harvest shortfall / out of stock`, `Logistics constraint`, `Pricing discrepancy`, `Buyer requested cancellation`, `Other reason`).
+  - Persisted cancellation reason and timestamp via `update_order_status` RPC to PostgreSQL `orders.cancellation_reason` and `orders.cancelled_at`.
+- **Live Verification Results (Live Remote Supabase & Signed Clerk JWTs):**
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **Price Low → High Sorting** | Buyer Clerk JWT → PostgREST query | ✅ **PASS** | Ascending price sort verified (₱45 Saba Bananas, ₱65 Tomatoes) |
+| **Price High → Low Sorting** | Buyer Clerk JWT → PostgREST query | ✅ **PASS** | Descending price sort verified (₱65 Tomatoes, ₱45 Saba Bananas) |
+| **Newest Harvest Sorting** | Buyer Clerk JWT → PostgREST query | ✅ **PASS** | Harvest date ordered descending with nulls last |
+| **Alphabetical Sorting** | Buyer Clerk JWT → PostgREST query | ✅ **PASS** | Alphabetical sorting ascending verified monotonically |
+| **In-Stock Filtering** | Buyer Clerk JWT → PostgREST query | ✅ **PASS** | Excluded zero-stock items with `quantity_available > 0` |
+| **Combination Filter Query** | Buyer Clerk JWT → PostgREST query | ✅ **PASS** | Category + Price Sort + In-Stock combination executed successfully |
+| **Admin Farmer Verification** | Admin Client → `profiles` update | ✅ **PASS** | Admin verified farmer, buyer view reflected verified badge |
+| **Admin Farmer Revocation** | Admin Client → `profiles` update | ✅ **PASS** | Admin revoked farmer verification, status set to `false` |
+| **Admin Buyer Verification** | Admin Client → `profiles` update | ✅ **PASS** | Admin verified commercial buyer, status persisted |
+| **Admin Buyer Revocation** | Admin Client → `profiles` update | ✅ **PASS** | Admin revoked buyer verification, status set to `false` |
+| **Server Action Guard** | Non-admin session claims check | ✅ **PASS** | Buyer and Farmer rejected with `"Unauthorized. Admin role required."` |
+| **Cross-Tenant RLS Guard** | Buyer Clerk JWT → Farmer profile | ✅ **PASS** | Cross-user profile modification blocked by RLS (0 rows affected) |
+| **Cancellation Reason Persist** | Farmer Clerk JWT → `update_order_status` | ✅ **PASS** | Transitioned to `cancelled`, `cancellation_reason` & `cancelled_at` persisted |
+| **Cancellation Terminal Guard** | Farmer Clerk JWT → `update_order_status` | ✅ **PASS** | Invalid transition from `cancelled` rejected: `"Order in terminal status cancelled cannot be updated"` |
+| **Cross-Role Order RPC Guard** | Buyer Clerk JWT → `update_order_status` | ✅ **PASS** | Buyer rejected: `"Only farmers can update order status"` |
+| **Code Quality & Build** | `npm run lint` & `npm run build` | ✅ **PASS** | 0 errors, 0 warnings, 25 dynamic routes compiled cleanly via Turbopack |
+
 ---
 
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
 - **Slice 3:** ✅ Complete & Verified Across All Checkpoints & Security Matrix
-- **Slice 4:** ⏳ In Progress (Checkpoint 4.1 Verified)
+- **Slice 4:** ⏳ In Progress (Checkpoints 4.1 & 4.2 Verified)

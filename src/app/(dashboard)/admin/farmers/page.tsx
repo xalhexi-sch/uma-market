@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { RiArrowLeftLine, RiPlantLine, RiMapPinLine, RiPhoneLine } from "@remixicon/react";
 import { getAdminProfiles } from "@/lib/supabase/queries/admin";
-import { Badge } from "@/components/ui/badge";
+import { AdminVerifyButton } from "@/components/dashboard/admin-verify-button";
 import type { UserRole } from "@/lib/constants";
 
 export const metadata = {
@@ -87,9 +87,7 @@ export default async function AdminFarmersPage() {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
-                        Active Producer
-                      </Badge>
+                      <AdminVerifyButton clerkId={farmer.clerk_id} isVerified={farmer.is_verified} />
                     </td>
                   </tr>
                 ))
