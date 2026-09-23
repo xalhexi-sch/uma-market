@@ -7,14 +7,14 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Slice 6 — Production Deployment & QA Polish**
-- **Current Checkpoint:** 6.1 Code Hardening ✅ | QA Polish (Realtime Chat & Onboarding Loading) ✅ | 6.2–6.5 Manual Production Deployment Verified ✅
+- **Current Slice:** **Slice 6 — Production Deployment & Final Visual Polish**
+- **Current Checkpoint:** 6.1 Code Hardening ✅ | QA Polish (Realtime Chat & Onboarding Loading) ✅ | 6.2–6.5 Manual Production Deployment Verified ✅ | Landing Page Visual Polish ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
-- **Slice 6 Status:** ✅ **Production Deployment & QA Polish Complete**
+- **Slice 6 Status:** ✅ **Production Deployment & Final Visual Polish Complete**
 
 ---
 
@@ -149,12 +149,13 @@
   - **Realtime Chat Live Delivery:** Migrated browser client from `@supabase/ssr` to direct `@supabase/supabase-js` `createClient` with dynamic `accessToken` callback. In `OrderChat`, asynchronously retrieved fresh Clerk JWT via `getToken()` and primed `supabase.realtime.setAuth(token)` before calling `channel.subscribe()`, ensuring Phoenix join payload contains `access_token` so Supabase Realtime authorizes the `postgres_changes` RLS policy without requiring recipient refresh. Reconciled optimistic messages immediately on send success.
   - **Onboarding Loading Feedback:** Extracted onboarding form to `OnboardingForm` client component with immediate loading feedback on the "Continue" submit button (disabled state, animated `Spinner`, "Setting up your account…" text), duplicate submission prevention, and fieldset disablement during submission while preserving existing Clerk metadata updates, Supabase profile creation, and `/onboarding/complete` session refresh redirects.
   - **Authenticated Root Routing:** Removed automatic role-based redirect from root landing page `/`. The public marketplace landing page `/` remains accessible to all visitors regardless of authentication state. Authenticated users receive contextual navigation ("Dashboard" link and `UserButton` in the navbar, "Go to Dashboard" in the hero CTA) and can navigate bidirectionally between `/` and their role dashboard (`/farmer`, `/business`, `/admin`). Dashboard sidebar and mobile drawer navigation now include an explicit "Marketplace Home" link and clickable brand header back to `/`. Route protection on role dashboards remains intact.
+  - **Landing Page Final Visual Polish:** Replaced the plain hero with an editorial 2-column composition using the farmer + sunrise photograph (`public/hero-farm.jpg`). Retained exact headline `"Fresh from Butuan's farms to your business."`, supporting copy, and CTA intent. Preserved strict 6-section sequence (Hero, Value strip, How UMA works, For Farmers / For Businesses, Final CTA, Footer). Refined section rhythm, typographic hierarchy, responsive layout on mobile, and preserved public accessibility of `/` for both authenticated and unauthenticated visitors.
 
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Production QA Polish is complete.
+- Landing page final visual polish is complete and verified.
 - All 6 slices of UMA Market are fully implemented, hardened, verified, and deployed.
 
 ---

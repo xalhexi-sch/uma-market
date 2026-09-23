@@ -368,6 +368,12 @@ Executed and verified against the **live remote Supabase database** (`https://od
   - Implemented dynamic navigation CTAs on `/`: authenticated users see "Dashboard" and Clerk `UserButton` in the navbar, and "Go to Dashboard" in the hero and final CTA sections; unauthenticated visitors continue to see "Sign in" and "Get started".
   - Updated `DashboardSidebar` and `DashboardMobileNav` to include a clickable brand header leading to `/` and an explicit "Marketplace Home" navigation link, enabling bidirectional navigation between `/` and `/farmer`, `/business`, and `/admin`.
   - Preserved role-based authorization guards across all dashboard layouts and sub-pages.
+- **4. Landing Page Final Visual Polish:**
+  - Integrated high-resolution farmer + sunrise agricultural photograph (`public/hero-farm.jpg`) as the hero visual centerpiece.
+  - Replaced the previous single-column empty hero overlay with an editorial 2-column composition: Left column showcases the tagline badge, exact headline `"Fresh from Butuan's farms to your business."`, supporting copy, responsive CTAs, and verified agricultural trust indicators; Right column showcases the framed photograph with gallery-style matte border, rounded radius, and subtle geographic/provenance metadata.
+  - Preserved the strict 6-section sequence: Hero, Value strip, How UMA works (3 steps), For Farmers / For Businesses (2-sided comparison), Final CTA, and Footer.
+  - Elevated section rhythm, responsive spacing, and typographic hierarchy while strictly adhering to UMA's white-first, green-accented design tokens.
+  - Verified clean responsiveness across desktop (1280px) and mobile viewports (390px) without horizontal overflow or clipped imagery.
 
 | Test Item | Verification Method | Result | Verification Details |
 |---|---|---|---|
@@ -376,6 +382,8 @@ Executed and verified against the **live remote Supabase database** (`https://od
 | **Realtime Chat Live Delivery** | `order-chat.tsx` + `client.ts` | ✅ **PASS** | `setAuth` primed on socket before channel join, join payload carries `access_token` |
 | **Onboarding Loading Feedback** | `onboarding-form.tsx` | ✅ **PASS** | Immediate button disabled state, spinner animation, duplicate submission prevention |
 | **Authenticated Root Routing** | `page.tsx` + `sidebar.tsx` + `mobile-nav.tsx` | ✅ **PASS** | Root `/` accessible to all users; contextual CTAs render; dashboard routes preserve RLS and role protection |
+| **Landing Page Editorial Hero** | Browser verification (desktop & mobile) | ✅ **PASS** | Farmer + sunrise photo rendered in 2-col layout; exact copy preserved; zero layout shift |
+| **Responsive Mobile Layout** | Browser verification (390x844 viewport) | ✅ **PASS** | Natural vertical stacking; full-width touch-friendly CTAs; no horizontal overflow |
 
 ---
 
@@ -385,4 +393,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Slice 3:** ✅ Complete & Verified Across All Checkpoints & Security Matrix
 - **Slice 4:** ✅ Complete & Verified Across Checkpoints 4.1, 4.2, 4.3 & 4.4
 - **Slice 5:** ✅ Complete & Verified Across Checkpoints 5.1, 5.2, 5.3 & 5.4
-- **Slice 6:** ✅ Complete & Verified Across Checkpoints 6.1–6.5 & QA Polish
+- **Slice 6:** ✅ Complete & Verified Across Checkpoints 6.1–6.5, QA Polish & Landing Page Polish
