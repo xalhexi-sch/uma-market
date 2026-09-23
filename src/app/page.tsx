@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { UserButton } from "@clerk/nextjs";
 import {
   RiPlantLine,
   RiBuildingLine,
@@ -15,16 +15,9 @@ import type { UserRole } from "@/lib/constants";
 import { APP_NAME } from "@/lib/constants";
 
 export default async function HomePage() {
-  // Authenticated users with a role go directly to their dashboard
   const { isAuthenticated, sessionClaims } = await auth();
-  if (isAuthenticated) {
-    const role = sessionClaims?.user_role as UserRole | undefined;
-    if (role === "farmer") redirect("/farmer");
-    if (role === "business") redirect("/business");
-    if (role === "admin") redirect("/admin");
-    // Authenticated but no role → onboarding
-    redirect("/onboarding");
-  }
+  const role = sessionClaims?.user_role as UserRole | undefined;
+  const dashboardHref = role ? `/${role}` : "/onboarding";
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -61,18 +54,32 @@ export default async function HomePage() {
 
           {/* Auth CTAs */}
           <div className="flex items-center gap-3">
-            <Link
-              href="/sign-in"
-              className="text-sm font-medium text-foreground transition-colors hover:text-primary"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/sign-up"
-              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Get started
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href={dashboardHref}
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  Dashboard
+                </Link>
+                <UserButton />
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  className="text-sm font-medium text-foreground transition-colors hover:text-primary"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/sign-up"
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -106,19 +113,31 @@ export default async function HomePage() {
                 in one place — directly from the farmers who grow it.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  href="/sign-up"
-                  className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-                >
-                  Explore products
-                  <RiArrowRightLine className="size-4" />
-                </Link>
-                <Link
-                  href="#farmers"
-                  className="inline-flex items-center gap-2 rounded-md border border-border bg-background/80 px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-                >
-                  Sell on UMA
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    href={dashboardHref}
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                  >
+                    Go to Dashboard
+                    <RiArrowRightLine className="size-4" />
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/sign-up"
+                      className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                    >
+                      Explore products
+                      <RiArrowRightLine className="size-4" />
+                    </Link>
+                    <Link
+                      href="#farmers"
+                      className="inline-flex items-center gap-2 rounded-md border border-border bg-background/80 px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                    >
+                      Sell on UMA
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -284,19 +303,31 @@ export default async function HomePage() {
               building a stronger local food supply chain.
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <Link
-                href="/sign-up"
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-              >
-                Create your account
-                <RiArrowRightLine className="size-4" />
-              </Link>
-              <Link
-                href="/sign-in"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Already have an account? Sign in →
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  href={dashboardHref}
+                  className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                >
+                  Open Dashboard
+                  <RiArrowRightLine className="size-4" />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/sign-up"
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                  >
+                    Create your account
+                    <RiArrowRightLine className="size-4" />
+                  </Link>
+                  <Link
+                    href="/sign-in"
+                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Already have an account? Sign in →
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </section>

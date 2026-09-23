@@ -13,6 +13,7 @@ import {
   RiStoreLine,
   RiShieldLine,
   RiShoppingCart2Line,
+  RiHomeLine,
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { APP_NAME, type UserRole } from "@/lib/constants";
@@ -75,18 +76,22 @@ export function DashboardSidebar({
   return (
     <aside className="flex h-full w-60 flex-col border-r border-border bg-sidebar">
       {/* Brand */}
-      <div className="flex h-16 items-center gap-2 border-b border-border px-5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+      <Link
+        href="/"
+        title="Go to UMA Market Home"
+        className="flex h-16 items-center gap-2 border-b border-border px-5 transition-colors hover:bg-sidebar-accent/50 group"
+      >
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary group-hover:opacity-90">
           <RiShieldLine className="size-4 text-primary-foreground" />
         </div>
         <div>
           <p className="text-sm font-semibold text-sidebar-foreground leading-none">{APP_NAME}</p>
           <p className="text-[11px] text-muted-foreground leading-none mt-0.5">{ROLE_LABELS[role]}</p>
         </div>
-      </div>
+      </Link>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col justify-between">
         <ul className="flex flex-col gap-0.5">
           {navItems.map((item) => {
             const isActive =
@@ -138,6 +143,17 @@ export function DashboardSidebar({
             );
           })}
         </ul>
+
+        {/* Public Market Link */}
+        <div className="mt-auto pt-4 border-t border-border/60">
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            <RiHomeLine className="size-4 shrink-0" />
+            <span className="flex-1">Marketplace Home</span>
+          </Link>
+        </div>
       </nav>
 
       {/* Footer */}

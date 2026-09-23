@@ -363,6 +363,11 @@ Executed and verified against the **live remote Supabase database** (`https://od
   - Added immediate visible loading feedback on the "Continue" submit button (disabled state, animated `Spinner`, and "Setting up your account…" text).
   - Disabled `<fieldset>` during submission to prevent role tampering and duplicate form dispatches.
   - Preserved existing `completeOnboarding` server action, Clerk `publicMetadata.role` update, Supabase profile upsert, and redirect flow through `/onboarding/complete` session refresh to `/farmer` or `/business`.
+- **3. Authenticated Root Routing Fix:**
+  - Removed automatic role dashboard redirect from `src/app/page.tsx`, allowing `/` to remain accessible as the public marketplace landing page for both authenticated and unauthenticated visitors.
+  - Implemented dynamic navigation CTAs on `/`: authenticated users see "Dashboard" and Clerk `UserButton` in the navbar, and "Go to Dashboard" in the hero and final CTA sections; unauthenticated visitors continue to see "Sign in" and "Get started".
+  - Updated `DashboardSidebar` and `DashboardMobileNav` to include a clickable brand header leading to `/` and an explicit "Marketplace Home" navigation link, enabling bidirectional navigation between `/` and `/farmer`, `/business`, and `/admin`.
+  - Preserved role-based authorization guards across all dashboard layouts and sub-pages.
 
 | Test Item | Verification Method | Result | Verification Details |
 |---|---|---|---|
@@ -370,6 +375,7 @@ Executed and verified against the **live remote Supabase database** (`https://od
 | **Production Build** | `npm run build` | ✅ **PASS** | 32 routes compiled cleanly via Turbopack |
 | **Realtime Chat Live Delivery** | `order-chat.tsx` + `client.ts` | ✅ **PASS** | `setAuth` primed on socket before channel join, join payload carries `access_token` |
 | **Onboarding Loading Feedback** | `onboarding-form.tsx` | ✅ **PASS** | Immediate button disabled state, spinner animation, duplicate submission prevention |
+| **Authenticated Root Routing** | `page.tsx` + `sidebar.tsx` + `mobile-nav.tsx` | ✅ **PASS** | Root `/` accessible to all users; contextual CTAs render; dashboard routes preserve RLS and role protection |
 
 ---
 
