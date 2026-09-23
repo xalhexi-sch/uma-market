@@ -74,7 +74,7 @@ export function ProductGallery({
   if (galleryItems.length === 0) {
     return (
       <div className={cn("flex flex-col gap-3", className)}>
-        <div className="aspect-square w-full rounded-2xl overflow-hidden bg-muted border border-border/60 shadow-xs relative">
+        <div className="aspect-[4/3] w-full rounded-2xl overflow-hidden bg-muted border border-border/60 shadow-xs relative">
           <ProductImage
             src={DEFAULT_PRODUCT_PLACEHOLDER}
             alt={productName}
@@ -94,7 +94,7 @@ export function ProductGallery({
   if (galleryItems.length === 1) {
     return (
       <div className={cn("flex flex-col gap-3", className)}>
-        <div className="aspect-square w-full rounded-2xl overflow-hidden bg-muted border border-border/60 shadow-xs relative">
+        <div className="aspect-[4/3] w-full rounded-2xl overflow-hidden bg-muted border border-border/60 shadow-xs relative">
           <ProductImage
             src={galleryItems[0].url}
             alt={productName}
@@ -122,15 +122,15 @@ export function ProductGallery({
         }}
         className="relative w-full"
       >
-        <div className="aspect-square w-full rounded-2xl overflow-hidden bg-muted border border-border/60 shadow-xs relative group">
-          <CarouselContent className="h-full -ml-0">
+        <div className="w-full rounded-2xl overflow-hidden bg-muted border border-border/60 shadow-xs relative group">
+          <CarouselContent className="-ml-0">
             {galleryItems.map((item, index) => (
-              <CarouselItem key={item.id} className="h-full pl-0 basis-full">
-                <div className="relative h-full w-full">
+              <CarouselItem key={item.id} className="pl-0 basis-full">
+                <div className="relative aspect-[4/3] w-full">
                   <ProductImage
                     src={item.url}
                     alt={`${productName} — Photo ${index + 1}`}
-                    className="h-full w-full object-cover select-none"
+                    className="absolute inset-0 h-full w-full object-cover object-center select-none"
                   />
                 </div>
               </CarouselItem>
