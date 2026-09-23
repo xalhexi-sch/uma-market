@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { placeOrder } from "@/app/(dashboard)/business/checkout/actions";
+import { placeMultiFarmerCheckout } from "@/app/(dashboard)/business/checkout/actions";
 import type { CartItem } from "@/lib/types";
 import type { FulfillmentType } from "@/lib/constants";
 
@@ -34,38 +34,29 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
 
     startTransition(async () => {
       const farmerEntries = Object.entries(byFarmer);
-      let lastOrderId: string | undefined;
-      const errors: string[] = [];
+      const orders = farmerEntries.map(([farmerClerkId, items]) => ({
+        farmerClerkId,
+        fulfillmentType,
+        deliveryAddress: fulfillmentType === "seller_delivery" ? deliveryAddress : undefined,
+        notes: notes || undefined,
+        items: items.map((i) => ({
+          product_id: i.product_id,
+          quantity: i.quantity,
+        })),
+      }));
 
-      // Place one order per farmer group sequentially
-      for (const [farmerClerkId, items] of farmerEntries) {
-        const result = await placeOrder({
-          farmerClerkId,
-          fulfillmentType,
-          deliveryAddress: fulfillmentType === "seller_delivery" ? deliveryAddress : undefined,
-          notes: notes || undefined,
-          items: items.map((i) => ({
-            product_id: i.product_id,
-            quantity: i.quantity,
-          })),
-        });
+      const result = await placeMultiFarmerCheckout(orders);
 
-        if (result.success && result.orderId) {
-          lastOrderId = result.orderId;
-        } else {
-          errors.push(result.error ?? "Order failed for one farmer.");
-        }
-      }
-
-      if (errors.length > 0) {
-        setError(errors.join(" "));
+      if (!result.success || !result.orderIds || result.orderIds.length === 0) {
+        setError(result.error ?? "Failed to place orders. Please try again.");
         return;
       }
 
-      // Redirect to confirmation of last order, or orders list if multiple
-      if (farmerEntries.length === 1 && lastOrderId) {
-        router.push(`/business/checkout/confirmation/${lastOrderId}`);
+      // Single farmer order -> dedicated confirmation screen
+      if (result.orderIds.length === 1) {
+        router.push(`/business/checkout/confirmation/${result.orderIds[0]}`);
       } else {
+        // Multi-farmer orders -> full orders list
         router.push("/business/orders");
       }
     });

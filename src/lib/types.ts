@@ -59,7 +59,7 @@ export interface Product {
   created_at: string;
   updated_at: string;
   // Joined
-  farmer?: Pick<Profile, "clerk_id" | "full_name" | "business_name" | "city" | "avatar_url" | "bio" | "phone" | "is_verified">;
+  farmer?: Pick<Profile, "clerk_id" | "full_name" | "business_name" | "city" | "avatar_url" | "bio" | "is_verified">;
   category?: Pick<Category, "id" | "name" | "slug">;
   images?: ProductImageItem[];
 }

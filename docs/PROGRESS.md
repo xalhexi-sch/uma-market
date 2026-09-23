@@ -635,6 +635,39 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+### Launch Readiness P1 Fixes (`fix/launch-readiness`) (Complete & Verified ✅)
+- **1. Stock Restitution on Order Cancellation (`20260924000002_launch_readiness_p1.sql`):**
+  - Created `trigger_restore_stock_on_order_cancelled()` with `trg_restore_stock_on_cancelled` trigger on `public.orders`.
+  - Fires strictly on status transitions `WHEN (NEW.status = 'cancelled' AND OLD.status IS DISTINCT FROM 'cancelled')`.
+  - Automatically queries `public.order_items` for the cancelled order and increments `products.quantity_available += quantity`.
+  - SECURITY DEFINER guarantees atomic, permission-safe execution across both buyer cancellations (`cancelOrder`) and farmer rejections (`update_order_status`).
+  - Guards against double-restoration on subsequent updates to already-cancelled orders.
+- **2. Public Farmer Data Privacy (`queries/products.ts` & `types.ts`):**
+  - Removed `phone` from public queries in `getActiveProducts` (primary and fallback) and `getProductById` (primary and fallback).
+  - Updated `Product.farmer` TypeScript definition in `src/lib/types.ts` to exclude `phone`.
+  - Preserved public provenance fields: `clerk_id`, `full_name`, `business_name`, `city`, `avatar_url`, `bio`, and `is_verified`.
+  - Prevents leaking farmers' personal phone numbers into public HTML/RSC payloads for anonymous visitors while retaining private phone access in authenticated buyer order details.
+- **3. Business Product Navigation Consistency (`business/products` & `business`):**
+  - Updated `ProductCard` calls in `src/app/(dashboard)/business/products/page.tsx` and `src/app/(dashboard)/business/page.tsx` to pass `href={`/business/products/${product.id}`}`.
+  - Keeps authenticated commercial buyers inside the dashboard layout (retaining sidebar, cart count, breadcrumbs) instead of navigating out to the public layout.
+- **4. Transactional Multi-Farmer Checkout RPC (`place_checkout_orders` & `checkout-form.tsx`):**
+  - Implemented `place_checkout_orders(p_orders JSONB)` in migration `20260924000002_launch_readiness_p1.sql`.
+  - Processes multi-farmer checkouts inside a single PostgreSQL atomic transaction: validates all products/MOQ/stock across all farmers before creating any order.
+  - If any product fails validation (e.g., out of stock), the entire batch rolls back atomically: 0 orders created, 0 stock deducted, cart items preserved.
+  - Updated `src/app/(dashboard)/business/checkout/actions.ts` with `placeMultiFarmerCheckout` and connected `src/components/dashboard/checkout-form.tsx` to execute a single atomic call instead of a sequential loop.
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Production Build** | `npm run build` | ✅ **PASS** | 20 routes compiled cleanly via Turbopack |
+| **Stock Restitution** | Automated SQL test | ✅ **PASS** | Stock restored exactly once on cancellation (+3kg); no double-restoration |
+| **Public Data Privacy** | Anon PostgREST & RSC query | ✅ **PASS** | Neither `phone` nor `address` present in public product queries |
+| **Business Nav Retention** | Route & component audit | ✅ **PASS** | Product cards in `/business` and `/business/products` route to `/business/products/[id]` |
+| **Multi-Farmer Atomicity** | Atomic RPC rollback test | ✅ **PASS** | Batch rolls back atomically on failure; 0 orphan orders, 0 stock deducted |
+| **Database Migration** | `npx supabase db push` | ✅ **PASS** | `20260924000002_launch_readiness_p1.sql` applied successfully to remote DB |
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
@@ -650,3 +683,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Product Content & Image Audit (`feat/product-content-audit`):** ✅ Complete & Verified (24 produce listings audited, 11 photo mismatches corrected in storage, branded fallback placeholder `/product-placeholder.svg`, client-safe `ProductImage` fallback component, 0 lint errors, 34 compiled routes)
 - **Visual Correction — Device Mockups & Hardware Presentation:** ✅ Complete & Verified (2 large landscape iPad Pro tablets, 1 thick 3D titanium smartphone, real UMA UI, unclipped soft shadows, unified settling animations, 0 lint errors, and 36 compiled routes)
 - **Product Media Gallery (`feat/product-media-gallery`):** ✅ Complete & Verified (`product_images` table, RLS policies, backfill, shadcn Carousel gallery, farmer multi-photo upload/edit up to 5 photos, safe deletion, 0 lint errors, and 35 compiled routes)
+- **Launch Readiness P1 Fixes (`fix/launch-readiness`):** ✅ Complete & Verified (Stock restitution trigger, public farmer privacy, business dashboard navigation consistency, atomic multi-farmer checkout RPC, 0 lint errors, 20 compiled routes)

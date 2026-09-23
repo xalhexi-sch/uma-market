@@ -7,15 +7,16 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Product Media Gallery (`feat/product-media-gallery`)**
-- **Current Checkpoint:** Product Media Gallery (`feat/product-media-gallery`) ✅ | Final Public Landing Refinement ✅ | SaaS Product Showcase Landing Page ✅ | Public Experience UX/UI Refinement ✅ | Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Production Deployment Verified ✅
+- **Current Slice:** **Launch Readiness P1 Fixes (`fix/launch-readiness`)**
+- **Current Checkpoint:** Launch Readiness P1 Fixes (`fix/launch-readiness`) ✅ | Product Media Gallery (`feat/product-media-gallery`) ✅ | Final Public Landing Refinement ✅ | SaaS Product Showcase Landing Page ✅ | Public Experience UX/UI Refinement ✅ | Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Production Deployment Verified ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
 - **Slice 6 Status:** ✅ **Complete & Fully Verified**
-- **Product Media Gallery Status:** ✅ **Complete & Fully Verified (Exit code 0)**
+- **Product Media Gallery Status:** ✅ **Complete & Fully Verified**
+- **Launch Readiness P1 Status:** ✅ **Complete & Fully Verified (Exit code 0)**
 
 ---
 
@@ -224,20 +225,38 @@
 - [x] **Unified Scroll Reveal Animation:**
   - Animate physical device as ONE single object (`opacity` + `translateY` + `scale` + settling `rotate`) with cubic bezier easing and full `prefers-reduced-motion` compliance.
 
+### Launch Readiness P1 Fixes (Complete & Verified ✅)
+- [x] **Stock Restitution Trigger (`20260924000002_launch_readiness_p1.sql`):**
+  - PostgreSQL trigger `trg_restore_stock_on_cancelled` automatically increments `products.quantity_available` by `order_items.quantity` when an order transitions to `'cancelled'`.
+  - Enforced at database level via SECURITY DEFINER trigger; runs atomically in the same transaction as order cancellation.
+  - Covers both buyer self-cancellation (`cancelOrder`) and farmer rejection/cancellation (`update_order_status`).
+  - Guards against double-restoration; only fires when `NEW.status = 'cancelled' AND OLD.status IS DISTINCT FROM 'cancelled'`.
+- [x] **Public Farmer Data Privacy (`queries/products.ts` & `types.ts`):**
+  - Removed `phone` and sensitive contact data from public marketplace queries (`getActiveProducts`, `getProductById`).
+  - Updated `Product.farmer` interface in `src/lib/types.ts` to strictly allow intentional public fields (`clerk_id, full_name, business_name, city, avatar_url, bio, is_verified`).
+  - Prevents leaking private farmer phone numbers into public RSC payloads streamed to anonymous website visitors.
+- [x] **Business Product Navigation Consistency (`business/products` & `business`):**
+  - Updated produce cards in `/business/products` and `/business` overview to link to `/business/products/[id]`.
+  - Ensures logged-in commercial buyers remain within their authenticated dashboard layout with sidebar navigation, active cart counts, and breadcrumbs.
+- [x] **Transactional Multi-Farmer Checkout RPC (`place_checkout_orders`):**
+  - Added atomic PostgreSQL RPC `place_checkout_orders(p_orders JSONB)` processing all farmer orders within a single transaction.
+  - Validates stock, MOQ, farmer ownership, and status across all order groups before creating any order.
+  - If any product fails, the entire batch rolls back atomically: 0 orders created, 0 stock deducted, and cart items remain intact.
+  - Prevents partial completion and duplicate order placement on retry.
+
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Feature branch `feat/public-saas-visual-refinement` is complete and fully verified.
-- Visual correction for hardware device mockups (2 landscape iPad Pro tablets, 1 thick 3D titanium smartphone, unclipped soft shadows) complete.
-- Production build (36 routes compiled via Turbopack), ESLint (0 errors, 0 warnings), and zero horizontal overflow verified.
-
+- Branch `fix/launch-readiness` is complete and fully verified.
+- All 4 P1 launch readiness blockers resolved and verified with automated test suites.
+- Production build (20 routes compiled via Turbopack), ESLint (0 errors, 0 warnings) verified.
 
 ---
 
 ## 4. Known Issues
 
-- **None.** Build passes cleanly (35 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database, storage bucket, realtime channels, and RLS policies verified.
+- **None.** Build passes cleanly (20 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database trigger and RPC applied and verified.
 
 ---
 
