@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .border { stroke: #e2e8f0; stroke-width: 1.5; stroke-dasharray: 4 4; fill: none; }
+      .badge-bg { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+      .brand { fill: #166534; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-anchor: middle; }
+      .title { fill: #475569; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 500; text-anchor: middle; }
+      .subtitle { fill: #94a3b8; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 400; text-anchor: middle; }
+      .icon-circle { fill: #f0fdf4; stroke: #bbf7d0; stroke-width: 1; }
+      .icon-leaf { fill: #16a34a; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #18181b; }
+        .border { stroke: #27272a; }
+        .badge-bg { fill: #27272a; stroke: #3f3f46; }
+        .brand { fill: #4ade80; }
+        .title { fill: #e4e4e7; }
+        .subtitle { fill: #71717a; }
+        .icon-circle { fill: #14532d; stroke: #166534; }
+        .icon-leaf { fill: #4ade80; }
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="300" class="bg" />
+  
+  <!-- Subtle inner dashed border guide -->
+  <rect x="16" y="16" width="368" height="268" rx="12" class="border" />
+
+  <!-- Center Card / Badge -->
+  <g transform="translate(200, 150)">
+    <!-- Icon Container -->
+    <circle cx="0" cy="-42" r="32" class="icon-circle" />
+
+    <!-- UMA Sprout / Plant Icon -->
+    <path class="icon-leaf" d="M0 -56 C-8 -44, -14 -40, -14 -32 C-14 -24, -8 -20, 0 -20 C8 -20, 14 -24, 14 -32 C14 -40, 8 -44, 0 -56 Z M-1 -20 L-1 -10 L1 -10 L1 -20 Z" />
+    <path class="icon-leaf" d="M-1 -32 C-6 -30, -10 -26, -11 -21 C-7 -20, -3 -24, -1 -28 Z" opacity="0.8" />
+    <path class="icon-leaf" d="M1 -30 C6 -28, 10 -25, 11 -20 C7 -19, 3 -23, 1 -26 Z" opacity="0.8" />
+
+    <!-- Brand Label -->
+    <text x="0" y="8" class="brand">UMA MARKET</text>
+
+    <!-- Main Message -->
+    <text x="0" y="28" class="title">Image not available</text>
+
+    <!-- Subtitle -->
+    <text x="0" y="46" class="subtitle">Fresh harvest photo pending</text>
+  </g>
+</svg>

@@ -287,3 +287,30 @@
 - **Scroll Reveal Animations:** ✅ **PASS** (IntersectionObserver upward fade entrance with cubic bezier easing and strict `prefers-reduced-motion` compliance)
 - **Navbar & Navigation:** ✅ **PASS** (Transparent-to-solid transition over hero, verified contrast in both states, zero messages in public nav)
 - **Mobile Responsiveness:** ✅ **PASS** (Clean stacking, no horizontal overflow, scales gracefully on 375px/390px viewports)
+
+---
+
+## 8. Product Content & Image Audit (`feat/product-content-audit`)
+
+- **Full Catalog Audit (24 Products across 8 Categories):**
+  - **Identified & Corrected Mismatches:**
+    - Highland Ampalaya: Replaced carrot image with green bitter melon pile.
+    - Native Pechay: Replaced salad bowl with whole fresh native pechay stalk.
+    - Native Eggplants: Replaced broccoli with glossy native purple long eggplants.
+    - Solo Sweet Papaya: Replaced ramen bowl with sliced ripe solo papaya on banana leaf.
+    - Sinandomeng White Rice: Replaced restaurant table with raw polished white rice grains.
+    - Native Purple Ube: Replaced red camote with authentic sliced purple yam tuber.
+    - Fresh Cassava: Replaced pickling spices with freshly harvested cassava tubers.
+    - Freshwater Tilapia: Replaced coral reef fish with fresh freshwater tilapia harvest.
+    - Fresh Dagupan Bangus: Replaced cooked salmon steak with Philippine milkfish on ice.
+    - Pure Wild Raw Honey: Replaced watermelon with amber raw honey jar.
+    - Ampayon Red Tomatoes: Restored corrupted 0-byte storage object with high-res vine tomatoes.
+  - **Branded Product Placeholder (`/product-placeholder.svg`):**
+    - Single, reusable UMA branded vector placeholder in forest green & off-white styling with sprout icon and "Image not available" label.
+  - **Image Fallback Architecture (`ProductImage` component):**
+    - Created `src/components/ui/product-image.tsx` with graceful client-side `onError` fallback, fully compatible with Next.js Server Components.
+    - Updated `MarketplaceProductCard`, `ProductCard`, and `/products/[id]` detail pages.
+- **Verification Results:**
+  - `npm run lint`: ✅ **PASS** (0 errors, 0 warnings)
+  - `npm run build`: ✅ **PASS** (Exit code 0, all 34 routes compiled cleanly)
+  - Browser Subagent visual verification: ✅ **PASS** (Crisp produce photography across all categories)

@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { AddToCartControls } from "@/components/dashboard/add-to-cart-controls";
 import { getProductById } from "@/lib/supabase/queries/products";
 import { getProductImageUrl } from "@/lib/supabase/storage";
+import { ProductImage } from "@/components/ui/product-image";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -61,18 +62,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
         {/* Image */}
         <div className="w-full lg:w-[420px] shrink-0">
           <div className="aspect-square w-full rounded-xl overflow-hidden bg-muted">
-            {imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imageUrl}
-                alt={product.name}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <RiPlantLine className="size-16 text-muted-foreground/20" />
-              </div>
-            )}
+            <ProductImage
+              src={imageUrl}
+              alt={product.name}
+              className="h-full w-full object-cover"
+            />
           </div>
         </div>
 

@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   RiArrowLeftLine,
-  RiPlantLine,
   RiMapPinLine,
   RiCheckboxCircleFill,
   RiTruckLine,
@@ -21,6 +20,7 @@ import { MarketplaceFooter } from "@/components/marketplace/marketplace-footer";
 import { AddToCartControls } from "@/components/dashboard/add-to-cart-controls";
 import { getProductById } from "@/lib/supabase/queries/products";
 import { getProductImageUrl } from "@/lib/supabase/storage";
+import { ProductImage } from "@/components/ui/product-image";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -111,21 +111,11 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
             {/* Left Column: Produce Imagery & Guarantee */}
             <div className="lg:col-span-5 flex flex-col gap-6">
               <div className="aspect-square w-full rounded-2xl overflow-hidden bg-muted border border-border/60 shadow-xs relative">
-                {imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imageUrl}
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground/30">
-                    <RiPlantLine className="size-16" />
-                    <span className="text-xs uppercase tracking-wider font-semibold">
-                      Farm Harvest Photo
-                    </span>
-                  </div>
-                )}
+                <ProductImage
+                  src={imageUrl}
+                  alt={product.name}
+                  className="h-full w-full object-cover"
+                />
                 {product.category && (
                   <span className="absolute top-4 left-4 rounded-full bg-background/95 backdrop-blur-xs px-3 py-1 text-xs font-semibold text-foreground shadow-xs">
                     {product.category.name}
