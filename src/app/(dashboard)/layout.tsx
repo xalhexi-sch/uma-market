@@ -1,9 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { RiInformationLine } from "@remixicon/react";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
 import type { UserRole } from "@/lib/constants";
 import { getCartItemCount } from "@/lib/supabase/queries/cart";
+import { getProfileByClerkId } from "@/lib/supabase/queries/profiles";
 import {
   getFarmerPendingOrderCount,
   getBusinessActiveOrderCount,
@@ -37,20 +40,28 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
-  // Fetch operational counts for sidebar badges
+  // Fetch operational counts and check profile completeness
   let cartCount = 0;
   let farmerPendingCount = 0;
   let businessActiveOrderCount = 0;
+  let profileMissing = false;
 
   if (role === "business") {
-    const [cCount, oCount] = await Promise.all([
+    const [cCount, oCount, profile] = await Promise.all([
       getCartItemCount(userId),
       getBusinessActiveOrderCount(userId),
+      getProfileByClerkId(userId),
     ]);
     cartCount = cCount;
     businessActiveOrderCount = oCount;
+    profileMissing = !profile;
   } else if (role === "farmer") {
-    farmerPendingCount = await getFarmerPendingOrderCount(userId);
+    const [fCount, profile] = await Promise.all([
+      getFarmerPendingOrderCount(userId),
+      getProfileByClerkId(userId),
+    ]);
+    farmerPendingCount = fCount;
+    profileMissing = !profile;
   }
 
   return (
@@ -76,6 +87,22 @@ export default async function DashboardLayout({
 
       {/* Main Content Area */}
       <main className="flex flex-1 flex-col overflow-y-auto min-w-0">
+        {profileMissing && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-2">
+              <RiInformationLine className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>
+                Your profile is incomplete. Set up your details to start trading on UMA Market.
+              </span>
+            </div>
+            <Link
+              href={`/${role}/profile`}
+              className="font-medium underline hover:text-amber-950 dark:hover:text-amber-100 shrink-0"
+            >
+              Complete Profile →
+            </Link>
+          </div>
+        )}
         {children}
       </main>
     </div>
