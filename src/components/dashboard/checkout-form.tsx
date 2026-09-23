@@ -76,7 +76,7 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
       {/* Fulfillment type */}
       <div className="flex flex-col gap-3">
         <Label className="text-sm font-medium">Fulfillment</Label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => setFulfillmentType("pickup")}

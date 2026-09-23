@@ -92,12 +92,12 @@ export default async function HomePage() {
             <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
           </div>
 
-          <div className="mx-auto max-w-6xl px-6 py-28 md:py-40">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-24 md:py-36">
             <div className="max-w-xl">
               <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">
                 Butuan City · Agricultural Marketplace
               </p>
-              <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
+              <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl">
                 Fresh from Butuan&apos;s farms<br />
                 to your business.
               </h1>
@@ -304,7 +304,7 @@ export default async function HomePage() {
 
       {/* ── Footer ──────────────────────────────────────────────── */}
       <footer className="border-t border-border bg-muted/30">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+        <div className="mx-auto flex max-w-6xl flex-col sm:flex-row items-center justify-between gap-3 px-6 py-6 text-center sm:text-left">
           <div className="flex items-center gap-2">
             <div className="flex h-5 w-5 items-center justify-center rounded bg-primary">
               <RiPlantLine className="size-3 text-primary-foreground" />

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { RiDeleteBinLine, RiSubtractLine, RiAddLine } from "@remixicon/react";
+import { RiDeleteBinLine, RiSubtractLine, RiAddLine, RiPlantLine } from "@remixicon/react";
 import { updateCartItemQuantity, removeFromCart } from "@/app/(dashboard)/business/cart/actions";
+import { getProductImageUrl } from "@/lib/supabase/storage";
 import { CURRENCY } from "@/lib/constants";
 import type { CartItem } from "@/lib/types";
 
@@ -37,16 +38,18 @@ export function CartItemRow({ item }: CartItemRowProps) {
     });
   }
 
+  const imageUrl = getProductImageUrl(product.image_path, product.image_url);
+
   return (
     <div className={`flex items-start gap-4 p-4 transition-opacity ${isPending ? "opacity-50" : ""}`}>
       {/* Image */}
       <div className="h-16 w-16 shrink-0 rounded-lg overflow-hidden bg-muted">
-        {product.image_url ? (
+        {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+          <img src={imageUrl} alt={product.name} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground/30 text-2xl">
-            🌿
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground/30">
+            <RiPlantLine className="size-6 text-muted-foreground/40" />
           </div>
         )}
       </div>

@@ -41,7 +41,7 @@ export default async function BusinessOrdersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 lg:p-8">
+    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-5xl">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">My Orders</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -49,7 +49,7 @@ export default async function BusinessOrdersPage() {
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30">

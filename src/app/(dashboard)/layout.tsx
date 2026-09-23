@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
+import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
 import type { UserRole } from "@/lib/constants";
 import { getCartItemCount } from "@/lib/supabase/queries/cart";
 import {
@@ -53,15 +54,28 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <DashboardSidebar
+    <div className="flex h-screen flex-col md:flex-row overflow-hidden bg-background">
+      {/* Mobile Topbar & Sheet Drawer (< md) */}
+      <DashboardMobileNav
         role={role}
-        userId={userId}
         cartCount={cartCount}
         farmerPendingCount={farmerPendingCount}
         businessActiveOrderCount={businessActiveOrderCount}
       />
-      <main className="flex flex-1 flex-col overflow-y-auto">
+
+      {/* Desktop Sidebar (>= md) */}
+      <div className="hidden md:flex h-full shrink-0">
+        <DashboardSidebar
+          role={role}
+          userId={userId}
+          cartCount={cartCount}
+          farmerPendingCount={farmerPendingCount}
+          businessActiveOrderCount={businessActiveOrderCount}
+        />
+      </div>
+
+      {/* Main Content Area */}
+      <main className="flex flex-1 flex-col overflow-y-auto min-w-0">
         {children}
       </main>
     </div>

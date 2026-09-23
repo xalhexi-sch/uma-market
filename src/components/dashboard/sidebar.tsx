@@ -17,14 +17,14 @@ import {
 import { cn } from "@/lib/utils";
 import { APP_NAME, type UserRole } from "@/lib/constants";
 
-interface NavItem {
+export interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badgeKey?: "cart" | "farmerOrders" | "businessOrders";
 }
 
-const NAV_ITEMS: Record<UserRole, NavItem[]> = {
+export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   farmer: [
     { label: "Dashboard", href: "/farmer", icon: RiDashboardLine },
     { label: "My Products", href: "/farmer/products", icon: RiPlantLine },
@@ -49,7 +49,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
 };
 
-const ROLE_LABELS: Record<UserRole, string> = {
+export const ROLE_LABELS: Record<UserRole, string> = {
   farmer: "Farmer",
   business: "Business",
   admin: "Admin",

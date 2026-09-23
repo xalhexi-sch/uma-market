@@ -18,7 +18,7 @@ export default async function BusinessProfilePage() {
   const profile = await getProfileByClerkId(userId);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Business Profile</h1>
         <p className="text-sm text-muted-foreground mt-1">
