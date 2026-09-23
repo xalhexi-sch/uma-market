@@ -78,8 +78,13 @@ export default async function AdminOrdersPage() {
 
                   return (
                     <tr key={order.id} className="border-b border-border transition-colors hover:bg-muted/20 text-sm">
-                      <td className="py-3 px-4 font-mono font-medium text-foreground text-xs">
-                        {ref}
+                      <td className="py-3 px-4 font-mono font-medium text-xs">
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          className="text-primary hover:underline hover:text-primary/80 transition-colors"
+                        >
+                          {ref}
+                        </Link>
                       </td>
                       <td className="py-3 px-4 text-xs text-muted-foreground">
                         {dateStr}

@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { RiShoppingBagLine } from "@remixicon/react";
 import { getFarmerOrders } from "@/lib/supabase/queries/orders";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
+import { buttonVariants } from "@/components/ui/button";
 import { CURRENCY, FULFILLMENT_LABELS } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -45,7 +46,7 @@ export default async function FarmerOrdersPage() {
           </div>
           <Link
             href="/farmer/products"
-            className="text-sm font-medium text-primary hover:underline"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             Manage Products
           </Link>

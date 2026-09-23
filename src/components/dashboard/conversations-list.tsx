@@ -32,6 +32,16 @@ export function ConversationsList({ conversations, role }: ConversationsListProp
             ? "When you place an order with a local farm, an order-specific communication channel will appear here."
             : "When commercial buyers submit orders to your farm, order-specific communication threads will appear here."}
         </p>
+        <Link
+          href={isBusiness ? "/business/products" : "/farmer/products"}
+          className={buttonVariants({
+            variant: "outline",
+            size: "sm",
+            className: "mt-4",
+          })}
+        >
+          {isBusiness ? "Browse Marketplace" : "Manage Products"}
+        </Link>
       </div>
     );
   }

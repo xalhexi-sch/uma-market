@@ -4,8 +4,9 @@ import type { Metadata } from "next";
 import {
   RiPlantLine,
   RiShoppingBagLine,
-  RiTimeLine,
   RiArrowRightLine,
+  RiWallet3Line,
+  RiCheckboxCircleLine,
 } from "@remixicon/react";
 import Link from "next/link";
 import type { UserRole } from "@/lib/constants";
@@ -34,9 +35,6 @@ export default async function FarmerDashboardPage() {
   ]);
 
   const activeProducts = products.filter((p) => p.status === "active").length;
-  const upcomingHarvest = products.filter(
-    (p) => p.harvest_date && new Date(p.harvest_date) > new Date()
-  ).length;
 
   return (
     <div className="flex flex-col gap-8 p-6 lg:p-8">
@@ -49,12 +47,12 @@ export default async function FarmerDashboardPage() {
       </div>
 
       {/* Metric cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          label="Active Products"
-          value={String(activeProducts)}
-          icon={<RiPlantLine className="size-5 text-primary" />}
-          href="/farmer/products"
+          label="Total Revenue"
+          value={`${CURRENCY}${metrics.revenue.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
+          icon={<RiWallet3Line className="size-5 text-emerald-600" />}
+          href="/farmer/orders"
         />
         <MetricCard
           label="Pending Orders"
@@ -63,9 +61,15 @@ export default async function FarmerDashboardPage() {
           href="/farmer/orders"
         />
         <MetricCard
-          label="Upcoming Harvest"
-          value={upcomingHarvest > 0 ? String(upcomingHarvest) : "—"}
-          icon={<RiTimeLine className="size-5 text-muted-foreground" />}
+          label="Fulfillment Rate"
+          value={`${metrics.fulfillmentRate}%`}
+          icon={<RiCheckboxCircleLine className="size-5 text-primary" />}
+          href="/farmer/orders"
+        />
+        <MetricCard
+          label="Active Products"
+          value={String(activeProducts)}
+          icon={<RiPlantLine className="size-5 text-primary" />}
           href="/farmer/products"
         />
       </div>

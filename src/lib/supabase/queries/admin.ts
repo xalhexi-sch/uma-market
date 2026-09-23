@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Product, Order, Profile } from "@/lib/types";
+import type { Product, Order, Profile, Message } from "@/lib/types";
 
 export interface AdminMetrics {
   totalFarmers: number;
@@ -108,5 +108,69 @@ export async function getAdminProfiles(role?: "farmer" | "business"): Promise<Pr
   }
 
   return (data ?? []) as Profile[];
+}
+
+/**
+ * Fetch a single order by ID with full participant provenance, line items, and messages
+ * for admin oversight and dispute inspection.
+ */
+export async function getAdminOrderById(orderId: string): Promise<{
+  order: Order | null;
+  messages: Message[];
+}> {
+  const supabase = createAdminClient();
+
+  const [orderRes, messagesRes] = await Promise.all([
+    supabase
+      .from("orders")
+      .select(`
+        id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
+        total_amount, notes, delivery_address, pickup_date,
+        created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
+        farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
+        business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
+        items:order_items(id, product_id, product_name, unit, quantity, unit_price, subtotal)
+      `)
+      .eq("id", orderId)
+      .maybeSingle(),
+    supabase
+      .from("messages")
+      .select("id, order_id, sender_clerk_id, body, created_at")
+      .eq("order_id", orderId)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  if (orderRes.error || !orderRes.data) {
+    if (orderRes.error) {
+      console.error("[admin] getAdminOrderById error:", orderRes.error.message);
+    }
+    return { order: null, messages: [] };
+  }
+
+  const rawMessages = messagesRes.data ?? [];
+  let messagesWithSenders: Message[] = [];
+
+  if (rawMessages.length > 0) {
+    const senderIds = Array.from(new Set(rawMessages.map((m) => m.sender_clerk_id)));
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("clerk_id, full_name, avatar_url, business_name")
+      .in("clerk_id", senderIds);
+
+    const profileMap = new Map<string, Pick<Profile, "clerk_id" | "full_name" | "avatar_url" | "business_name">>();
+    profiles?.forEach((p) => {
+      profileMap.set(p.clerk_id, p);
+    });
+
+    messagesWithSenders = rawMessages.map((m) => ({
+      ...m,
+      sender: profileMap.get(m.sender_clerk_id),
+    }));
+  }
+
+  return {
+    order: orderRes.data as unknown as Order,
+    messages: messagesWithSenders,
+  };
 }
 

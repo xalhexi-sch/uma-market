@@ -569,7 +569,33 @@ async function seed() {
   // 4. Upsert 4 Demo Orders in Varied States
   console.log("📋 Upserting demo orders across varied fulfillment states...");
 
-  const DEMO_ORDERS = [
+  interface SeedOrderDef {
+    id: string;
+    business_clerk_id: string;
+    farmer_clerk_id: string;
+    status: string;
+    fulfillment_type: string;
+    delivery_address?: string | null;
+    pickup_date?: string | null;
+    accepted_at?: string | null;
+    completed_at?: string | null;
+    cancelled_at?: string | null;
+    cancellation_reason?: string | null;
+    total_amount: number;
+    notes?: string | null;
+    created_at?: string;
+    items: Array<{
+      id: string;
+      product_id: string;
+      product_name: string;
+      unit: string;
+      quantity: number;
+      unit_price: number;
+      subtotal: number;
+    }>;
+  }
+
+  const DEMO_ORDERS: SeedOrderDef[] = [
     {
       id: "b0000001-0000-0000-0000-000000000001",
       business_clerk_id: "demo_buyer_sunrise_eatery",
