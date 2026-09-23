@@ -72,15 +72,20 @@ export function ProductCard({ product, href }: ProductCardProps) {
 
         <AvailabilityBadge qty={product.quantity_available} unit={product.unit} />
 
-        <div className="mt-auto flex items-center gap-1.5 pt-1">
+        <div className="mt-auto flex items-center gap-1.5 pt-2 border-t border-border/60 text-xs text-foreground/80">
           <RiPlantLine className="size-3.5 text-primary shrink-0" />
-          <span className="text-xs text-muted-foreground truncate">
-            From {farmerName}
-            {product.farmer?.city ? `, ${product.farmer.city}` : ""}
+          <span className="truncate font-medium">
+            <span className="text-muted-foreground font-normal">From </span>
+            <span className="text-foreground font-semibold">{farmerName}</span>
+            {product.farmer?.city ? (
+              <span className="text-muted-foreground font-normal">{`, ${product.farmer.city}`}</span>
+            ) : (
+              ""
+            )}
           </span>
           {product.farmer?.is_verified && (
-            <span title="Verified Local Producer" className="inline-flex items-center">
-              <RiCheckboxCircleFill className="size-3.5 text-emerald-600 shrink-0" />
+            <span title="Verified Local Producer" className="inline-flex items-center shrink-0">
+              <RiCheckboxCircleFill className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             </span>
           )}
         </div>

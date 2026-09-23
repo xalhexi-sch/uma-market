@@ -123,7 +123,7 @@ export default async function HomePage() {
         <section className="border-b border-border/60 bg-muted/20 py-4 sm:py-4.5 px-4 sm:px-6">
           <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
             <span className="font-semibold uppercase tracking-wider text-muted-foreground text-[11px]">
-              Built for businesses sourcing local produce
+              Made for local buyers
             </span>
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
               {["Restaurants", "Canteens", "Grocers", "Hotels", "Caterers"].map((buyer) => (
@@ -146,7 +146,7 @@ export default async function HomePage() {
         {/* -- 4. Real Software Showcase: Marketplace Discovery ------- */}
         <section
           id="marketplace-showcase"
-          className="border-t border-border/60 bg-background py-14 sm:py-20 lg:py-24"
+          className="border-t border-border/60 bg-background py-12 sm:py-16 lg:py-20"
         >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
@@ -214,7 +214,7 @@ export default async function HomePage() {
         {/* -- 5. Real Software Showcase: Grower Operations ----------- */}
         <section
           id="growers"
-          className="border-t border-border/60 bg-muted/20 py-14 sm:py-20 lg:py-24 scroll-mt-20"
+          className="border-t border-border/60 bg-muted/20 py-12 sm:py-16 lg:py-20 scroll-mt-20"
         >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
@@ -283,7 +283,7 @@ export default async function HomePage() {
         {/* -- 6. Real Software Showcase: Mobile Anywhere ------------- */}
         <section
           id="mobile-showcase"
-          className="border-t border-border/60 bg-background py-14 sm:py-20 lg:py-24"
+          className="border-t border-border/60 bg-background py-12 sm:py-16 lg:py-20"
         >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
@@ -391,11 +391,10 @@ export default async function HomePage() {
           <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20 text-center">
             <ScrollReveal className="max-w-xl mx-auto">
               <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-                Ready to modernize your produce sourcing?
+                Ready to source from local growers?
               </h2>
               <p className="mx-auto mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Whether you grow or buy, UMA connects you to Butuan&apos;s
-                agricultural supply chain with structured trade tools.
+                Connect directly with verified farmers in Butuan City for in-stock wholesale produce at farm-gate pricing.
               </p>
 
               <div className="mt-8 flex flex-col items-center justify-center gap-3.5 sm:flex-row">

@@ -28,7 +28,6 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
   }, []);
 
   const navLinks = [
-    { label: "Market", href: "/products" },
     { label: "How it works", href: "/#how" },
     { label: "For growers", href: "/#growers" },
     { label: "About", href: "/about" },
@@ -65,8 +64,8 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
             </span>
           </Link>
 
-          {/* Center Nav: Market, How it works, For growers, About */}
-          <nav className="hidden items-center gap-7 lg:gap-8 md:flex">
+          {/* Center Nav: How it works, For growers, About */}
+          <nav className="hidden items-center gap-8 md:flex">
             {navLinks.map((item) => (
               <Link
                 key={item.href}
@@ -84,22 +83,10 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
 
           {/* Right CTAs */}
           <div className="hidden items-center gap-3 sm:flex">
-            {/* Secondary: I'm a grower */}
-            <Link
-              href="/#growers"
-              className={`text-sm font-medium transition-colors px-2 py-1.5 ${
-                isScrolled
-                  ? "text-muted-foreground hover:text-foreground"
-                  : "text-white/85 hover:text-white drop-shadow-xs"
-              }`}
-            >
-              I&apos;m a grower
-            </Link>
-
             {/* Primary Action: Explore the market */}
             <Link
               href="/products"
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
             >
               Explore the market
               <RiArrowRightLine className="size-3.5" />
