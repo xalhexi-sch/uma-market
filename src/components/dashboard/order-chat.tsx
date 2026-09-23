@@ -45,7 +45,7 @@ export function OrderChat({
       try {
         // Ensure the Realtime WebSocket connection has the authenticated Clerk JWT
         // BEFORE joining the channel, so the join payload authorizes postgres_changes RLS.
-        const token = await getToken();
+        const token = await getToken({ skipCache: true });
         if (isCancelled) return;
 
         if (token) {

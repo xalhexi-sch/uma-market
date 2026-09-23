@@ -8,6 +8,9 @@ import { auth } from "@clerk/nextjs/server";
  * Uses the Clerk session JWT as the Supabase accessToken — enabling
  * Supabase RLS to identify the user via `auth.jwt()->>'sub'`.
  *
+ * Server-side tokens are always freshly minted (no cache), so unlike
+ * the client-side hook, `skipCache` is not needed here.
+ *
  * Configured with persistSession: false to avoid onAuthStateChange conflict
  * with custom accessToken provider.
  */
