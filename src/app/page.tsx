@@ -1,10 +1,33 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { RiArrowRightLine } from "@remixicon/react";
 import type { UserRole } from "@/lib/constants";
 import { APP_NAME } from "@/lib/constants";
 import { LandingNavbar } from "@/components/marketplace/landing-navbar";
+import { FreshOnUmaRail } from "@/components/marketplace/fresh-on-uma-rail";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function ProductRailSkeleton() {
+  return (
+    <section className="bg-background py-14 sm:py-18 lg:py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <Skeleton className="h-5 w-28 mb-2" />
+        <Skeleton className="h-8 w-64 mb-8" />
+        <div className="flex gap-4 overflow-hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="min-w-[260px] flex-shrink-0">
+              <Skeleton className="aspect-[4/3] w-full rounded-xl mb-3" />
+              <Skeleton className="h-4 w-3/4 mb-2" />
+              <Skeleton className="h-5 w-1/3" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default async function HomePage() {
   const { isAuthenticated, sessionClaims } = await auth();
@@ -96,105 +119,78 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* -- 2. Compact Value / Proof Strip ----------------------- */}
-        <section className="border-b border-border/60 bg-background">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-7">
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-8 sm:divide-x sm:divide-border/60">
-              <div className="sm:pr-6">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Origin</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">Grown in Butuan City</p>
-              </div>
-              <div className="sm:px-6">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Trade</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">Direct farm-gate pricing</p>
-              </div>
-              <div className="sm:px-6">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Access</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">Equal market access</p>
-              </div>
-              <div className="sm:pl-6">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Supply</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">Reliable wholesale delivery</p>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* -- 2. Fresh on UMA — Real Product Rail ------------------- */}
+        <Suspense fallback={<ProductRailSkeleton />}>
+          <FreshOnUmaRail />
+        </Suspense>
 
         {/* -- 3. How UMA Works ------------------------------------- */}
-        <section id="how" className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-24 lg:py-28">
-          <div className="max-w-xl">
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-              Process
-            </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              How UMA works
-            </h2>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-              A straightforward three-step connection between local agricultural harvest and commercial demand.
-            </p>
-          </div>
+        <section id="how" className="border-t border-border/60">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20 lg:py-24">
+            <div className="max-w-xl">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                How it works
+              </p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                Three steps from farm to order
+              </h2>
+            </div>
 
-          <div className="mt-12 grid gap-10 border-t border-border/60 pt-10 sm:grid-cols-3 sm:gap-8 lg:gap-12">
-            <div>
-              <span className="font-mono text-xs font-bold text-primary">01</span>
-              <h3 className="mt-3 text-base font-semibold text-foreground">Discover</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Browse fresh produce listings from verified Butuan farmers. Filter by category, price, and harvest availability.
-              </p>
-            </div>
-            <div>
-              <span className="font-mono text-xs font-bold text-primary">02</span>
-              <h3 className="mt-3 text-base font-semibold text-foreground">Order</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Place wholesale orders directly with the grower. Choose between direct farm pickup or seller delivery.
-              </p>
-            </div>
-            <div>
-              <span className="font-mono text-xs font-bold text-primary">03</span>
-              <h3 className="mt-3 text-base font-semibold text-foreground">Fulfill</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Coordinate details through threaded order chat. Track status updates from acceptance through handover.
-              </p>
+            <div className="mt-10 grid gap-10 border-t border-border/60 pt-8 sm:grid-cols-3 sm:gap-8 lg:gap-12">
+              <div>
+                <span className="font-mono text-xs font-bold text-primary">01</span>
+                <h3 className="mt-3 text-base font-semibold text-foreground">Discover</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  Browse active produce listings. Filter by category, price, and availability to find what your kitchen needs.
+                </p>
+              </div>
+              <div>
+                <span className="font-mono text-xs font-bold text-primary">02</span>
+                <h3 className="mt-3 text-base font-semibold text-foreground">Order</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  Place wholesale orders at farm-gate prices. Choose between pickup or seller delivery for each order.
+                </p>
+              </div>
+              <div>
+                <span className="font-mono text-xs font-bold text-primary">03</span>
+                <h3 className="mt-3 text-base font-semibold text-foreground">Fulfill</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  Coordinate details through order chat. Track status from acceptance through handover.
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
         {/* -- 4. For Growers / For Businesses ---------------------- */}
         <section id="growers" className="border-t border-border/60 bg-muted/20 scroll-mt-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-24 lg:py-28">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20 lg:py-24">
             <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 lg:divide-x lg:divide-border/60">
               {/* For Growers */}
               <div id="farmers" className="flex flex-col justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                    Growers & Producers
+                    For Growers
                   </p>
                   <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                    For Growers
+                    Reach buyers without the middleman
                   </h2>
-                  <p className="mt-3 text-sm font-medium text-foreground sm:text-base">
-                    Sell your produce directly to local businesses.
-                  </p>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    List your harvest, set fair prices, and supply local businesses — directly, fairly, and without intermediary markups.
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                    List your harvest, set your prices, and receive orders from restaurants, retailers, and caterers in Butuan.
                   </p>
 
-                  <ul className="mt-6 space-y-3 text-sm text-foreground">
+                  <ul className="mt-6 space-y-2.5 text-sm text-foreground">
                     <li className="flex items-start gap-3">
-                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>Full control over your wholesale pricing and batch quantities</span>
+                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Control your wholesale pricing and batch sizes</span>
                     </li>
                     <li className="flex items-start gap-3">
-                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>Real-time visibility into incoming commercial orders</span>
+                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>See incoming orders in real time</span>
                     </li>
                     <li className="flex items-start gap-3">
-                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>Direct messaging to coordinate pickup or delivery logistics</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>Build stable relationships with local restaurants and retailers</span>
+                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Coordinate pickup or delivery with each buyer</span>
                     </li>
                   </ul>
                 </div>
@@ -204,7 +200,7 @@ export default async function HomePage() {
                     href={isAuthenticated && role === "farmer" ? "/farmer" : "/sign-up"}
                     className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
                   >
-                    {isAuthenticated && role === "farmer" ? "Open Farmer Dashboard" : "I'm a grower"}
+                    {isAuthenticated && role === "farmer" ? "Open Farmer Dashboard" : "I\u2019m a grower"}
                     <RiArrowRightLine className="size-4" />
                   </Link>
                 </div>
@@ -214,41 +210,37 @@ export default async function HomePage() {
               <div id="businesses" className="flex flex-col justify-between lg:pl-16">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                    Commercial Buyers
+                    For Businesses
                   </p>
                   <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                    For Businesses
+                    Source produce at farm-gate prices
                   </h2>
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    Procure fresh produce directly from Butuan farms for your kitchen or retail store. Direct from the source.
+                    Procure fresh ingredients for your kitchen or retail floor — with clear availability, pricing, and fulfillment.
                   </p>
 
-                  <ul className="mt-6 space-y-3 text-sm text-foreground">
+                  <ul className="mt-6 space-y-2.5 text-sm text-foreground">
                     <li className="flex items-start gap-3">
-                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>Browse verified local farms and active crop listings</span>
+                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Browse verified farms and active crop listings</span>
                     </li>
                     <li className="flex items-start gap-3">
-                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>Transparent wholesale pricing without middleman markups</span>
+                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Wholesale pricing without intermediary markups</span>
                     </li>
                     <li className="flex items-start gap-3">
-                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>Flexible fulfillment: choose farm pickup or seller delivery</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>Support Butuan City&apos;s local farming community</span>
+                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Flexible fulfillment — farm pickup or seller delivery</span>
                     </li>
                   </ul>
                 </div>
 
                 <div className="mt-8 border-t border-border/60 pt-6">
                   <Link
-                    href={isAuthenticated && role === "business" ? "/business" : "/sign-up"}
+                    href={isAuthenticated && role === "business" ? "/business" : "/products"}
                     className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
                   >
-                    {isAuthenticated && role === "business" ? "Open Business Dashboard" : "Start sourcing"}
+                    {isAuthenticated && role === "business" ? "Open Business Dashboard" : "Explore the market"}
                     <RiArrowRightLine className="size-4" />
                   </Link>
                 </div>
@@ -259,13 +251,13 @@ export default async function HomePage() {
 
         {/* -- 5. Final CTA ------------------------------------------- */}
         <section className="border-t border-border/60 bg-background">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-28 text-center">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-24 text-center">
             <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
               Ready to get started?
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Join the growing network of Butuan farmers and commercial buyers
-              building a stronger, direct, and more transparent local food system.
+              Whether you grow or buy, UMA connects you to Butuan&apos;s
+              agricultural supply chain — without the middleman.
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -301,12 +293,6 @@ export default async function HomePage() {
                   >
                     I&apos;m a grower
                     <RiArrowRightLine className="size-4" />
-                  </Link>
-                  <Link
-                    href="/sign-in"
-                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:ml-2"
-                  >
-                    Already have an account? Sign in →
                   </Link>
                 </>
               )}
@@ -362,4 +348,3 @@ export default async function HomePage() {
     </div>
   );
 }
-

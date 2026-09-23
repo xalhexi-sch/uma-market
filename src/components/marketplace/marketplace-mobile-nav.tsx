@@ -77,13 +77,6 @@ export function MarketplaceMobileNav({
                 {item.label}
               </Link>
             ))}
-            <Link
-              href="/#growers"
-              onClick={() => setOpen(false)}
-              className="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-            >
-              I&apos;m a grower
-            </Link>
           </nav>
         </div>
 

@@ -459,6 +459,46 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+### Public Experience UX/UI Refinement (Complete & Verified ✅)
+- **1. Seed Script Product Image Audit & Correction:**
+  - Audited demo product URLs in `scripts/seed-demo-data.ts`.
+  - Replaced wrong/duplicate Unsplash URLs:
+    - **Fresh Yellow Ginger (Luya):** Replaced duplicate eggplant photo (`photo-1615485290382-441e4d049cb5`) with verified ginger harvest root photo (`https://images.unsplash.com/photo-1635008388183-04ea0313c5d1?w=800&auto=format&fit=crop&q=80`).
+    - **Yellow Sweet Camote:** Replaced cabbage photo (`photo-1598030343246-eec71cb44231`) with verified sweet potato pile photo (`https://images.unsplash.com/photo-1753445657069-ba23263dd733?w=800&auto=format&fit=crop&q=80`).
+    - **Native Purple Ube:** Replaced 404 URL (`photo-1596097635092-6d3c8e3e4f1e`) with verified purple yam/tuber photo (`https://images.unsplash.com/photo-1730815048561-45df6f7f331d?w=800&auto=format&fit=crop&q=80`).
+  - Added support for `SUPABASE_SERVICE_ROLE_KEY` fallback alongside `SUPABASE_SECRET_KEY` in `scripts/seed-demo-data.ts`.
+  - Executed `npm run seed:demo` live against remote Supabase: verified photos were downloaded and stored in Supabase Storage `product-images` bucket (`products/.../*.jpg`), and live database records were updated with new image URLs and timestamps.
+- **2. Global CSS Utilities:**
+  - Added `@utility no-scrollbar` and cross-browser `.no-scrollbar` classes (WebKit `display: none`, Firefox/IE `scrollbar-width: none`) in `src/app/globals.css` for horizontal scrolling components.
+- **3. Product Rail Components:**
+  - `ProductRailCarousel` (`src/components/marketplace/product-rail-carousel.tsx`): Client-side carousel wrapper using shadcn Carousel primitive and `embla-carousel-react` (`slidesToScroll: 1`, responsive basis: `basis-[85%] sm:basis-[48%] lg:basis-[25%]`, conditional desktop prev/next controls when items > 4).
+  - `FreshOnUmaRail` (`src/components/marketplace/fresh-on-uma-rail.tsx`): Server component fetching 6 in-stock products via `getActiveProducts({ inStockOnly: true, sort: "newest", limit: 6 })`, rendered with clear eyebrow ("Fresh on UMA"), headline ("What's available now"), and "Explore more produce →" link to `/products`.
+- **4. Landing Page Refactor (`src/app/page.tsx`):**
+  - Integrated `<FreshOnUmaRail />` wrapped in `<Suspense>` with skeleton fallback directly after the full-bleed photographic hero.
+  - Removed redundant proof/value strip to accelerate user time-to-produce discovery.
+  - Streamlined "How UMA Works" to 3 scannable steps (01 Discover, 02 Order, 03 Fulfill) without redundant copy.
+  - Tightened Growers and Businesses sections to 3 concise benefit lines each with consistent primary action CTAs ("I'm a grower →" and "Explore the market →").
+- **5. Navbar Deduplication:**
+  - Removed duplicate "I'm a grower" text link from right-side CTAs in `landing-navbar.tsx` and `marketplace-header.tsx`, preserving single source of truth in center navigation list (`For growers` → `/#growers`).
+- **6. Marketplace Page Polish (`src/app/products/page.tsx`):**
+  - Removed redundant "Fresh Picks & Recent Harvests" section to eliminate repetitive produce grid cards.
+  - Cleaned up overly formal eyebrow labels in favor of a clean, scannable "In Stock" indicator.
+  - Increased "Available Now" discovery grid from 4 to 6 items (`limit: 6`, 2 balanced rows on `lg:grid-cols-3`).
+- **7. Product Detail Verification (`src/app/products/[id]/page.tsx`):**
+  - Verified complete preservation of wholesale procurement data, producer provenance card, MOQ enforcement, and role-aware order actions. Zero regressions.
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Production Build** | `npm run build` | ✅ **PASS** | 35 routes compiled cleanly via Turbopack |
+| **Fresh on UMA Product Rail** | Server Component + Embla | ✅ **PASS** | Fetches 6 active in-stock listings; client wrapper renders responsive carousel with desktop arrows and mobile swipe |
+| **Product Images Audit** | Unsplash validation | ✅ **PASS** | Verified correct harvest photography for ginger, camote, and ube |
+| **Navbar Deduplication** | Code inspection | ✅ **PASS** | Removed duplicate "I'm a grower" from right CTAs; center nav remains single entry point |
+| **Marketplace Discovery** | Code inspection | ✅ **PASS** | Available Now increased to 6 items; Fresh Picks duplicate section removed; clean scannable eyebrows |
+| **Product Detail Integrity** | Code inspection | ✅ **PASS** | `/products/[id]` verified with zero regressions |
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
@@ -468,3 +508,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Slice 6:** ✅ Complete & Verified Across Checkpoints 6.1–6.5, QA Polish & Landing Page Polish
 - **Public Marketplace:** ✅ Complete & Verified (/products & /products/[id])
 - **Brand, Navbar & CTA Polish:** ✅ Complete & Verified (Transparent-to-solid navbar, brand mark, favicons, CTA hierarchy)
+- **Public Experience UX/UI Refinement:** ✅ Complete & Verified (Fresh on UMA product rail, verified produce photography, navbar deduplication, and streamlined marketplace discovery)

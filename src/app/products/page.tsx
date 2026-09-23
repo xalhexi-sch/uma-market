@@ -5,9 +5,7 @@ import {
   RiSearchLine,
   RiPlantLine,
   RiArrowRightLine,
-  RiTimeLine,
   RiCheckDoubleLine,
-  RiFolder2Line,
   RiCloseCircleLine,
 } from "@remixicon/react";
 import { Input } from "@/components/ui/input";
@@ -65,15 +63,11 @@ function CategoryDiscoverySection({ categories }: { categories: Category[] }) {
     <section className="py-2">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
-            <RiFolder2Line className="size-4" />
-            <span>Structured Sourcing</span>
-          </div>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Browse by Category
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Explore commercial agricultural supply across 8 dedicated categories.
+            Find produce across {categories.length} dedicated categories.
           </p>
         </div>
       </div>
@@ -93,7 +87,7 @@ function CategoryDiscoverySection({ categories }: { categories: Category[] }) {
                 {cat.name}
               </h3>
               <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                {cat.description || `Fresh local ${cat.name.toLowerCase()} from Butuan producers.`}
+                {cat.description || `Fresh ${cat.name.toLowerCase()} from Butuan producers.`}
               </p>
             </div>
             <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-primary">
@@ -113,20 +107,14 @@ async function CuratedDiscovery({
 }: {
   categories: Category[];
 }) {
-  // 1. Available Now: In-stock active products
+  // 1. Available Now: In-stock active products — primary discovery section
   const availableNow = await getActiveProducts({
     inStockOnly: true,
     sort: "newest",
-    limit: 4,
+    limit: 6,
   });
 
-  // 2. Fresh Picks / Recently Harvested: Sorted by harvest date
-  const freshPicks = await getActiveProducts({
-    sort: "harvest_newest",
-    limit: 4,
-  });
-
-  // 3. Complete catalog listing
+  // 2. Complete catalog listing
   const allProducts = await getActiveProducts({
     sort: "newest",
     limit: 24,
@@ -134,20 +122,20 @@ async function CuratedDiscovery({
 
   return (
     <div className="flex flex-col gap-14 sm:gap-18">
-      {/* 1. Available Now */}
+      {/* 1. Available Now — Primary discovery section */}
       {availableNow.length > 0 && (
         <section>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
             <div>
               <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 <RiCheckDoubleLine className="size-4" />
-                <span>Ready for Ordering</span>
+                <span>In Stock</span>
               </div>
               <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 Available Now
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                In-stock produce currently available for commercial pickup or delivery.
+                Produce currently in stock and ready for ordering.
               </p>
             </div>
             <Link
@@ -159,7 +147,7 @@ async function CuratedDiscovery({
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {availableNow.map((p) => (
               <MarketplaceProductCard key={p.id} product={p} />
             ))}
@@ -167,54 +155,17 @@ async function CuratedDiscovery({
         </section>
       )}
 
-      {/* 2. Fresh Picks / Recently Harvested */}
-      {freshPicks.length > 0 && (
-        <section>
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
-            <div>
-              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                <RiTimeLine className="size-4" />
-                <span>Harvest Freshness</span>
-              </div>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                Fresh Picks &amp; Recent Harvests
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Recently harvested crops and verified new listings from local farm gate sources.
-              </p>
-            </div>
-            <Link
-              href="/products?sort=harvest_newest"
-              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-            >
-              View by harvest date
-              <RiArrowRightLine className="size-3.5" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {freshPicks.map((p) => (
-              <MarketplaceProductCard key={p.id} product={p} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 3. Browse by Category */}
+      {/* 2. Browse by Category */}
       <CategoryDiscoverySection categories={categories} />
 
-      {/* 4. Complete Active Produce Catalog */}
+      {/* 3. Complete Active Produce Catalog */}
       <section>
         <div className="mb-6">
-          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
-            <RiPlantLine className="size-4" />
-            <span>Full Catalog</span>
-          </div>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             All Produce Listings
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Complete list of active wholesale offerings from registered Butuan producers.
+            Complete catalog of active wholesale offerings.
           </p>
         </div>
 
@@ -223,7 +174,7 @@ async function CuratedDiscovery({
             <RiPlantLine className="size-10 text-muted-foreground/40 mb-3" />
             <p className="font-semibold text-foreground">No active produce listed yet</p>
             <p className="mt-1 text-sm text-muted-foreground max-w-sm">
-              Local farmers are preparing upcoming seasonal harvests. Check back soon.
+              Farmers are preparing upcoming seasonal harvests. Check back soon.
             </p>
           </div>
         ) : (
@@ -336,16 +287,11 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
         <section className="border-b border-border/60 bg-muted/20 py-8 sm:py-12">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="max-w-2xl">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <RiPlantLine className="size-3.5" />
-                Direct Agricultural Sourcing
-              </span>
-              <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Butuan Produce Marketplace
+              <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                Produce Marketplace
               </h1>
               <p className="mt-2 text-base text-muted-foreground">
-                Source fresh local harvests directly from verified Butuan producers. Transparent
-                farm-gate pricing, clear availability, and direct wholesale procurement.
+                Find fresh produce from verified Butuan producers. Farm-gate pricing with clear availability.
               </p>
             </div>
 

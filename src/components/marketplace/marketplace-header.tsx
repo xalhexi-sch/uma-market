@@ -78,12 +78,6 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
           ) : (
             <>
               <Link
-                href="/#growers"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                I&apos;m a grower
-              </Link>
-              <Link
                 href="/sign-in"
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >

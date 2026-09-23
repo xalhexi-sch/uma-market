@@ -7,14 +7,14 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Brand, Navbar & CTA Polish**
-- **Current Checkpoint:** Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Landing Page Visual Polish ✅ | QA Polish ✅ | Production Deployment Verified ✅
+- **Current Slice:** **Public Experience UX/UI Refinement**
+- **Current Checkpoint:** Public Experience UX/UI Refinement ✅ | Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Landing Page Visual Polish ✅ | QA Polish ✅ | Production Deployment Verified ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
-- **Slice 6 Status:** ✅ **Production Deployment, Public Marketplace & Brand/Navbar Polish Complete**
+- **Slice 6 Status:** ✅ **Production Deployment, Public Marketplace, Brand/Navbar Polish & UX/UI Refinement Complete**
 
 ---
 
@@ -176,18 +176,46 @@
   - **Landing Page Integration:** Added "Products" (`/products`) to top navigation and footer; updated Hero and Final CTAs "Explore products" to route directly to `/products`.
   - **Security & Authorization:** Strict `status = 'active'` isolation across all public queries; draft products remain private; zero secret keys exposed in client bundles/browser; resilient server-side farmer provenance enrichment via server admin client.
 
+### Public Experience UX/UI Refinement (Complete & Verified ✅)
+- [x] **Product Image Sourcing & Audit:**
+  - Audited demo catalog images in `scripts/seed-demo-data.ts`.
+  - Replaced wrong/duplicate Unsplash URLs:
+    - **Fresh Yellow Ginger (Luya):** Replaced duplicate eggplant photo (`photo-1615485290382-441e4d049cb5`) with verified ginger root harvest photo (`https://images.unsplash.com/photo-1635008388183-04ea0313c5d1?w=800&auto=format&fit=crop&q=80`).
+    - **Yellow Sweet Camote:** Replaced cabbage photo (`photo-1598030343246-eec71cb44231`) with verified sweet potato pile photo (`https://images.unsplash.com/photo-1753445657069-ba23263dd733?w=800&auto=format&fit=crop&q=80`).
+    - **Native Purple Ube:** Replaced 404 URL (`photo-1596097635092-6d3c8e3e4f1e`) with verified purple yam/tuber photo (`https://images.unsplash.com/photo-1730815048561-45df6f7f331d?w=800&auto=format&fit=crop&q=80`).
+  - Added support for `SUPABASE_SERVICE_ROLE_KEY` fallback in seed script alongside `SUPABASE_SECRET_KEY`.
+  - Executed `npm run seed:demo` live against remote Supabase: successfully downloaded and re-uploaded verified photos to Supabase Storage `product-images` bucket, and updated `products` table records with new image URLs and timestamps.
+- [x] **Global CSS Utilities:**
+  - Added `@utility no-scrollbar` and cross-browser `.no-scrollbar` classes (WebKit display none, Firefox/IE scrollbar-width none) in `src/app/globals.css`.
+- [x] **Product Rail Components:**
+  - Created `ProductRailCarousel` (`src/components/marketplace/product-rail-carousel.tsx`): Client-side carousel wrapper using shadcn Carousel primitive and Embla (`slidesToScroll: 1`, responsive basis: `basis-[85%] sm:basis-[48%] lg:basis-[25%]`, conditional desktop prev/next controls).
+  - Created `FreshOnUmaRail` (`src/components/marketplace/fresh-on-uma-rail.tsx`): Server component fetching 6 in-stock products via `getActiveProducts({ inStockOnly: true, sort: "newest", limit: 6 })`, rendered with clear eyebrow ("Fresh on UMA"), headline ("What's available now"), and "Explore more produce →" link to `/products`.
+- [x] **Landing Page Refactor (`src/app/page.tsx`):**
+  - Integrated `<FreshOnUmaRail />` wrapped in `<Suspense>` with skeleton fallback immediately after the photographic hero.
+  - Removed redundant proof/value strip to accelerate time-to-produce discovery.
+  - Streamlined "How UMA Works" to 3 scannable steps (01 Discover, 02 Order, 03 Fulfill) without redundant copy.
+  - Tightened Growers and Businesses sections to 3 high-impact benefit lines each with consistent primary action CTAs ("I'm a grower →" and "Explore the market →").
+- [x] **Navbar Deduplication:**
+  - Removed duplicate "I'm a grower" text link from right-side CTAs in `landing-navbar.tsx` and `marketplace-header.tsx`, preserving single source of truth in center navigation list (`For growers` → `/#growers`).
+- [x] **Marketplace Page Polish (`src/app/products/page.tsx`):**
+  - Removed redundant "Fresh Picks & Recent Harvests" section to eliminate repetitive produce grid cards.
+  - Cleaned up overly formal eyebrow labels ("Structured Sourcing", "Harvest Freshness", "Ready for Ordering") in favor of a clean, scannable "In Stock" indicator.
+  - Increased "Available Now" discovery grid from 4 to 6 items (`limit: 6`, 2 balanced rows on `lg:grid-cols-3`).
+- [x] **Product Detail Verification (`src/app/products/[id]/page.tsx`):**
+  - Verified complete preservation of wholesale procurement data, producer provenance card, MOQ enforcement, and role-aware order actions. Zero regressions.
+
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Brand, Navbar & CTA Polish is complete and fully verified.
-- Production build (34 routes), ESLint (0 errors, 0 warnings), and browser visual verification (transparent navbar, scroll transition, CTAs, mobile drawer, favicons) are complete.
+- Public Experience UX/UI Refinement is complete and fully verified.
+- Production build (35 routes compiled via Turbopack), ESLint (0 errors, 0 warnings), and component verification are complete.
 
 ---
 
 ## 4. Known Issues
 
-- **None.** Build passes cleanly (34 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database, storage bucket, realtime channels, and RLS policies verified.
+- **None.** Build passes cleanly (35 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database, storage bucket, realtime channels, and RLS policies verified.
 
 ---
 
@@ -227,13 +255,18 @@
 
 ---
 
-## 7. Latest Verification Results (Brand, Navbar & CTA Polish)
+## 7. Latest Verification Results (Public Experience UX/UI Refinement)
 
-- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 34 routes compiled cleanly with Turbopack, including `/products` and `/products/[id]`)
-- **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors)
+- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 35 routes compiled cleanly with Turbopack, including `/products` and `/products/[id]`)
+- **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors across all files)
+- **Fresh on UMA Product Rail:** ✅ **PASS** (Server component fetches 6 active in-stock listings; client wrapper renders responsive Embla carousel with desktop arrows and mobile swipe)
+- **Product Images Audit:** ✅ **PASS** (Corrected ginger, camote, and ube Unsplash URLs to verified produce photography)
+- **Navbar Deduplication:** ✅ **PASS** (Removed duplicate "I'm a grower" from right CTAs; center nav remains sole entry point)
+- **Marketplace Discovery:** ✅ **PASS** (Available Now increased to 6 items; Fresh Picks duplicate section removed; clean scannable eyebrows)
+- **Product Detail Integrity:** ✅ **PASS** (`/products/[id]` verified with zero regressions)
 - **Transparent Navbar Over Hero:** ✅ **PASS** (Transparent background sitting cleanly over hero photograph; brand icon and text legible with top gradient scrim)
 - **Scroll Transition to Solid Navbar:** ✅ **PASS** (Transitions smoothly to light/solid background on scroll with dark text and crisp brand mark; full-width across viewport)
-- **Navigation Hierarchy:** ✅ **PASS** (Left: UMA Market brand mark + text; Center: `Market`, `How it works`, `For growers`; Right: `I'm a grower`, `Explore the market →`, `Sign in` / `Dashboard`)
+- **Navigation Hierarchy:** ✅ **PASS** (Left: UMA Market brand mark + text; Center: `Market`, `How it works`, `For growers`; Right: `Explore the market →`, `Sign in` / `Dashboard`)
 - **CTA Hierarchy:** ✅ **PASS** (Primary: "Explore the market →" to `/products`; Secondary: "I'm a grower →" to `/#growers`; grower section lead: "Sell your produce directly to local businesses.")
 - **Favicon & Icon Metadata:** ✅ **PASS** (Finalized multi-resolution 16/32/48 ICO and 512px PNG from official brand asset `uma-icon-512.png`; works in light and dark browser UI)
 - **Mobile Navigation Drawer:** ✅ **PASS** (Verified on 375px viewport with slide-over sheet, clean links, zero double close buttons, and prominent CTAs)

@@ -82,18 +82,6 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
 
           {/* Right CTAs */}
           <div className="hidden items-center gap-4 sm:flex">
-            {/* Secondary: I'm a grower */}
-            <Link
-              href="/#growers"
-              className={`text-sm font-medium transition-colors ${
-                isScrolled
-                  ? "text-muted-foreground hover:text-foreground"
-                  : "text-white/85 hover:text-white drop-shadow-xs"
-              }`}
-            >
-              I&apos;m a grower
-            </Link>
-
             {/* Primary Action: Explore the market */}
             <Link
               href="/products"
@@ -186,13 +174,6 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
                   {item.label}
                 </Link>
               ))}
-              <Link
-                href="/#growers"
-                onClick={() => setMobileOpen(false)}
-                className="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-              >
-                I&apos;m a grower
-              </Link>
             </nav>
           </div>
 

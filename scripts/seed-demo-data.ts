@@ -8,10 +8,12 @@ import * as path from "path";
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+const supabaseKey =
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY in environment.");
+  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY in environment.");
   process.exit(1);
 }
 
@@ -288,7 +290,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 10,
     harvest_offset_days: -2,
     available_offset_days: 20,
-    imageUrl: "https://images.unsplash.com/photo-1590005354167-6da97870c757?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1753445657069-ba23263dd733?w=800&auto=format&fit=crop&q=80",
   },
   {
     id: "a0000001-0000-0000-0000-000000000012",
@@ -303,7 +305,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 10,
     harvest_offset_days: -3,
     available_offset_days: 14,
-    imageUrl: "https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1730815048561-45df6f7f331d?w=800&auto=format&fit=crop&q=80",
   },
   {
     id: "a0000001-0000-0000-0000-000000000013",
@@ -365,7 +367,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 5,
     harvest_offset_days: -3,
     available_offset_days: 30,
-    imageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1635008388183-04ea0313c5d1?w=800&auto=format&fit=crop&q=80",
   },
 
   // 6. Poultry & Eggs (2 items)
