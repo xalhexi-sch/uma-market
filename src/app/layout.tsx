@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
 import { Toaster } from "@/components/ui/toast";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -44,14 +45,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn("h-full antialiased", inter.variable)}
     >
       <body className="min-h-full flex flex-col font-sans">
-        <ClerkProvider dynamic>
-          <Toaster>
-            {children}
-          </Toaster>
-        </ClerkProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ClerkProvider dynamic>
+            <Toaster>
+              {children}
+            </Toaster>
+          </ClerkProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

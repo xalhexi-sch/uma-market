@@ -529,6 +529,45 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+### Final Public Landing Refinement: Visual Composition, Oversized Hardware, Buyer Trust & Dark Mode (Complete & Verified ✅)
+- **1. Realistic Hardware Mockup Assets (`public/showcase/`):**
+  - Refined showcase toward premium modern product-campaign presentation:
+    - `desktop-marketplace.webp` (166 KB, 2000x1260): Realistic aluminum laptop chassis with front deck, thumb notch, camera, realistic glass reflections, and live `/products` produce discovery UI.
+    - `desktop-grower.webp` (99 KB, 1960x1160): Realistic aluminum slate tablet displaying grower inventory management, pricing controls, KPI cards, and live order progression.
+    - `phone-marketplace.webp` (66 KB, 800x1200): Realistic dark titanium smartphone with Dynamic Island, status bar, and responsive mobile marketplace UI.
+- **2. Oversized Asymmetric Campaign Layout:**
+  - Marketplace Laptop: Oversized presentation bleeding intentionally past the right margin (`lg:w-[124%] lg:-mr-16 xl:-mr-24 lg:translate-x-4`).
+  - Grower Slate Tablet: Oversized presentation bleeding intentionally past the left margin (`lg:w-[124%] lg:-ml-16 xl:-ml-24 lg:-translate-x-4`).
+  - Mobile Smartphone: Realistic phone layout with generous whitespace and 2 field-ready capability cards.
+  - Zero horizontal overflow (`scrollWidth <= clientWidth`) enforced via `overflow-hidden` section containment.
+- **3. Narrative & Copy Cleanup:**
+  - Removed hero eyebrow `"Butuan City · Agricultural Marketplace"` — hero goes directly into `"Fresh from Butuan's farms to your business."`
+  - Added restrained buyer trust strip: `"Built for businesses sourcing local produce"` with safe category pills (`Restaurants`, `Canteens`, `Grocers`, `Hotels`, `Caterers`) — zero fabricated partner logos.
+  - Removed explanatory bridge `"The Software Behind the Market"` — page transitions directly from Fresh on UMA into the real product showcases.
+- **4. Complete Light / Dark Mode System:**
+  - Integrated `next-themes` with `ThemeProvider` and OKLCH color token compatibility.
+  - `ThemeToggle` component in public navbar with dynamic contrast: light/transparent over hero before scroll, solid/light/dark after scroll.
+  - Global `"D"` keyboard shortcut for instant theme toggling with strict input/textarea/contenteditable safety and repeat/modifier guards.
+- **5. About UMA Page (`/about`):**
+  - Dedicated public route with concrete agricultural positioning: the problem in Butuan, structured trade tools, who UMA serves, and local Caraga corridor focus.
+  - Added "About" link to public navbar and footer.
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Production Build** | `npm run build` | ✅ **PASS** | 36 routes compiled cleanly via Turbopack |
+| **Hero Copy Cleanup** | Code & visual inspection | ✅ **PASS** | Eyebrow removed; direct headline; approved sunrise imagery preserved |
+| **Buyer Trust Strip** | Code & visual inspection | ✅ **PASS** | Safe positioning with 5 commercial buyer types; no fake brand claims |
+| **Marketplace Laptop Mockup** | Edge Headless 1440px | ✅ **PASS** | Oversized bleeding off right edge; crisp produce UI |
+| **Grower Tablet Mockup** | Edge Headless 1440px | ✅ **PASS** | Oversized bleeding off left edge; authentic farm operations UI |
+| **Smartphone Mockup** | Edge Headless 1440px | ✅ **PASS** | Realistic titanium phone with responsive mobile layout |
+| **Dark Mode System** | ThemeProvider + next-themes | ✅ **PASS** | System default, manual toggle, seamless dark/light contrast |
+| **"D" Keyboard Shortcut** | CDP & simulated key events | ✅ **PASS** | Toggles theme instantly; safely ignored in text fields and modifiers |
+| **About UMA Route** | Edge Headless `/about` | ✅ **PASS** | Dedicated `/about` page renders with active route highlight and footer |
+| **Mobile Responsiveness** | Edge Headless 390px | ✅ **PASS** | No horizontal overflow; responsive drawer with theme toggle and all links |
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
@@ -540,3 +579,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Brand, Navbar & CTA Polish:** ✅ Complete & Verified (Transparent-to-solid navbar, brand mark, favicons, CTA hierarchy)
 - **Public Experience UX/UI Refinement:** ✅ Complete & Verified (Fresh on UMA product rail, verified produce photography, navbar deduplication, and streamlined marketplace discovery)
 - **Physical Hardware SaaS Showcase Refinement:** ✅ Complete & Verified (2 physical laptops, 1 smartphone, real UMA screens, full code simplification, 0 lint errors, and 35 compiled routes)
+- **Final Public Landing Refinement:** ✅ Complete & Verified (Visual composition, oversized asymmetric bleed, restrained buyer trust, dark mode + "D" shortcut, /about route, 0 lint errors, and 36 compiled routes)
