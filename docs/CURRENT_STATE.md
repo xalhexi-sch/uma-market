@@ -7,14 +7,14 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **SaaS Product Showcase Landing Page**
-- **Current Checkpoint:** SaaS Product Showcase Landing Page ✅ | Public Experience UX/UI Refinement ✅ | Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Landing Page Visual Polish ✅ | QA Polish ✅ | Production Deployment Verified ✅
+- **Current Slice:** **Final Public Landing Refinement (Visual Composition, Device Mockups, Buyer Trust, Dark Mode, /about)**
+- **Current Checkpoint:** Final Public Landing Refinement ✅ | SaaS Product Showcase Landing Page ✅ | Public Experience UX/UI Refinement ✅ | Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Landing Page Visual Polish ✅ | QA Polish ✅ | Production Deployment Verified ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
-- **Slice 6 Status:** ✅ **Production Deployment, Public Marketplace, Brand/Navbar Polish & SaaS Product Showcase Complete**
+- **Slice 6 Status:** ✅ **Final Public Landing Refinement Complete & Verified (Exit code 0)**
 
 ---
 
@@ -273,17 +273,18 @@
 
 ---
 
-## 7. Latest Verification Results (Physical Hardware Showcase & Refinement)
+## 7. Latest Verification Results (Final Public Landing Refinement)
 
-- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 35 routes compiled cleanly with Turbopack, including `/`, `/products`, and `/products/[id]`)
+- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 36 routes compiled cleanly with Turbopack, including `/`, `/about`, `/products`, and `/products/[id]`)
 - **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors across all files)
-- **Approved Hero Preservation:** ✅ **PASS** (Full-width farmer + sunrise hero, exact headline, primary and secondary CTAs preserved)
-- **Fresh on UMA Product Rail:** ✅ **PASS** (Horizontal carousel renders 6 real in-stock active products with farmer provenance)
-- **The Software Behind the Market Intro:** ✅ **PASS** ("Real tools for the real work" with 4-pillar overview: Wholesale Catalog, Grower Inventory, Order Operations, Universal Web App)
-- **Desktop Device #1 (Marketplace Laptop):** ✅ **PASS** (`desktop-marketplace.webp`, realistic Space Gray aluminum laptop chassis with front deck, thumb notch, camera, drop shadow, and real `/products` UI)
-- **Desktop Device #2 (Grower Tools Laptop):** ✅ **PASS** (`desktop-grower.webp`, matching laptop chassis angled in opposite orientation, showcasing inventory table, KPI cards, and order/chat status)
-- **Mobile Device (Smartphone):** ✅ **PASS** (`phone-marketplace.webp`, realistic dark titanium smartphone with Dynamic Island, side buttons, and responsive mobile UMA marketplace UI)
-- **Device Count Reduction:** ✅ **PASS** (Exactly 2 laptops and 1 smartphone; eliminated separate 4th browser mockup)
-- **Scroll Reveal Animations:** ✅ **PASS** (IntersectionObserver upward fade entrance with cubic bezier easing and strict `prefers-reduced-motion` compliance)
-- **Navbar & Navigation:** ✅ **PASS** (Transparent-to-solid transition over hero, verified contrast in both states, zero messages in public nav)
-- **Mobile Responsiveness:** ✅ **PASS** (Clean stacking, no horizontal overflow, scales gracefully on 375px/390px viewports)
+- **Approved Hero Preservation & Copy Cleanup:** ✅ **PASS** (Hero eyebrow removed, directly opening into `"Fresh from Butuan's farms to your business."` with full-bleed photographic sunrise imagery)
+- **Buyer Trust / Social Proof Strip:** ✅ **PASS** (Restrained, safe positioning `"Built for businesses sourcing local produce"` with clean category pills for Restaurants, Canteens, Grocers, Hotels, Caterers; zero fabricated brands)
+- **Section Rhythm & Flow:** ✅ **PASS** (Removed explanatory `"The Software Behind the Market"` bridge; transitions directly from Fresh on UMA into the real product showcases)
+- **Marketplace Laptop Showcase:** ✅ **PASS** (`desktop-marketplace.webp`, oversized aluminum laptop presentation with intentional rightward margin bleed `lg:-mr-16 xl:-mr-24`, realistic display glass, and real produce cards)
+- **Grower Slate Tablet Showcase:** ✅ **PASS** (`desktop-grower.webp`, oversized aluminum slate tablet with intentional leftward margin bleed `lg:-ml-16 xl:-ml-24`, real inventory controls, and live order progression)
+- **Mobile Smartphone Showcase:** ✅ **PASS** (`phone-marketplace.webp`, realistic dark titanium smartphone with Dynamic Island and responsive mobile produce catalog)
+- **Dark Mode System:** ✅ **PASS** (Integrated `next-themes` ThemeProvider, `ThemeToggle` with dual-contrast support over hero and solid surfaces, and global "D" keyboard shortcut)
+- **Keyboard Shortcut Safety:** ✅ **PASS** (Pressing "D" toggles light/dark themes cleanly; safely ignored during input/textarea/contenteditable typing and modifier combinations)
+- **About UMA Page (`/about`):** ✅ **PASS** (Dedicated public destination with grounded, concrete agricultural positioning, regional Butuan context, and who UMA serves)
+- **Horizontal Overflow:** ✅ **PASS** (`scrollWidth <= clientWidth` on all viewports from 375px/390px mobile to 1280px/1440px desktop)
+- **Public Navigation Integrity:** ✅ **PASS** (Minimal navbar: Market, How it works, For growers, About; right CTAs: I'm a grower, Explore the market, ThemeToggle, Auth state)
