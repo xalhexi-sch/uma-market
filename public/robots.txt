@@ -1,0 +1,14 @@
+# UMA Market — robots.txt
+# Allow crawling of public landing page; disallow authenticated dashboard routes.
+
+User-agent: *
+Allow: /
+Disallow: /farmer/
+Disallow: /business/
+Disallow: /admin/
+Disallow: /onboarding/
+Disallow: /sign-in/
+Disallow: /sign-up/
+Disallow: /api/
+
+Sitemap: https://umamarket.com/sitemap.xml

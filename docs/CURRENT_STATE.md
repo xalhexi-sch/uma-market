@@ -1,19 +1,20 @@
 # UMA Market — Current State
 
 **Source of Truth Document**  
-*Last Updated: 2026-09-23*
+*Last Updated: 2026-09-23 (Slice 6 started)*
 
 ---
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Slice 5 — Pilot Readiness & Operational Integrity**
-- **Current Checkpoint:** Slice 5 Completed & Verified ✅
+- **Current Slice:** **Slice 6 — Production Deployment**
+- **Current Checkpoint:** 6.1 Code Hardening ✅ | 6.2–6.5 Awaiting Manual Configuration
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
+- **Slice 6 Status:** ⏳ **In Progress (Checkpoint 6.1 Complete)**
 
 ---
 
@@ -126,18 +127,32 @@
   - Farmer dashboard revenue summary (total from completed orders) and fulfillment rate KPI cards.
   - Actionable CTAs in empty states for orders, products, and messages.
 
+### Slice 6 — Production Deployment (In Progress)
+- [x] **Checkpoint 6.1: Production Code Hardening:**
+  - Removed hardcoded Supabase URL fallback in `src/lib/supabase/storage.ts` — env var is sole source of truth.
+  - Created `/api/health` endpoint returning `{ status, version, timestamp }` for deployment verification.
+  - Created `public/robots.txt` allowing public landing page crawling, blocking dashboard/auth/API routes.
+  - Added `metadataBase` to root layout using `NEXT_PUBLIC_APP_URL` for production URL resolution.
+  - Enhanced OpenGraph metadata with `siteName`, `locale`, and `robots` configuration.
+  - Updated `.env.example` with production vs. development documentation, environment separation guidance, and `NEXT_PUBLIC_APP_URL`.
+- [ ] **Checkpoint 6.2: Vercel Project & GitHub Integration** — Requires manual Vercel account + project setup.
+- [ ] **Checkpoint 6.3: Clerk Production Instance** — Requires manual Clerk Dashboard configuration.
+- [ ] **Checkpoint 6.4: Domain & DNS** — Requires domain purchase and DNS configuration.
+- [ ] **Checkpoint 6.5: Production Verification & Launch Checklist** — End-to-end verification on live deployment.
+
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Slice 5 is **COMPLETE** and verified across all four checkpoints (5.1, 5.2, 5.3, 5.4).
-- Production and pilot readiness complete. Ready for next directives (Slice 6).
+- Slice 6 Checkpoint 6.1 (Production Code Hardening) is **COMPLETE**.
+- **Next steps require manual actions:** Vercel project creation, Clerk production instance, domain + DNS, Supabase TPA re-configuration.
+- See `implementation_plan.md` for the full Slice 6 checklist and manual action guide.
 
 ---
 
 ## 4. Known Issues
 
-- **None.** Build passes cleanly (30 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database, storage bucket, and RLS policies verified.
+- **None.** Build passes cleanly (32 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database, storage bucket, and RLS policies verified.
 
 ---
 
@@ -177,16 +192,11 @@
 
 ---
 
-## 7. Latest Verification Results (Slice 5 Live QA)
+## 7. Latest Verification Results (Slice 6 Checkpoint 6.1)
 
-- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 30 routes compiled cleanly with Turbopack)
+- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 32 routes compiled cleanly with Turbopack)
 - **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors)
-- **Clerk Webhook Security:** ✅ **PASS** (Unsigned request rejected with HTTP 400 `Webhook verification failed`)
-- **Proxy Middleware Routing:** ✅ **PASS** (Webhook endpoint and dynamic routes reached cleanly without redirect loops)
-- **Custom 404 Pages:** ✅ **PASS** (Global and dashboard branded 404 pages render on non-existent routes)
-- **Toast Feedback System:** ✅ **PASS** (Base UI toast manager with success/error/info/warning functional across dashboard)
-- **Buyer Order Cancellation:** ✅ **PASS** (Pending order cancellation dialog with server action and RLS enforcement)
-- **Admin Order Audit Inspection:** ✅ **PASS** (`/admin/orders/[id]` loads order details and read-only message thread)
-- **Farmer Revenue & Fulfillment Metrics:** ✅ **PASS** (Aggregate calculations of revenue and fulfillment rate verified)
-- **Demo Data Seed Idempotency:** ✅ **PASS** (Executed `npm run seed:demo` idempotently with 0 errors)
-- **Storage Photography CDN:** ✅ **PASS** (21 produce photos uploaded to `product-images` bucket and accessible via public CDN)
+- **Health Check Endpoint:** ✅ **PASS** (`/api/health` route compiled and returns `{ status: "ok" }`)
+- **robots.txt:** ✅ **PASS** (Served from `public/robots.txt`, blocks dashboard/auth routes)
+- **Hardcoded URL Removed:** ✅ **PASS** (`storage.ts` uses `process.env.NEXT_PUBLIC_SUPABASE_URL!` exclusively)
+- **Production Metadata:** ✅ **PASS** (`metadataBase`, OpenGraph `siteName`/`locale`, `robots` configured)

@@ -9,16 +9,25 @@ import { Toaster } from "@/components/ui/toast";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  ),
   title: {
     default: APP_NAME,
     template: `%s — ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
-  keywords: ["agricultural marketplace", "Butuan", "farm to business", "local produce", "farmers market"],
+  keywords: ["agricultural marketplace", "Butuan", "farm to business", "local produce", "farmers market", "wholesale", "B2B"],
   openGraph: {
     title: APP_NAME,
     description: APP_DESCRIPTION,
     type: "website",
+    siteName: APP_NAME,
+    locale: "en_PH",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

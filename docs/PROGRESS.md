@@ -309,9 +309,50 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+## Slice 6 — Production Deployment
+**Status:** ⏳ **In Progress (Checkpoint 6.1 Complete)**
+
+### Checkpoint 6.1: Production Code Hardening (Verified ✅)
+- **Hardcoded URL Removal:**
+  - Removed fallback `|| "https://odnpkqjytrmciwmcehff.supabase.co"` from `src/lib/supabase/storage.ts`.
+  - `process.env.NEXT_PUBLIC_SUPABASE_URL!` is now the sole source of truth — prevents silent misconfiguration in production.
+- **Health Check Endpoint:**
+  - Created `src/app/api/health/route.ts` returning `{ status: "ok", version: "0.1.0", timestamp }`.
+  - Used for deployment verification and monitoring. Does not probe external dependencies.
+- **robots.txt:**
+  - Created `public/robots.txt` allowing crawling of public landing page.
+  - Disallows `/farmer/`, `/business/`, `/admin/`, `/onboarding/`, `/sign-in/`, `/sign-up/`, `/api/`.
+- **Production Metadata:**
+  - Added `metadataBase` to root `layout.tsx` using `process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"`.
+  - Enhanced OpenGraph with `siteName: "UMA Market"`, `locale: "en_PH"`.
+  - Added `robots: { index: true, follow: true }` meta configuration.
+  - Added keywords: `"wholesale"`, `"B2B"`.
+- **Environment Documentation:**
+  - Updated `.env.example` with production vs. development key guidance.
+  - Documented `NEXT_PUBLIC_APP_URL` for canonical URL resolution.
+  - Added security notes for Vercel Secret type variables.
+  - Documented that production and development use different webhook signing secrets.
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Production Build** | `npm run build` | ✅ **PASS** | 32 routes compiled cleanly via Turbopack |
+| **Health Endpoint** | Route compilation check | ✅ **PASS** | `/api/health` compiled as dynamic server route |
+| **robots.txt** | Static file check | ✅ **PASS** | Served from `public/robots.txt` |
+| **Hardcoded URL** | Code inspection | ✅ **PASS** | No fallback URLs remain in codebase |
+| **metadataBase** | Build compilation | ✅ **PASS** | Resolves from `NEXT_PUBLIC_APP_URL` env var |
+
+### Checkpoint 6.2: Vercel Project & GitHub Integration (Pending — Manual)
+### Checkpoint 6.3: Clerk Production Instance (Pending — Manual)
+### Checkpoint 6.4: Domain & DNS (Pending — Manual)
+### Checkpoint 6.5: Production Verification & Launch Checklist (Pending)
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
 - **Slice 3:** ✅ Complete & Verified Across All Checkpoints & Security Matrix
 - **Slice 4:** ✅ Complete & Verified Across Checkpoints 4.1, 4.2, 4.3 & 4.4
 - **Slice 5:** ✅ Complete & Verified Across Checkpoints 5.1, 5.2, 5.3 & 5.4
+- **Slice 6:** ⏳ In Progress — Checkpoint 6.1 Complete, 6.2–6.5 Awaiting Manual Configuration

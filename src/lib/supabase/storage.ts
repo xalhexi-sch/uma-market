@@ -3,7 +3,7 @@
  * Resolves public URLs for canonical storage paths (e.g., products/{farmer_clerk_id}/{product_id}.webp).
  */
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://odnpkqjytrmciwmcehff.supabase.co";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
 export const PRODUCT_IMAGES_BUCKET = "product-images";
 
