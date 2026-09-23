@@ -39,11 +39,11 @@ export function ProductRailCarousel({
         ))}
       </CarouselContent>
 
-      {/* Prev / Next — hidden on mobile where swipe is primary, shown on desktop when useful */}
+      {/* Prev / Next — hidden on mobile where swipe is primary, subtle on desktop when useful */}
       {itemCount > 4 && (
         <>
-          <CarouselPrevious className="hidden lg:inline-flex -left-4 top-1/2 -translate-y-1/2" />
-          <CarouselNext className="hidden lg:inline-flex -right-4 top-1/2 -translate-y-1/2" />
+          <CarouselPrevious className="hidden lg:inline-flex -left-3.5 top-1/2 -translate-y-1/2 size-8 rounded-full border-border/60 bg-background/90 backdrop-blur-xs text-muted-foreground shadow-2xs hover:bg-background hover:text-foreground opacity-80 hover:opacity-100 transition-all" />
+          <CarouselNext className="hidden lg:inline-flex -right-3.5 top-1/2 -translate-y-1/2 size-8 rounded-full border-border/60 bg-background/90 backdrop-blur-xs text-muted-foreground shadow-2xs hover:bg-background hover:text-foreground opacity-80 hover:opacity-100 transition-all" />
         </>
       )}
     </Carousel>
