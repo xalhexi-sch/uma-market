@@ -3,11 +3,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function BusinessDashboardLoading() {
   return (
     <div className="flex flex-col gap-8 p-6 lg:p-8">
-      {/* Header */}
-      <div>
-        <Skeleton className="h-8 w-32" />
-        <Skeleton className="mt-2 h-4 w-56" />
-      </div>
+      {/* Agricultural Banner Skeleton */}
+      <Skeleton className="h-44 sm:h-48 w-full rounded-2xl" />
 
       {/* Metric cards */}
       <div className="grid gap-4 sm:grid-cols-3">
