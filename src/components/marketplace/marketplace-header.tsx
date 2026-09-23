@@ -6,6 +6,7 @@ import { RiShoppingCart2Line, RiArrowRightLine } from "@remixicon/react";
 import { APP_NAME } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 import { MarketplaceMobileNav } from "./marketplace-mobile-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string }) {
   const { isAuthenticated, sessionClaims } = await auth();
@@ -17,6 +18,7 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
     { label: "Market", href: "/products", isActive: activeRoute === "products" },
     { label: "How it works", href: "/#how" },
     { label: "For growers", href: "/#growers" },
+    { label: "About", href: "/about", isActive: activeRoute === "about" },
   ];
 
   return (
@@ -56,6 +58,7 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
 
         {/* Auth CTAs */}
         <div className="hidden items-center gap-3 sm:flex">
+          <ThemeToggle />
           {isAuthenticated ? (
             <>
               {isBusiness && (
@@ -96,6 +99,7 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
 
         {/* Mobile Nav Toggle */}
         <div className="flex items-center gap-2 sm:hidden">
+          <ThemeToggle />
           {isAuthenticated && <UserButton />}
           <MarketplaceMobileNav
             isAuthenticated={!!isAuthenticated}

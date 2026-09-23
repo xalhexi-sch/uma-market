@@ -7,6 +7,7 @@ import { UserButton } from "@clerk/nextjs";
 import { RiArrowRightLine, RiMenuLine } from "@remixicon/react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { APP_NAME } from "@/lib/constants";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface LandingNavbarProps {
   isAuthenticated: boolean;
@@ -30,6 +31,7 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
     { label: "Market", href: "/products" },
     { label: "How it works", href: "/#how" },
     { label: "For growers", href: "/#growers" },
+    { label: "About", href: "/about" },
   ];
 
   return (
@@ -63,8 +65,8 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
             </span>
           </Link>
 
-          {/* Center Nav: Market, How it works, For growers */}
-          <nav className="hidden items-center gap-8 md:flex">
+          {/* Center Nav: Market, How it works, For growers, About */}
+          <nav className="hidden items-center gap-7 lg:gap-8 md:flex">
             {navLinks.map((item) => (
               <Link
                 key={item.href}
@@ -81,15 +83,30 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
           </nav>
 
           {/* Right CTAs */}
-          <div className="hidden items-center gap-4 sm:flex">
+          <div className="hidden items-center gap-3 sm:flex">
+            {/* Secondary: I'm a grower */}
+            <Link
+              href="/#growers"
+              className={`text-sm font-medium transition-colors px-2 py-1.5 ${
+                isScrolled
+                  ? "text-muted-foreground hover:text-foreground"
+                  : "text-white/85 hover:text-white drop-shadow-xs"
+              }`}
+            >
+              I&apos;m a grower
+            </Link>
+
             {/* Primary Action: Explore the market */}
             <Link
               href="/products"
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
             >
               Explore the market
               <RiArrowRightLine className="size-3.5" />
             </Link>
+
+            {/* Dark / Light Theme Toggle */}
+            <ThemeToggle isOverHero={!isScrolled} />
 
             {/* Auth State */}
             {isAuthenticated ? (
@@ -122,6 +139,7 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
 
           {/* Mobile Navigation Trigger */}
           <div className="flex items-center gap-2 sm:hidden">
+            <ThemeToggle isOverHero={!isScrolled} />
             {isAuthenticated && <UserButton />}
             <button
               type="button"
@@ -179,6 +197,12 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
 
           {/* Mobile Footer CTAs */}
           <div className="p-6 border-t border-border/60 flex flex-col gap-3">
+            {/* Theme Toggle row */}
+            <div className="flex items-center justify-between py-1 px-1">
+              <span className="text-xs font-medium text-muted-foreground">Theme</span>
+              <ThemeToggle />
+            </div>
+
             {/* Primary Action */}
             <Link
               href="/products"

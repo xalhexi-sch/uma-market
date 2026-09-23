@@ -6,6 +6,7 @@ import Link from "next/link";
 import { RiMenuLine, RiShoppingCart2Line, RiArrowRightLine } from "@remixicon/react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { APP_NAME } from "@/lib/constants";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface MarketplaceMobileNavProps {
   isAuthenticated: boolean;
@@ -26,6 +27,7 @@ export function MarketplaceMobileNav({
     { label: "Market", href: "/products", isActive: activeRoute === "products" },
     { label: "How it works", href: "/#how" },
     { label: "For growers", href: "/#growers" },
+    { label: "About", href: "/about", isActive: activeRoute === "about" },
   ];
 
   return (
@@ -82,6 +84,10 @@ export function MarketplaceMobileNav({
 
         {/* Footer CTAs */}
         <div className="p-6 border-t border-border/60 flex flex-col gap-3">
+          <div className="flex items-center justify-between py-1 px-1">
+            <span className="text-xs font-medium text-muted-foreground">Theme</span>
+            <ThemeToggle />
+          </div>
           {isAuthenticated ? (
             <>
               {isBusiness && (

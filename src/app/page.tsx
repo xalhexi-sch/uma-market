@@ -5,10 +5,6 @@ import { auth } from "@clerk/nextjs/server";
 import {
   RiArrowRightLine,
   RiCheckLine,
-  RiStore2Line,
-  RiPlantLine,
-  RiTruckLine,
-  RiSmartphoneLine,
 } from "@remixicon/react";
 import type { UserRole } from "@/lib/constants";
 import { APP_NAME } from "@/lib/constants";
@@ -19,7 +15,7 @@ import { ScrollReveal } from "@/components/marketplace/showcase/scroll-reveal";
 
 function ProductRailSkeleton() {
   return (
-    <section className="bg-background py-14 sm:py-18 lg:py-20">
+    <section className="bg-background py-12 sm:py-16">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <Skeleton className="h-5 w-28 mb-2" />
         <Skeleton className="h-8 w-64 mb-8" />
@@ -44,7 +40,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      {/* ── Client Landing Navbar (Transparent over hero, solid light on scroll) ── */}
+      {/* ── Client Landing Navbar (Transparent over hero, solid on scroll) ── */}
       <LandingNavbar
         isAuthenticated={!!isAuthenticated}
         dashboardHref={dashboardHref}
@@ -52,7 +48,7 @@ export default async function HomePage() {
 
       <main className="flex-1">
         {/* -- 1. Full-Width Photographic Hero (Approved Foundation) ---- */}
-        <section className="relative isolate flex min-h-[580px] sm:min-h-[640px] lg:min-h-[720px] w-full items-center overflow-hidden">
+        <section className="relative isolate flex min-h-[560px] sm:min-h-[620px] lg:min-h-[700px] w-full items-center overflow-hidden">
           {/* Full-bleed background image */}
           <div className="absolute inset-0 z-0 pointer-events-none">
             <Image
@@ -70,13 +66,9 @@ export default async function HomePage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent sm:hidden" />
           </div>
 
-          <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 pt-28 pb-20 sm:pt-36 sm:pb-28 lg:pt-40 lg:pb-32">
+          <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 pt-28 pb-18 sm:pt-36 sm:pb-24 lg:pt-40 lg:pb-28">
             <div className="max-w-xl text-white">
-              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
-                Butuan City · Agricultural Marketplace
-              </p>
-
-              <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl lg:text-6xl lg:leading-[1.08]">
+              <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl lg:text-6xl lg:leading-[1.08]">
                 Fresh from Butuan&apos;s farms to your business.
               </h1>
 
@@ -127,76 +119,37 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* -- 2. Fresh on UMA — Real Product Rail ------------------- */}
-        <Suspense fallback={<ProductRailSkeleton />}>
-          <FreshOnUmaRail />
-        </Suspense>
-
-        {/* -- 3. The Software Behind the Market — Intro --------------- */}
-        <section id="platform" className="border-t border-border/60 bg-muted/20 py-16 sm:py-24">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <ScrollReveal className="text-center max-w-3xl mx-auto">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary mb-3">
-                <RiPlantLine className="size-3.5" />
-                Real tools for the real work
-              </span>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                A complete platform for agricultural trade.
-              </h2>
-              <p className="mt-4 text-base sm:text-lg leading-relaxed text-muted-foreground">
-                UMA is more than a directory. It is purpose-built software that replaces fragmented phone calls, unconfirmed harvest availability, and hidden markups with structured trade tools.
-              </p>
-            </ScrollReveal>
-
-            {/* Platform 4-Pillar Overview */}
-            <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-              <ScrollReveal delay={100} className="rounded-xl border border-border/70 bg-card p-5 shadow-2xs">
-                <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-3">
-                  <RiStore2Line className="size-5" />
-                </div>
-                <h3 className="font-semibold text-foreground text-sm">Wholesale Catalog</h3>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Real produce listings with farm-gate pricing, variety details, and verified stock.
-                </p>
-              </ScrollReveal>
-
-              <ScrollReveal delay={150} className="rounded-xl border border-border/70 bg-card p-5 shadow-2xs">
-                <div className="size-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
-                  <RiPlantLine className="size-5" />
-                </div>
-                <h3 className="font-semibold text-foreground text-sm">Grower Inventory</h3>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Direct harvest management, price controls, and instant availability toggles.
-                </p>
-              </ScrollReveal>
-
-              <ScrollReveal delay={200} className="rounded-xl border border-border/70 bg-card p-5 shadow-2xs">
-                <div className="size-9 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
-                  <RiTruckLine className="size-5" />
-                </div>
-                <h3 className="font-semibold text-foreground text-sm">Order Operations</h3>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Atomic checkout splitting, fulfillment selection, and status progression.
-                </p>
-              </ScrollReveal>
-
-              <ScrollReveal delay={250} className="rounded-xl border border-border/70 bg-card p-5 shadow-2xs">
-                <div className="size-9 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
-                  <RiSmartphoneLine className="size-5" />
-                </div>
-                <h3 className="font-semibold text-foreground text-sm">Universal Web App</h3>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Zero-install responsive platform accessible on any device in the field or kitchen.
-                </p>
-              </ScrollReveal>
+        {/* -- 2. Buyer Trust / Sourcing Scope Bar -------------------- */}
+        <section className="border-b border-border/60 bg-muted/20 py-4 sm:py-4.5 px-4 sm:px-6">
+          <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <span className="font-semibold uppercase tracking-wider text-muted-foreground text-[11px]">
+              Built for businesses sourcing local produce
+            </span>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              {["Restaurants", "Canteens", "Grocers", "Hotels", "Caterers"].map((buyer) => (
+                <span
+                  key={buyer}
+                  className="rounded-md border border-border/70 bg-card px-2.5 py-1 text-xs font-medium text-foreground shadow-2xs"
+                >
+                  {buyer}
+                </span>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* -- 4. Desktop Device #1: Marketplace Discovery ------------- */}
-        <section id="marketplace-showcase" className="border-t border-border/60 bg-background py-18 sm:py-24 lg:py-28 overflow-hidden">
+        {/* -- 3. Fresh on UMA — Real Active Product Rail ------------- */}
+        <Suspense fallback={<ProductRailSkeleton />}>
+          <FreshOnUmaRail />
+        </Suspense>
+
+        {/* -- 4. Real Software Showcase: Marketplace Discovery ------- */}
+        <section
+          id="marketplace-showcase"
+          className="border-t border-border/60 bg-background py-14 sm:py-20 lg:py-24 overflow-hidden"
+        >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
               {/* Text Left (5 cols) */}
               <ScrollReveal className="lg:col-span-5 flex flex-col justify-center">
                 <span className="text-xs font-semibold uppercase tracking-wider text-primary">
@@ -241,16 +194,16 @@ export default async function HomePage() {
                 </div>
               </ScrollReveal>
 
-              {/* Hardware Visual Right (7 cols): Physical Laptop Device */}
-              <ScrollReveal delay={150} className="lg:col-span-7 flex justify-center">
-                <div className="relative w-full max-w-[700px] lg:max-w-none">
+              {/* Hardware Visual Right (7 cols): Oversized Campaign Laptop Bleeding Right */}
+              <ScrollReveal delay={100} className="lg:col-span-7 flex justify-center lg:justify-end">
+                <div className="relative w-full max-w-[640px] lg:max-w-none lg:w-[124%] lg:-mr-16 xl:-mr-24 lg:translate-x-4">
                   <Image
                     src="/showcase/desktop-marketplace.webp"
-                    alt="UMA Market wholesale produce catalog displayed on a sleek laptop device"
+                    alt="UMA Market wholesale produce catalog displayed on a realistic aluminum laptop"
                     width={2000}
                     height={1260}
-                    className="w-full h-auto"
                     priority
+                    className="w-full h-auto drop-shadow-2xl select-none pointer-events-none"
                   />
                 </div>
               </ScrollReveal>
@@ -258,19 +211,22 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* -- 5. Desktop Device #2: Grower Tools & Operations --------- */}
-        <section id="growers" className="border-t border-border/60 bg-muted/20 py-18 sm:py-24 lg:py-28 scroll-mt-20 overflow-hidden">
+        {/* -- 5. Real Software Showcase: Grower Operations ----------- */}
+        <section
+          id="growers"
+          className="border-t border-border/60 bg-muted/20 py-14 sm:py-20 lg:py-24 scroll-mt-20 overflow-hidden"
+        >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-              {/* Hardware Visual Left on desktop (7 cols): Physical Laptop Device */}
-              <ScrollReveal delay={150} className="lg:col-span-7 order-2 lg:order-1 flex justify-center">
-                <div className="relative w-full max-w-[700px] lg:max-w-none">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+              {/* Hardware Visual Left (7 cols): Oversized Slate Tablet Bleeding Left */}
+              <ScrollReveal delay={100} className="lg:col-span-7 order-2 lg:order-1 flex justify-center lg:justify-start">
+                <div className="relative w-full max-w-[640px] lg:max-w-none lg:w-[124%] lg:-ml-16 xl:-ml-24 lg:-translate-x-4">
                   <Image
                     src="/showcase/desktop-grower.webp"
-                    alt="UMA Farmer management portal with inventory controls and order status on a sleek laptop device"
-                    width={2000}
-                    height={1260}
-                    className="w-full h-auto"
+                    alt="UMA Farmer management portal with inventory controls and order status on an aluminum slate tablet"
+                    width={1960}
+                    height={1160}
+                    className="w-full h-auto drop-shadow-2xl select-none pointer-events-none"
                   />
                 </div>
               </ScrollReveal>
@@ -324,19 +280,22 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* -- 6. Mobile Device: Responsive Platform ------------------ */}
-        <section id="mobile-showcase" className="border-t border-border/60 bg-background py-18 sm:py-24 lg:py-28 overflow-hidden">
+        {/* -- 6. Real Software Showcase: Mobile Anywhere ------------- */}
+        <section
+          id="mobile-showcase"
+          className="border-t border-border/60 bg-background py-14 sm:py-20 lg:py-24 overflow-hidden"
+        >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-              {/* Phone Mockup on Left (5 cols): Realistic Smartphone Hardware */}
-              <ScrollReveal delay={150} className="lg:col-span-5 flex justify-center">
-                <div className="relative max-w-[280px] sm:max-w-[320px] w-full">
+              {/* Phone Mockup on Left (5 cols): Realistic Titanium Smartphone */}
+              <ScrollReveal delay={100} className="lg:col-span-5 flex justify-center">
+                <div className="relative max-w-[280px] sm:max-w-[310px] w-full">
                   <Image
                     src="/showcase/phone-marketplace.webp"
                     alt="UMA responsive mobile experience inside a realistic titanium smartphone"
                     width={800}
                     height={1200}
-                    className="w-full h-auto"
+                    className="w-full h-auto drop-shadow-2xl select-none pointer-events-none"
                   />
                 </div>
               </ScrollReveal>
@@ -354,21 +313,21 @@ export default async function HomePage() {
                 </p>
 
                 <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-border/70 bg-card p-4 shadow-2xs">
-                    <h4 className="font-semibold text-foreground text-sm">
+                  <div className="rounded-xl border border-border/70 bg-card p-4.5 shadow-2xs">
+                    <h3 className="font-semibold text-foreground text-sm">
                       Zero App Installation
-                    </h4>
+                    </h3>
                     <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                      Instant access through Safari, Chrome, or any mobile browser. No storage hogging or manual updates.
+                      Instant access through Safari, Chrome, or any mobile browser. No storage hogging or manual app updates.
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-border/70 bg-card p-4 shadow-2xs">
-                    <h4 className="font-semibold text-foreground text-sm">
-                      Field & Kitchen Ready
-                    </h4>
+                  <div className="rounded-xl border border-border/70 bg-card p-4.5 shadow-2xs">
+                    <h3 className="font-semibold text-foreground text-sm">
+                      Field &amp; Kitchen Ready
+                    </h3>
                     <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                      Optimized for quick touch interactions, high readability under sunlight, and fast load times.
+                      Optimized for quick touch interactions, high readability under sunlight, and fast mobile load times.
                     </p>
                   </div>
                 </div>
@@ -387,8 +346,8 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* -- 8. How UMA Works (Transition into Action) -------------- */}
-        <section id="how" className="border-t border-border/60 bg-background py-16 sm:py-20 lg:py-24">
+        {/* -- 7. How UMA Works -------------------------------------- */}
+        <section id="how" className="border-t border-border/60 bg-muted/15 py-14 sm:py-18 lg:py-22">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <ScrollReveal className="max-w-xl">
               <p className="text-xs font-semibold uppercase tracking-wider text-primary">
@@ -408,7 +367,7 @@ export default async function HomePage() {
                 </p>
               </ScrollReveal>
 
-              <ScrollReveal delay={200}>
+              <ScrollReveal delay={150}>
                 <span className="font-mono text-xs font-bold text-primary">02</span>
                 <h3 className="mt-3 text-base font-semibold text-foreground">Order</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -416,7 +375,7 @@ export default async function HomePage() {
                 </p>
               </ScrollReveal>
 
-              <ScrollReveal delay={300}>
+              <ScrollReveal delay={200}>
                 <span className="font-mono text-xs font-bold text-primary">03</span>
                 <h3 className="mt-3 text-base font-semibold text-foreground">Fulfill</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -427,9 +386,9 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* -- 9. Final CTA ------------------------------------------- */}
-        <section className="border-t border-border/60 bg-muted/20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-18 sm:py-24 text-center">
+        {/* -- 8. Final CTA ------------------------------------------- */}
+        <section className="border-t border-border/60 bg-background">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20 text-center">
             <ScrollReveal className="max-w-xl mx-auto">
               <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
                 Ready to modernize your produce sourcing?
@@ -481,8 +440,8 @@ export default async function HomePage() {
         </section>
       </main>
 
-      {/* -- 10. Footer -------------------------------------------- */}
-      <footer className="border-t border-border/60 bg-background">
+      {/* -- 9. Public Footer --------------------------------------- */}
+      <footer className="border-t border-border/60 bg-muted/20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
           <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
             <div className="flex items-center gap-2.5">
@@ -506,15 +465,15 @@ export default async function HomePage() {
               <Link href="/products" className="transition-colors hover:text-foreground">
                 Market
               </Link>
-              <a href="#platform" className="transition-colors hover:text-foreground">
-                Platform
-              </a>
-              <a href="#how" className="transition-colors hover:text-foreground">
+              <Link href="/#how" className="transition-colors hover:text-foreground">
                 How it works
-              </a>
-              <a href="#growers" className="transition-colors hover:text-foreground">
+              </Link>
+              <Link href="/#growers" className="transition-colors hover:text-foreground">
                 For growers
-              </a>
+              </Link>
+              <Link href="/about" className="transition-colors hover:text-foreground">
+                About
+              </Link>
             </nav>
           </div>
 

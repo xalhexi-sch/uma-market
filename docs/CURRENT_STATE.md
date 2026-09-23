@@ -7,14 +7,14 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **SaaS Product Showcase Landing Page**
-- **Current Checkpoint:** SaaS Product Showcase Landing Page ✅ | Public Experience UX/UI Refinement ✅ | Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Landing Page Visual Polish ✅ | QA Polish ✅ | Production Deployment Verified ✅
+- **Current Slice:** **Final Public Landing Refinement (Visual Composition, Device Mockups, Buyer Trust, Dark Mode, /about)**
+- **Current Checkpoint:** Final Public Landing Refinement ✅ | SaaS Product Showcase Landing Page ✅ | Public Experience UX/UI Refinement ✅ | Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Landing Page Visual Polish ✅ | QA Polish ✅ | Production Deployment Verified ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
-- **Slice 6 Status:** ✅ **Production Deployment, Public Marketplace, Brand/Navbar Polish & SaaS Product Showcase Complete**
+- **Slice 6 Status:** ✅ **Final Public Landing Refinement Complete & Verified (Exit code 0)**
 
 ---
 
@@ -150,7 +150,7 @@
   - **Onboarding Loading Feedback:** Extracted onboarding form to `OnboardingForm` client component with immediate loading feedback on the "Continue" submit button (disabled state, animated `Spinner`, "Setting up your account…" text), duplicate submission prevention, and fieldset disablement during submission while preserving existing Clerk metadata updates, Supabase profile creation, and `/onboarding/complete` session refresh redirects.
   - **Authenticated Root Routing:** Removed automatic role-based redirect from root landing page `/`. The public marketplace landing page `/` remains accessible to all visitors regardless of authentication state. Authenticated users receive contextual navigation ("Dashboard" link and `UserButton` in the navbar, "Go to Dashboard" in the hero CTA) and can navigate bidirectionally between `/` and their role dashboard (`/farmer`, `/business`, `/admin`). Dashboard sidebar and mobile drawer navigation now include an explicit "Marketplace Home" link and clickable brand header back to `/`. Route protection on role dashboards remains intact.
   - **Landing Page Final Visual Direction (Full-Bleed Photographic Hero):** Implemented a full-width, full-bleed photographic hero using the farmer + sunrise image (`public/hero-farmer-sunrise.jpg`) as the dominant visual foundation. Designed a directional readability scrim (`from-black/85 via-black/55 to-transparent`) leaving the farmer and sunrise on the right fully visible and vibrant while ensuring maximum contrast for white typography on the left. Retained exact headline `"Fresh from Butuan's farms to your business."`, concise supporting copy, and strictly two CTAs (`"Explore products"` and `"Sell on UMA"` / `"Go to Dashboard"`). Compacted the value strip into a subtle, non-card 4-pillar bar. Streamlined "How UMA Works" and "For Farmers / For Businesses" into open, editorial, typographic layouts free of heavy card containers and visual clutter. Preserved full public accessibility of `/` for authenticated and unauthenticated visitors.
-  - **Business Dashboard Agricultural Banner:** Refined the dedicated agricultural visual banner in `src/app/(dashboard)/business/page.tsx` titled `"Fresh produce from local farmers"` with supporting copy `"Source available produce, check supply, and manage your wholesale orders in one place."` Utilizing `public/dashboard-banner.jpg` with responsive min-height (`min-h-[160px] sm:min-h-[175px] md:min-h-[185px]`), intelligent mobile-to-desktop cropping (`object-[center_35%] sm:object-[center_30%]`), dual-layer readability scrim (base darkening + responsive directional gradient), inner highlight ring, and subtle `"Browse products →"` CTA with hover microinteraction. Updated `src/app/(dashboard)/business/loading.tsx` skeleton to prevent layout shift.
+  - **Business Dashboard Agricultural Banner:** Refined the Business Buyer dashboard welcome banner in `src/app/(dashboard)/business/page.tsx` titled `"Fresh produce from local farmers"` with supporting copy `"Source available produce and manage your wholesale orders in one place."` Built as a polished marketplace welcome card using design tokens (`bg-card`, `border-border`, `text-foreground`, `text-primary`), natural mobile stacking (visual accent header on mobile, right-aligned pane on desktop with seamless directional gradient blend), `Direct Farm Sourcing` indicator cue, and a subtle forest green `"Browse products →"` CTA linking to `/business/products` with hover microinteraction. Synchronized `src/app/(dashboard)/business/loading.tsx` suspense skeleton.
 
 - [x] **Public Marketplace Experience (`/products` & `/products/[id]`):**
   - **Public Marketplace Catalog (`/products`):**
@@ -273,44 +273,18 @@
 
 ---
 
-## 7. Latest Verification Results (Physical Hardware Showcase & Refinement)
+## 7. Latest Verification Results (Final Public Landing Refinement)
 
-- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 35 routes compiled cleanly with Turbopack, including `/`, `/products`, and `/products/[id]`)
+- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 36 routes compiled cleanly with Turbopack, including `/`, `/about`, `/products`, and `/products/[id]`)
 - **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors across all files)
-- **Approved Hero Preservation:** ✅ **PASS** (Full-width farmer + sunrise hero, exact headline, primary and secondary CTAs preserved)
-- **Fresh on UMA Product Rail:** ✅ **PASS** (Horizontal carousel renders 6 real in-stock active products with farmer provenance)
-- **The Software Behind the Market Intro:** ✅ **PASS** ("Real tools for the real work" with 4-pillar overview: Wholesale Catalog, Grower Inventory, Order Operations, Universal Web App)
-- **Desktop Device #1 (Marketplace Laptop):** ✅ **PASS** (`desktop-marketplace.webp`, realistic Space Gray aluminum laptop chassis with front deck, thumb notch, camera, drop shadow, and real `/products` UI)
-- **Desktop Device #2 (Grower Tools Laptop):** ✅ **PASS** (`desktop-grower.webp`, matching laptop chassis angled in opposite orientation, showcasing inventory table, KPI cards, and order/chat status)
-- **Mobile Device (Smartphone):** ✅ **PASS** (`phone-marketplace.webp`, realistic dark titanium smartphone with Dynamic Island, side buttons, and responsive mobile UMA marketplace UI)
-- **Device Count Reduction:** ✅ **PASS** (Exactly 2 laptops and 1 smartphone; eliminated separate 4th browser mockup)
-- **Scroll Reveal Animations:** ✅ **PASS** (IntersectionObserver upward fade entrance with cubic bezier easing and strict `prefers-reduced-motion` compliance)
-- **Navbar & Navigation:** ✅ **PASS** (Transparent-to-solid transition over hero, verified contrast in both states, zero messages in public nav)
-- **Mobile Responsiveness:** ✅ **PASS** (Clean stacking, no horizontal overflow, scales gracefully on 375px/390px viewports)
-
----
-
-## 8. Product Content & Image Audit (`feat/product-content-audit`)
-
-- **Full Catalog Audit (24 Products across 8 Categories):**
-  - **Identified & Corrected Mismatches:**
-    - Highland Ampalaya: Replaced carrot image with green bitter melon pile.
-    - Native Pechay: Replaced salad bowl with whole fresh native pechay stalk.
-    - Native Eggplants: Replaced broccoli with glossy native purple long eggplants.
-    - Solo Sweet Papaya: Replaced ramen bowl with sliced ripe solo papaya on banana leaf.
-    - Sinandomeng White Rice: Replaced restaurant table with raw polished white rice grains.
-    - Native Purple Ube: Replaced red camote with authentic sliced purple yam tuber.
-    - Fresh Cassava: Replaced pickling spices with freshly harvested cassava tubers.
-    - Freshwater Tilapia: Replaced coral reef fish with fresh freshwater tilapia harvest.
-    - Fresh Dagupan Bangus: Replaced cooked salmon steak with Philippine milkfish on ice.
-    - Pure Wild Raw Honey: Replaced watermelon with amber raw honey jar.
-    - Ampayon Red Tomatoes: Restored corrupted 0-byte storage object with high-res vine tomatoes.
-  - **Branded Product Placeholder (`/product-placeholder.svg`):**
-    - Single, reusable UMA branded vector placeholder in forest green & off-white styling with sprout icon and "Image not available" label.
-  - **Image Fallback Architecture (`ProductImage` component):**
-    - Created `src/components/ui/product-image.tsx` with graceful client-side `onError` fallback, fully compatible with Next.js Server Components.
-    - Updated `MarketplaceProductCard`, `ProductCard`, and `/products/[id]` detail pages.
-- **Verification Results:**
-  - `npm run lint`: ✅ **PASS** (0 errors, 0 warnings)
-  - `npm run build`: ✅ **PASS** (Exit code 0, all 34 routes compiled cleanly)
-  - Browser Subagent visual verification: ✅ **PASS** (Crisp produce photography across all categories)
+- **Approved Hero Preservation & Copy Cleanup:** ✅ **PASS** (Hero eyebrow removed, directly opening into `"Fresh from Butuan's farms to your business."` with full-bleed photographic sunrise imagery)
+- **Buyer Trust / Social Proof Strip:** ✅ **PASS** (Restrained, safe positioning `"Built for businesses sourcing local produce"` with clean category pills for Restaurants, Canteens, Grocers, Hotels, Caterers; zero fabricated brands)
+- **Section Rhythm & Flow:** ✅ **PASS** (Removed explanatory `"The Software Behind the Market"` bridge; transitions directly from Fresh on UMA into the real product showcases)
+- **Marketplace Laptop Showcase:** ✅ **PASS** (`desktop-marketplace.webp`, oversized aluminum laptop presentation with intentional rightward margin bleed `lg:-mr-16 xl:-mr-24`, realistic display glass, and real produce cards)
+- **Grower Slate Tablet Showcase:** ✅ **PASS** (`desktop-grower.webp`, oversized aluminum slate tablet with intentional leftward margin bleed `lg:-ml-16 xl:-ml-24`, real inventory controls, and live order progression)
+- **Mobile Smartphone Showcase:** ✅ **PASS** (`phone-marketplace.webp`, realistic dark titanium smartphone with Dynamic Island and responsive mobile produce catalog)
+- **Dark Mode System:** ✅ **PASS** (Integrated `next-themes` ThemeProvider, `ThemeToggle` with dual-contrast support over hero and solid surfaces, and global "D" keyboard shortcut)
+- **Keyboard Shortcut Safety:** ✅ **PASS** (Pressing "D" toggles light/dark themes cleanly; safely ignored during input/textarea/contenteditable typing and modifier combinations)
+- **About UMA Page (`/about`):** ✅ **PASS** (Dedicated public destination with grounded, concrete agricultural positioning, regional Butuan context, and who UMA serves)
+- **Horizontal Overflow:** ✅ **PASS** (`scrollWidth <= clientWidth` on all viewports from 375px/390px mobile to 1280px/1440px desktop)
+- **Public Navigation Integrity:** ✅ **PASS** (Minimal navbar: Market, How it works, For growers, About; right CTAs: I'm a grower, Explore the market, ThemeToggle, Auth state)
