@@ -44,34 +44,41 @@ export default async function BusinessDashboardPage() {
   return (
     <div className="flex flex-col gap-8 p-6 lg:p-8">
       {/* Agricultural Visual Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
-        <div className="relative h-44 sm:h-52 w-full overflow-hidden">
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-stone-900 shadow-xs">
+        <div className="relative min-h-[160px] sm:min-h-[175px] md:min-h-[185px] w-full overflow-hidden flex items-center px-5 py-6 sm:px-8">
           <Image
             src="/dashboard-banner.jpg"
             alt="Fresh produce from local farmers in Butuan"
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 1200px"
-            className="object-cover object-[center_35%]"
+            className="object-cover object-[center_35%] sm:object-[center_30%]"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent" />
-          <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-8 text-white">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
+          {/* Base darkening scrim for consistent contrast */}
+          <div className="absolute inset-0 bg-stone-950/30" />
+          {/* Directional gradient: vertical-up on mobile, left-to-right on larger screens */}
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/95 via-stone-950/80 to-stone-950/40 sm:bg-gradient-to-r sm:from-stone-950/95 sm:via-stone-950/75 sm:to-transparent" />
+          {/* Inner highlight ring */}
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10 pointer-events-none" />
+
+          {/* Banner content */}
+          <div className="relative z-10 flex flex-col justify-center text-white">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">
               Butuan Agricultural Network
             </span>
             <h2 className="mt-1 text-xl font-bold tracking-tight text-white sm:text-2xl">
               Fresh produce from local farmers
             </h2>
-            <p className="mt-1 max-w-md text-xs sm:text-sm text-stone-200">
-              Source verified produce directly from local farms. Real-time availability, direct prices, and flexible fulfillment.
+            <p className="mt-1.5 max-w-lg text-xs leading-relaxed text-stone-200 sm:text-sm">
+              Source available produce, check supply, and manage your wholesale orders in one place.
             </p>
             <div className="mt-3.5">
               <Link
                 href="/business/products"
-                className="inline-flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow-xs transition-colors hover:bg-white"
+                className="group/cta inline-flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow-xs transition-colors hover:bg-white active:bg-neutral-100"
               >
                 Browse products
-                <RiArrowRightLine className="size-3.5" />
+                <RiArrowRightLine className="size-3.5 transition-transform group-hover/cta:translate-x-0.5" />
               </Link>
             </div>
           </div>

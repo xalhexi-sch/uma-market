@@ -378,8 +378,9 @@ Executed and verified against the **live remote Supabase database** (`https://od
   - Formatted "For Farmers / For Businesses" into a clean two-column layout with subtle vertical divider and green dot bullets rather than card boxes.
   - Maintained full public accessibility of `/` for both authenticated and unauthenticated visitors.
 - **5. Business Dashboard Agricultural Banner:**
-  - Restored the dedicated agricultural visual banner in `src/app/(dashboard)/business/page.tsx` titled `"Fresh produce from local farmers"` utilizing the wide farm landscape image (`public/dashboard-banner.jpg`).
-  - Provides a distinct, purpose-built agricultural touchpoint for commercial buyers without duplicating the public landing hero.
+  - Refined the dedicated agricultural visual banner in `src/app/(dashboard)/business/page.tsx` titled `"Fresh produce from local farmers"` with supporting copy `"Source available produce, check supply, and manage your wholesale orders in one place."`
+  - Utilizes approved farm landscape visual (`public/dashboard-banner.jpg`) with responsive min-height (`min-h-[160px] sm:min-h-[175px] md:min-h-[185px]`), intelligent mobile-to-desktop cropping (`object-[center_35%] sm:object-[center_30%]`), dual-layer readability scrim (base darkening + directional gradient), inner highlight ring, and subtle `"Browse products →"` CTA with hover arrow microinteraction.
+  - Aligned suspense loading skeleton in `src/app/(dashboard)/business/loading.tsx` to prevent layout shift.
 
 ### Public Marketplace Experience (`/products` & `/products/[id]`) (Complete & Verified ✅)
 - **1. Public Marketplace Catalog (`/products`):**
