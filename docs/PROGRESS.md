@@ -381,16 +381,42 @@ Executed and verified against the **live remote Supabase database** (`https://od
   - Restored the dedicated agricultural visual banner in `src/app/(dashboard)/business/page.tsx` titled `"Fresh produce from local farmers"` utilizing the wide farm landscape image (`public/dashboard-banner.jpg`).
   - Provides a distinct, purpose-built agricultural touchpoint for commercial buyers without duplicating the public landing hero.
 
+### Public Marketplace Experience (`/products` & `/products/[id]`) (Complete & Verified ✅)
+- **1. Public Marketplace Catalog (`/products`):**
+  - Fully accessible without login, built with the finalized UMA white-first, forest green editorial design system.
+  - Minimal public navigation header featuring `Products` (active), `How it works`, `For Farmers`, and `For Businesses`. Zero messages links exposed in public navigation.
+  - Prominent search input supporting produce names, crop varieties, and local farm names with instant clear and apply.
+  - Horizontal category pill bar ("All Produce" + 8 agricultural categories).
+  - Sort selector ("Newest Added", "Freshest Harvest", "Price: Low to High", "Price: High to Low", "Name: A to Z") and In-stock availability filter ("In Stock Only" vs "All Availability").
+  - **Real Data Discovery Sections:** "Available Now" (in-stock produce ready for order), "Fresh Picks & Recent Harvests" (recent harvest dates), "Browse by Category" (interactive category cards with descriptions), and "All Produce Listings" (complete active catalog). No fake reviews, sales numbers, or artificial scarcity.
+  - Filtered search view with item counts, active query indicators, and clean filter reset.
+- **2. Public Product Detail View (`/products/[id]`):**
+  - Breadcrumb navigation (`Home / Products / [Category] / [Product Name]`).
+  - Large produce photo container with fallback agricultural iconography.
+  - Scannable B2B procurement data: product name, category badge, transparent farm-gate pricing (`₱XX.XX per unit` — never hidden), available quantity, and minimum order quantity (MOQ).
+  - Harvest date and available-until date when available.
+  - Producer Provenance Card: Farm / producer name, city location, verified local producer badge, and producer bio.
+  - Wholesale fulfillment options card explaining Farm Pickup and Seller Delivery.
+  - **Role-Aware Procurement & Ordering:**
+    - **Visitors (unauthenticated):** Informational commercial procurement box with prominent "Sign in to Order" and "Create Business Account" CTAs (with redirect URL preservation).
+    - **Commercial Business Buyers:** Interactive `AddToCartControls` client component with quantity counter, MOQ enforcement, real-time subtotal calculation, and "Add to Cart" server action with toast confirmation.
+    - **Farmers:** Informational notice that wholesale purchasing is reserved for commercial businesses, with direct shortcut to the Farmer Dashboard (`/farmer/products`).
+    - **Administrators:** Direct shortcut to moderate produce in the Admin Catalog (`/admin/products`).
+- **3. Landing Page Integration:** Added "Products" (`/products`) to top navigation and footer; updated Hero and Final CTAs "Explore products" to route directly to `/products`.
+- **4. Security & Authorization:** Strict `status = 'active'` isolation across all public queries; draft products remain private; zero secret keys exposed in client bundles/browser; resilient server-side farmer provenance enrichment via server admin client.
+
 | Test Item | Verification Method | Result | Verification Details |
 |---|---|---|---|
 | **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
-| **Production Build** | `npm run build` | ✅ **PASS** | 32 routes compiled cleanly via Turbopack |
-| **Realtime Chat Live Delivery** | `order-chat.tsx` + `client.ts` | ✅ **PASS** | `setAuth` primed on socket before channel join, join payload carries `access_token` |
-| **Onboarding Loading Feedback** | `onboarding-form.tsx` | ✅ **PASS** | Immediate button disabled state, spinner animation, duplicate submission prevention |
-| **Authenticated Root Routing** | `page.tsx` + `sidebar.tsx` + `mobile-nav.tsx` | ✅ **PASS** | Root `/` accessible to all users; contextual CTAs render; dashboard routes preserve RLS and role protection |
-| **Full-Bleed Photographic Hero** | Browser verification (desktop & mobile) | ✅ **PASS** | Farmer + sunrise full-bleed background; high text contrast on left; farmer dominant on right |
-| **Compact Value Strip & Editorial Sections** | Browser verification | ✅ **PASS** | Subtle 4-pillar divider bar, open 3-step process, 2-column typographic split without card bloat |
-| **Business Dashboard Banner** | Route compilation & code check | ✅ **PASS** | "Fresh produce from local farmers" banner rendered in `/business` with wide farm landscape |
+| **Production Build** | `npm run build` | ✅ **PASS** | 34 routes compiled cleanly via Turbopack, including `/products` and `/products/[id]` |
+| **Public Marketplace Browsing** | Browser subagent (desktop) | ✅ **PASS** | Visitors browse `/products` without login; search, category pills, and discovery sections render |
+| **Category & Search Filtering** | Browser subagent | ✅ **PASS** | Filtering by "Vegetables" and searching for "Tomato" returns matching active listings with counts |
+| **Product Detail & Provenance** | Browser subagent | ✅ **PASS** | `/products/[id]` displays image, farm-gate price, MOQ, harvest date, producer provenance card, and fulfillment badges |
+| **Role-Aware Ordering (Visitor)** | Browser subagent | ✅ **PASS** | Unauthenticated visitors see "Sign in to Order" and "Create Business Account" CTAs with redirect query param |
+| **Role-Aware Ordering (Business)** | Code inspection + Server Action | ✅ **PASS** | Commercial buyers can configure quantities and invoke `addToCart` Server Action |
+| **Role-Aware Restriction (Farmer)** | Code inspection + Server Action | ✅ **PASS** | Farmers see informational note; `addToCart` server action strictly rejects non-business users |
+| **Draft Product Protection** | Node script against remote Supabase | ✅ **PASS** | Public query for draft products returns 0; only active listings appear |
+| **Mobile Responsiveness (375px)** | Browser subagent (mobile viewport) | ✅ **PASS** | Verified responsive card layout, scrollable pills, and slide-over mobile drawer navigation |
 
 ---
 
@@ -401,3 +427,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Slice 4:** ✅ Complete & Verified Across Checkpoints 4.1, 4.2, 4.3 & 4.4
 - **Slice 5:** ✅ Complete & Verified Across Checkpoints 5.1, 5.2, 5.3 & 5.4
 - **Slice 6:** ✅ Complete & Verified Across Checkpoints 6.1–6.5, QA Polish & Landing Page Polish
+- **Public Marketplace:** ✅ Complete & Verified (/products & /products/[id])

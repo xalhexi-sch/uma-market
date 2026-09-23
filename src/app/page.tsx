@@ -29,17 +29,18 @@ export default async function HomePage() {
           {/* Center nav */}
           <nav className="hidden items-center gap-8 md:flex">
             {[
+              { label: "Products", href: "/products" },
               { label: "How it works", href: "#how" },
               { label: "For Farmers", href: "#farmers" },
               { label: "For Businesses", href: "#businesses" },
             ].map((item) => (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -121,7 +122,7 @@ export default async function HomePage() {
                 ) : (
                   <>
                     <Link
-                      href="/sign-up"
+                      href="/products"
                       className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
                     >
                       Explore products
@@ -321,7 +322,7 @@ export default async function HomePage() {
               ) : (
                 <>
                   <Link
-                    href="/sign-up"
+                    href="/products"
                     className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
                   >
                     Explore products
@@ -358,6 +359,9 @@ export default async function HomePage() {
             </div>
 
             <nav className="flex items-center gap-6 text-xs text-muted-foreground">
+              <Link href="/products" className="transition-colors hover:text-foreground">
+                Products
+              </Link>
               <a href="#how" className="transition-colors hover:text-foreground">
                 How it works
               </a>

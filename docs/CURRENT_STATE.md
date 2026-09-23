@@ -7,14 +7,14 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Slice 6 — Production Deployment & Final Visual Polish**
-- **Current Checkpoint:** 6.1 Code Hardening ✅ | QA Polish (Realtime Chat & Onboarding Loading) ✅ | 6.2–6.5 Manual Production Deployment Verified ✅ | Landing Page Visual Polish ✅
+- **Current Slice:** **Public Marketplace & Production Polish**
+- **Current Checkpoint:** Public Marketplace (`/products` & `/products/[id]`) ✅ | Landing Page Visual Polish ✅ | QA Polish ✅ | Production Deployment Verified ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
-- **Slice 6 Status:** ✅ **Production Deployment & Final Visual Polish Complete**
+- **Slice 6 Status:** ✅ **Production Deployment & Public Marketplace Complete**
 
 ---
 
@@ -152,12 +152,36 @@
   - **Landing Page Final Visual Direction (Full-Bleed Photographic Hero):** Implemented a full-width, full-bleed photographic hero using the farmer + sunrise image (`public/hero-farmer-sunrise.jpg`) as the dominant visual foundation. Designed a directional readability scrim (`from-black/85 via-black/55 to-transparent`) leaving the farmer and sunrise on the right fully visible and vibrant while ensuring maximum contrast for white typography on the left. Retained exact headline `"Fresh from Butuan's farms to your business."`, concise supporting copy, and strictly two CTAs (`"Explore products"` and `"Sell on UMA"` / `"Go to Dashboard"`). Compacted the value strip into a subtle, non-card 4-pillar bar. Streamlined "How UMA Works" and "For Farmers / For Businesses" into open, editorial, typographic layouts free of heavy card containers and visual clutter. Preserved full public accessibility of `/` for authenticated and unauthenticated visitors.
   - **Business Dashboard Agricultural Banner:** Restored the dedicated agricultural visual banner in `src/app/(dashboard)/business/page.tsx` titled `"Fresh produce from local farmers"` utilizing the wide farm landscape image (`public/dashboard-banner.jpg`), featuring direct produce browsing CTA, clean gradient overlay, and localized Butuan Agricultural Network branding distinct from the public hero.
 
+- [x] **Public Marketplace Experience (`/products` & `/products/[id]`):**
+  - **Public Marketplace Catalog (`/products`):**
+    - Accessible without login, matching the finalized UMA white-first, forest green editorial design.
+    - Minimal public marketplace header with `Products` (active), `How it works`, `For Farmers`, and `For Businesses`. Zero messages links in public navigation.
+    - Prominent search bar supporting produce keywords, varieties, and farm names.
+    - Horizontal category pill bar ("All Produce" + 8 agricultural categories).
+    - Sort selector ("Newest Added", "Freshest Harvest", "Price: Low to High", "Price: High to Low", "Name: A to Z") and In-stock availability filter ("In Stock Only" vs "All Availability").
+    - **Real Data Discovery Sections:** "Available Now" (in-stock produce ready for order), "Fresh Picks & Recent Harvests" (recent harvest dates), "Browse by Category" (interactive category cards with descriptions), and "All Produce Listings" (complete active catalog). No fake reviews, sales numbers, or artificial scarcity.
+    - Filtered search view with item counts, active query indicators, and clean filter reset.
+  - **Public Product Detail View (`/products/[id]`):**
+    - Breadcrumb navigation (`Home / Products / [Category] / [Product Name]`).
+    - Large produce photo container with fallback agricultural iconography.
+    - Scannable B2B procurement data: product name, category badge, transparent farm-gate pricing (`₱XX.XX per unit` — never hidden), available quantity, and minimum order quantity (MOQ).
+    - Harvest date and available-until date when available.
+    - Producer Provenance Card: Farm / producer name, city location, verified local producer badge, and producer bio.
+    - Wholesale fulfillment options card explaining Farm Pickup and Seller Delivery.
+    - **Role-Aware Procurement & Ordering:**
+      - **Visitors (unauthenticated):** Informational commercial procurement box with prominent "Sign in to Order" and "Create Business Account" CTAs (with redirect URL preservation).
+      - **Commercial Business Buyers:** Interactive `AddToCartControls` client component with quantity counter, MOQ enforcement, real-time subtotal calculation, and "Add to Cart" server action with toast confirmation.
+      - **Farmers:** Informational notice that wholesale purchasing is reserved for commercial businesses, with direct shortcut to the Farmer Dashboard (`/farmer/products`).
+      - **Administrators:** Direct shortcut to moderate produce in the Admin Catalog (`/admin/products`).
+  - **Landing Page Integration:** Added "Products" (`/products`) to top navigation and footer; updated Hero and Final CTAs "Explore products" to route directly to `/products`.
+  - **Security & Authorization:** Strict `status = 'active'` isolation across all public queries; draft products remain private; zero secret keys exposed in client bundles/browser; resilient server-side farmer provenance enrichment via server admin client.
+
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Landing page final visual direction and business dashboard banner are complete and verified.
-- All 6 slices of UMA Market are fully implemented, hardened, verified, and deployed.
+- Public Marketplace routes (`/products` and `/products/[id]`) are fully implemented and verified.
+- Production build (34 routes), ESLint (0 errors, 0 warnings), and mobile/desktop browser verification are complete.
 
 ---
 
@@ -203,11 +227,12 @@
 
 ---
 
-## 7. Latest Verification Results (Slice 6 Checkpoint 6.1)
+## 7. Latest Verification Results (Public Marketplace)
 
-- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 32 routes compiled cleanly with Turbopack)
+- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 34 routes compiled cleanly with Turbopack, including `/products` and `/products/[id]`)
 - **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors)
-- **Health Check Endpoint:** ✅ **PASS** (`/api/health` route compiled and returns `{ status: "ok" }`)
-- **robots.txt:** ✅ **PASS** (Served from `public/robots.txt`, blocks dashboard/auth routes)
-- **Hardcoded URL Removed:** ✅ **PASS** (`storage.ts` uses `process.env.NEXT_PUBLIC_SUPABASE_URL!` exclusively)
-- **Production Metadata:** ✅ **PASS** (`metadataBase`, OpenGraph `siteName`/`locale`, `robots` configured)
+- **Public Marketplace Browsing:** ✅ **PASS** (Unauthenticated visitors browse `/products` and view `/products/[id]` with real producer provenance)
+- **Role-Aware Ordering:** ✅ **PASS** (Visitors receive "Sign in to Order" CTA; Commercial buyers add to cart; Farmers receive informational notice; Admins receive moderation shortcut)
+- **Draft Product Isolation:** ✅ **PASS** (Zero draft products leaked; strictly active products returned)
+- **Real Data Discovery:** ✅ **PASS** (Available Now, Fresh Picks, Category Discovery, and All Produce Listings rendered from real database rows without faked stats)
+- **Mobile Responsiveness:** ✅ **PASS** (Verified on 375px viewport with slide-out navigation sheet, responsive touch targets, and zero overflow)
