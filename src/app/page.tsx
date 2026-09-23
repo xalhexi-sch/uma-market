@@ -16,10 +16,6 @@ import { LandingNavbar } from "@/components/marketplace/landing-navbar";
 import { FreshOnUmaRail } from "@/components/marketplace/fresh-on-uma-rail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollReveal } from "@/components/marketplace/showcase/scroll-reveal";
-import { MarketplaceMockup } from "@/components/marketplace/showcase/marketplace-mockup";
-import { GrowerDashboardMockup } from "@/components/marketplace/showcase/grower-dashboard-mockup";
-import { OrderFulfillmentMockup } from "@/components/marketplace/showcase/order-fulfillment-mockup";
-import { MobileShowcaseMockup } from "@/components/marketplace/showcase/mobile-showcase-mockup";
 
 function ProductRailSkeleton() {
   return (
@@ -245,9 +241,18 @@ export default async function HomePage() {
                 </div>
               </ScrollReveal>
 
-              {/* Visual Right (7 cols) */}
+              {/* Visual Right (7 cols): High-Resolution Polished Mockup Asset */}
               <ScrollReveal delay={150} className="lg:col-span-7">
-                <MarketplaceMockup />
+                <div className="relative w-full">
+                  <Image
+                    src="/showcase/marketplace-showcase.webp"
+                    alt="UMA Market produce catalog interface showing live crop offerings and farm-gate pricing"
+                    width={1900}
+                    height={1250}
+                    className="w-full h-auto drop-shadow-2xl"
+                    priority
+                  />
+                </div>
               </ScrollReveal>
             </div>
           </div>
@@ -257,9 +262,17 @@ export default async function HomePage() {
         <section id="growers" className="border-t border-border/60 bg-muted/20 py-18 sm:py-24 lg:py-28 scroll-mt-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-              {/* Visual Left on desktop (7 cols) */}
+              {/* Visual Left on desktop (7 cols): High-Resolution Polished Mockup Asset */}
               <ScrollReveal delay={150} className="lg:col-span-7 order-2 lg:order-1">
-                <GrowerDashboardMockup />
+                <div className="relative w-full">
+                  <Image
+                    src="/showcase/grower-showcase.webp"
+                    alt="UMA Farmer management portal showing inventory controls, pricing, and live fulfillment metrics"
+                    width={1900}
+                    height={1250}
+                    className="w-full h-auto drop-shadow-2xl"
+                  />
+                </div>
               </ScrollReveal>
 
               {/* Text Right (5 cols) */}
@@ -326,9 +339,17 @@ export default async function HomePage() {
               </p>
             </ScrollReveal>
 
-            {/* Large Order + Chat Showcase Mockup */}
+            {/* Large Order + Chat Showcase Mockup Asset */}
             <ScrollReveal delay={150} className="max-w-5xl mx-auto">
-              <OrderFulfillmentMockup />
+              <div className="relative w-full">
+                <Image
+                  src="/showcase/order-fulfillment-showcase.webp"
+                  alt="UMA order status progression timeline with itemized receipts and live direct chat coordination"
+                  width={1900}
+                  height={1250}
+                  className="w-full h-auto drop-shadow-2xl"
+                />
+              </div>
             </ScrollReveal>
           </div>
         </section>
@@ -337,9 +358,17 @@ export default async function HomePage() {
         <section id="mobile-showcase" className="border-t border-border/60 bg-muted/20 py-18 sm:py-24 lg:py-28">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-              {/* Phone Mockup on Left (5 cols) */}
+              {/* Phone Mockup on Left (5 cols): High-Resolution Polished Mockup Asset */}
               <ScrollReveal delay={150} className="lg:col-span-5 flex justify-center">
-                <MobileShowcaseMockup />
+                <div className="relative max-w-[340px] sm:max-w-[380px] w-full">
+                  <Image
+                    src="/showcase/mobile-showcase.webp"
+                    alt="UMA responsive mobile experience in smartphone frame showing produce search and category browsing"
+                    width={1000}
+                    height={1500}
+                    className="w-full h-auto drop-shadow-2xl"
+                  />
+                </div>
               </ScrollReveal>
 
               {/* Text on Right (7 cols) */}

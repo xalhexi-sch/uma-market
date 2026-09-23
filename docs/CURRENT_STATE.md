@@ -204,35 +204,37 @@
 - [x] **Product Detail Verification (`src/app/products/[id]/page.tsx`):**
   - Verified complete preservation of wholesale procurement data, producer provenance card, MOQ enforcement, and role-aware order actions. Zero regressions.
 
-### SaaS Product Showcase Landing Page (Complete & Verified ✅)
-- [x] **Browser & Mobile Device Frame Primitives:**
-  - Built `BrowserFrame` (`src/components/marketplace/showcase/browser-frame.tsx`): Realistic macOS/Chrome browser window chrome with traffic light controls (`red`, `amber`, `green`), secure URL address bar (`uma.market/...`), and multi-layer ambient shadow depth.
-  - Built `PhoneFrame` (`src/components/marketplace/showcase/phone-frame.tsx`): Modern dark titanium bezel smartphone frame with Dynamic Island camera cutout, realistic status bar (`9:41`, Wi-Fi, battery indicator), and home indicator bar.
-- [x] **High-Fidelity Real UMA Interface Mockups:**
-  - `MarketplaceMockup` (`src/components/marketplace/showcase/marketplace-mockup.tsx`): Real `/products` produce catalog showcasing active search query, category filter pills (`All Produce`, `Vegetables`, `Fruits`), and 3 authentic produce cards with farm-gate pricing, MOQ, stock counts, and verified producer badges.
-  - `GrowerDashboardMockup` (`src/components/marketplace/showcase/grower-dashboard-mockup.tsx`): Real `/farmer/products` interface showcasing farm profile header, operational KPI cards (Active Listings, Fulfilled Volume, 100% Fulfillment Rate), and produce inventory table with active toggles.
-  - `OrderFulfillmentMockup` (`src/components/marketplace/showcase/order-fulfillment-mockup.tsx`): Real wholesale order detail view (`/orders/B0000001`) with 4-step fulfillment timeline stepper (`Accepted` → `Preparing` → `In Transit` → `Completed`), itemized receipt snapshots, and embedded `OrderChat` thread with live coordination dialogue.
-  - `MobileShowcaseMockup` (`src/components/marketplace/showcase/mobile-showcase-mockup.tsx`): Real responsive mobile marketplace view inside the phone frame, highlighting zero-install web access across smartphone browsers.
-- [x] **Subtle Scroll-Triggered Reveal Animations:**
-  - Built `ScrollReveal` (`src/components/marketplace/showcase/scroll-reveal.tsx`) client wrapper utilizing native browser `IntersectionObserver`.
-  - Upward entrance: `opacity: 0; transform: translateY(28px) scale(0.985)` → `opacity: 1; transform: translateY(0) scale(1)` with cubic bezier easing.
-  - Strict accessibility compliance: uses CSS `motion-reduce:transition-none motion-reduce:!transform-none motion-reduce:!opacity-100` to immediately display without motion for users who prefer reduced motion.
-- [x] **Landing Page Cohesive Narrative Refactor (`src/app/page.tsx`):**
-  - Preserved approved full-width photographic hero and real-produce horizontal carousel (`FreshOnUmaRail`).
-  - Added "The Software Behind the Market" intro with 4-pillar overview (Wholesale Catalog, Grower Inventory, Order Operations, Universal Web App).
-  - Structured alternating showcase sections with clear, concrete, non-repetitive copy:
-    - Marketplace Showcase: *"Find what you need, when you need it."*
-    - Grower Platform: *"Your harvest reaches more buyers."*
-    - Fulfillment & Coordination: *"From order to fulfillment."*
-    - Responsive Web Platform: *"UMA on every screen."*
-    - Three-step "How UMA Works" and dual-audience Final CTA.
+### High-Resolution SaaS Product Showcase & Code Cleanup (Complete & Verified ✅)
+- [x] **High-Resolution Visual Assets in `public/showcase/`:**
+  - `marketplace-showcase.webp` (109 KB, 1900x1250): Browser window with subtle 3D perspective, realistic drop shadow, and active URL `uma.xalhexi.wtf/products`. Displays authentic UMA catalog with search, category filters, and real produce cards (Carabao Mangoes, Native Purple Ube, Highland Green Ampalaya).
+  - `grower-showcase.webp` (63 KB, 1900x1250): Browser window with active URL `uma.xalhexi.wtf/farmer/products`, showcasing Agusan Valley Organics farm profile, Verified Producer badge, 3 live KPI metric cards, and farmer produce inventory table.
+  - `order-fulfillment-showcase.webp` (60 KB, 1900x1250): Browser window with active URL `uma.xalhexi.wtf/orders/B0000001`, showcasing 4-step fulfillment progress stepper (`Accepted` → `Preparing` → `In Transit` active → `Completed`), itemized receipt snapshots, and real-time `OrderChat` thread.
+  - `mobile-showcase.webp` (70 KB, 1000x1500): Smartphone frame with dark titanium bezel, Dynamic Island, status bar (`9:41`), and authentic responsive UMA mobile marketplace UI.
+  - Strict compliance with `uma.xalhexi.wtf` domain in all browser URL address bars (never `uma.market`).
+- [x] **Lightweight Scroll Reveal Animation:**
+  - Retained `ScrollReveal` (`src/components/marketplace/showcase/scroll-reveal.tsx`) animating the outer visual container on scroll.
+  - Entrance: `opacity: 0; transform: translateY(28px) scale(0.985)` → `opacity: 1; transform: translateY(0) scale(1)` with cubic bezier easing.
+  - Full accessibility compliance with `prefers-reduced-motion` via CSS `motion-reduce:transition-none motion-reduce:!transform-none motion-reduce:!opacity-100`.
+- [x] **Code Cleanup & Single Implementation:**
+  - Removed all 6 obsolete code-rendered mockup components from `src/components/marketplace/showcase/`:
+    - `browser-frame.tsx`
+    - `phone-frame.tsx`
+    - `marketplace-mockup.tsx`
+    - `grower-dashboard-mockup.tsx`
+    - `order-fulfillment-mockup.tsx`
+    - `mobile-showcase-mockup.tsx`
+  - Kept only `scroll-reveal.tsx` and the static optimized WebP assets in `public/showcase/`.
+  - Replaced all duplicated UI in `src/app/page.tsx` with optimized Next.js `<Image />` tags wrapped in `<ScrollReveal>`.
+  - Removed all unused imports, types, and obsolete CSS.
+  - Zero duplicate implementations; single clean high-resolution showcase implementation.
 
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- SaaS Product Showcase Landing Page is complete and fully verified.
-- Production build (35 routes compiled via Turbopack), ESLint (0 errors, 0 warnings), and component verification are complete.
+- High-resolution visual SaaS product showcase and complete code cleanup are finished.
+- Verified with ESLint (0 errors, 0 warnings) and production build (35 routes compiled cleanly with Turbopack).
+
 
 ---
 
@@ -278,17 +280,18 @@
 
 ---
 
-## 7. Latest Verification Results (SaaS Product Showcase Landing Page)
+## 7. Latest Verification Results (High-Resolution SaaS Showcase & Code Cleanup)
 
 - **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 35 routes compiled cleanly with Turbopack, including `/`, `/products`, and `/products/[id]`)
 - **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors across all files)
 - **Approved Hero Preservation:** ✅ **PASS** (Full-width farmer + sunrise hero, exact headline, primary and secondary CTAs preserved)
 - **Fresh on UMA Product Rail:** ✅ **PASS** (Horizontal carousel renders 6 real in-stock active products with farmer provenance)
 - **The Software Behind the Market Intro:** ✅ **PASS** (Editorial 4-pillar overview: Wholesale Catalog, Grower Inventory, Order Operations, Universal Web App)
-- **Marketplace Showcase Mockup:** ✅ **PASS** (Browser frame with `uma.market/products`, search bar, category pills, and 3 real produce cards)
-- **Grower Dashboard Mockup:** ✅ **PASS** (Browser frame with `uma.market/farmer/products`, metric cards, and live produce inventory table)
-- **Order & Communication Mockup:** ✅ **PASS** (Browser frame with order status stepper, itemized receipts, and embedded `OrderChat` thread)
-- **Mobile Responsive Showcase:** ✅ **PASS** (Smartphone frame with realistic titanium bezel, dynamic island, and responsive mobile UMA marketplace)
+- **High-Resolution Marketplace Asset:** ✅ **PASS** (`marketplace-showcase.webp`, browser frame with `uma.xalhexi.wtf/products`, search bar, category pills, real produce cards, and 3D depth)
+- **High-Resolution Grower Dashboard Asset:** ✅ **PASS** (`grower-showcase.webp`, browser frame with `uma.xalhexi.wtf/farmer/products`, metric cards, and live produce inventory table)
+- **High-Resolution Order & Chat Asset:** ✅ **PASS** (`order-fulfillment-showcase.webp`, browser frame with `uma.xalhexi.wtf/orders/B0000001`, status stepper, itemized receipts, and live `OrderChat`)
+- **High-Resolution Mobile Phone Asset:** ✅ **PASS** (`mobile-showcase.webp`, smartphone frame with realistic titanium bezel, dynamic island, and responsive mobile UMA marketplace)
+- **Code Cleanup Verification:** ✅ **PASS** (Removed 6 obsolete code-rendered showcase components; retained single implementation using static WebP assets and `ScrollReveal`)
 - **Scroll Reveal Animations:** ✅ **PASS** (IntersectionObserver upward fade entrance with cubic bezier easing and strict `prefers-reduced-motion` compliance)
 - **Navbar & Navigation:** ✅ **PASS** (Transparent-to-solid transition over hero, verified contrast in both states, zero messages in public nav)
 - **Mobile Responsiveness:** ✅ **PASS** (Clean stacking, no horizontal overflow, scales gracefully on 375px/390px viewports)
