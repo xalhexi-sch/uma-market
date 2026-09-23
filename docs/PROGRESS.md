@@ -499,42 +499,30 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
-### High-Resolution SaaS Product Showcase & Code Cleanup (Complete & Verified ✅)
-- **1. High-Resolution Visual Mockup Assets (`public/showcase/`):**
-  - Generated realistic browser and smartphone presentation frames with real UMA UI screen content, subtle 3D perspective, and natural drop shadows:
-    - `marketplace-showcase.webp` (109 KB, 1900x1250): Browser window with `uma.xalhexi.wtf/products` URL, active search query, category filter chips, real produce cards (Carabao Mangoes ₱130/kg, Native Purple Ube ₱95/kg, Highland Green Ampalaya ₱75/kg), and drop shadow.
-    - `grower-showcase.webp` (63 KB, 1900x1250): Browser window with `uma.xalhexi.wtf/farmer/products` URL, Agusan Valley Organics profile header, Verified Producer badge, 3 operational metric cards, and live produce inventory table with toggles.
-    - `order-fulfillment-showcase.webp` (60 KB, 1900x1250): Browser window with `uma.xalhexi.wtf/orders/B0000001` URL, 4-step status timeline stepper (`Accepted` → `Preparing` → `In Transit` active → `Completed`), itemized receipt breakdowns, and live `OrderChat` coordination dialogue.
-    - `mobile-showcase.webp` (70 KB, 1000x1500): Dark titanium bezel smartphone frame with Dynamic Island, status bar (`9:41`), and responsive mobile UMA marketplace layout.
-  - Strict adherence to `uma.xalhexi.wtf` domain in all browser address bars (never `uma.market`).
-- **2. Scroll Reveal Animation Wrapper:**
-  - Lightweight `ScrollReveal` (`src/components/marketplace/showcase/scroll-reveal.tsx`) animates the outer visual container on scroll via `IntersectionObserver`.
-  - Upward entrance: `opacity: 0; transform: translateY(28px) scale(0.985)` → `opacity: 1; transform: translateY(0) scale(1)` with cubic bezier easing.
-  - Strict accessibility compliance: uses CSS `motion-reduce:transition-none motion-reduce:!transform-none motion-reduce:!opacity-100` to immediately display without motion for users who prefer reduced motion.
-- **3. Complete Code Cleanup:**
-  - Removed obsolete code-rendered HTML mockups that were no longer referenced:
-    - `browser-frame.tsx`
-    - `phone-frame.tsx`
-    - `marketplace-mockup.tsx`
-    - `grower-dashboard-mockup.tsx`
-    - `order-fulfillment-mockup.tsx`
-    - `mobile-showcase-mockup.tsx`
-  - Kept only `scroll-reveal.tsx` in `src/components/marketplace/showcase/`.
-  - Replaced inline component trees in `src/app/page.tsx` with high-resolution responsive `<Image />` tags wrapped in `<ScrollReveal>`.
-  - Removed all unused imports, unused types, and obsolete showcase CSS.
-  - Retained single, unified, performant implementation of the SaaS showcase.
+### SaaS Showcase Physical Hardware Refinement & Code Simplification (Complete & Verified ✅)
+- **1. Physical Device Mockup Presentation Assets (`public/showcase/`):**
+  - Reduced device composition to exactly 2 desktop laptops and 1 realistic smartphone:
+    - `desktop-marketplace.webp` (170 KB, 2000x1260): Realistic physical laptop chassis in Space Gray anodized aluminum with camera notch, rounded corners, inner bezel, and front deck thumb notch. Screen displays real UMA `/products` marketplace with search, Butuan location pill, categories, and 3 produce cards.
+    - `desktop-grower.webp` (111 KB, 2000x1260): Matching physical laptop chassis angled in the opposite orientation for visual balance. Screen displays real `/farmer/products` inventory table, 3 KPI metric cards, verified farm badge, and order progression notice with direct buyer chat.
+    - `phone-marketplace.webp` (66 KB, 800x1200): Realistic dark titanium smartphone with Dynamic Island, status bar (`9:41`), side buttons, and responsive mobile marketplace UI.
+- **2. Showcase Architecture Simplification:**
+  - Removed redundant 4th order fulfillment/messaging browser block; integrated fulfillment progression and chat coordination into copy and the grower operational tools.
+  - Removed 8 obsolete browser-frame assets (`marketplace-showcase.*`, `grower-showcase.*`, `order-fulfillment-showcase.*`, `mobile-showcase.*`) from `public/showcase/`.
+  - Maintained single clean showcase architecture: 3 physical hardware WebP assets, Next.js `<Image />` tags, and lightweight `<ScrollReveal>` container animations with `prefers-reduced-motion` compliance.
+- **3. Refined Landing Page Narrative:**
+  - Hero (Farmer + sunrise) → Fresh on UMA (real produce carousel) → Software Showcase ("Real tools for the real work") → Desktop #1 (Marketplace) → Desktop #2 (Grower tools) → Phone (UMA on every screen) → How UMA Works (Discover → Order → Fulfill) → Final CTA.
 
 | Test Item | Verification Method | Result | Verification Details |
 |---|---|---|---|
 | **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
 | **Production Build** | `npm run build` | ✅ **PASS** | 35 routes compiled cleanly via Turbopack |
-| **Approved Hero** | Code inspection + browser | ✅ **PASS** | Photographic hero and CTAs completely preserved |
+| **Approved Hero** | Code inspection | ✅ **PASS** | Photographic hero and CTAs completely preserved |
 | **Fresh on UMA Rail** | Server component + Embla | ✅ **PASS** | Horizontal carousel displaying 6 in-stock products |
-| **Marketplace Showcase Asset** | Image render + layout | ✅ **PASS** | High-res browser frame with `uma.xalhexi.wtf/products`, search, filters, and cards |
-| **Grower Dashboard Showcase Asset** | Image render + layout | ✅ **PASS** | High-res browser frame with `uma.xalhexi.wtf/farmer/products`, KPIs, and inventory |
-| **Order & Chat Showcase Asset** | Image render + layout | ✅ **PASS** | High-res browser frame with `uma.xalhexi.wtf/orders/B0000001`, timeline, and chat |
-| **Mobile Phone Showcase Asset** | Image render + layout | ✅ **PASS** | High-res smartphone frame with responsive mobile marketplace layout |
-| **Code Cleanup & Single Implementation** | Directory audit + grep | ✅ **PASS** | 6 obsolete components deleted; single implementation with static WebP assets and ScrollReveal |
+| **Desktop #1 Marketplace Laptop** | Image render + layout | ✅ **PASS** | Realistic Space Gray laptop chassis with real produce discovery UI |
+| **Desktop #2 Grower Laptop** | Image render + layout | ✅ **PASS** | Matching laptop chassis with real inventory table and order status |
+| **Smartphone Device** | Image render + layout | ✅ **PASS** | Realistic dark titanium phone with responsive mobile marketplace layout |
+| **Device Count Reduction** | Page architecture audit | ✅ **PASS** | Reduced to exactly 2 laptops and 1 smartphone; eliminated separate 4th mockup |
+| **Code Cleanup & Single Implementation** | Directory audit + grep | ✅ **PASS** | Only 1 clean showcase implementation; all dead assets removed |
 | **Scroll Reveal Animations** | IntersectionObserver + CSS | ✅ **PASS** | Smooth 700ms cubic bezier entrance; instant render on `prefers-reduced-motion` |
 | **Mobile Responsiveness** | CSS viewport checks | ✅ **PASS** | No horizontal overflow; all frames and copy stack cleanly on mobile |
 
@@ -550,4 +538,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Public Marketplace:** ✅ Complete & Verified (/products & /products/[id])
 - **Brand, Navbar & CTA Polish:** ✅ Complete & Verified (Transparent-to-solid navbar, brand mark, favicons, CTA hierarchy)
 - **Public Experience UX/UI Refinement:** ✅ Complete & Verified (Fresh on UMA product rail, verified produce photography, navbar deduplication, and streamlined marketplace discovery)
-- **High-Resolution SaaS Product Showcase & Code Cleanup:** ✅ Complete & Verified (High-resolution WebP mockups, uma.xalhexi.wtf URLs, full code cleanup, 0 lint errors, and 35 compiled routes)
+- **Physical Hardware SaaS Showcase Refinement:** ✅ Complete & Verified (2 physical laptops, 1 smartphone, real UMA screens, full code simplification, 0 lint errors, and 35 compiled routes)

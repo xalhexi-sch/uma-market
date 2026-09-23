@@ -138,7 +138,7 @@ export default async function HomePage() {
             <ScrollReveal className="text-center max-w-3xl mx-auto">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary mb-3">
                 <RiPlantLine className="size-3.5" />
-                The Software Behind the Market
+                Real tools for the real work
               </span>
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
                 A complete platform for agricultural trade.
@@ -193,8 +193,8 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* -- 4. Marketplace Showcase: Find Produce ------------------ */}
-        <section id="marketplace-showcase" className="border-t border-border/60 bg-background py-18 sm:py-24 lg:py-28">
+        {/* -- 4. Desktop Device #1: Marketplace Discovery ------------- */}
+        <section id="marketplace-showcase" className="border-t border-border/60 bg-background py-18 sm:py-24 lg:py-28 overflow-hidden">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
               {/* Text Left (5 cols) */}
@@ -206,7 +206,7 @@ export default async function HomePage() {
                   Find what you need, when you need it.
                 </h2>
                 <p className="mt-4 text-sm sm:text-base leading-relaxed text-muted-foreground">
-                  Browse available produce, compare pricing and supply, and source directly from local growers with transparent specifications.
+                  Browse live wholesale produce, compare farm-gate pricing, and source directly from local growers with verified harvest availability and clear specifications.
                 </p>
 
                 <ul className="mt-6 space-y-3 text-xs sm:text-sm text-foreground">
@@ -214,19 +214,19 @@ export default async function HomePage() {
                     <div className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                       <RiCheckLine className="size-3.5" />
                     </div>
-                    <span>Daily harvest availability updated by growers</span>
+                    <span>Daily harvest availability updated directly by growers</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <div className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                       <RiCheckLine className="size-3.5" />
                     </div>
-                    <span>Farm-gate pricing with no intermediary markup</span>
+                    <span>Farm-gate pricing with no intermediary markups</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <div className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                       <RiCheckLine className="size-3.5" />
                     </div>
-                    <span>Filter by category, minimum order quantity, and provenance</span>
+                    <span>Filter by category, minimum order quantity, and farm provenance</span>
                   </li>
                 </ul>
 
@@ -241,15 +241,15 @@ export default async function HomePage() {
                 </div>
               </ScrollReveal>
 
-              {/* Visual Right (7 cols): High-Resolution Polished Mockup Asset */}
-              <ScrollReveal delay={150} className="lg:col-span-7">
-                <div className="relative w-full">
+              {/* Hardware Visual Right (7 cols): Physical Laptop Device */}
+              <ScrollReveal delay={150} className="lg:col-span-7 flex justify-center">
+                <div className="relative w-full max-w-[700px] lg:max-w-none">
                   <Image
-                    src="/showcase/marketplace-showcase.webp"
-                    alt="UMA Market produce catalog interface showing live crop offerings and farm-gate pricing"
-                    width={1900}
-                    height={1250}
-                    className="w-full h-auto drop-shadow-2xl"
+                    src="/showcase/desktop-marketplace.webp"
+                    alt="UMA Market wholesale produce catalog displayed on a sleek laptop device"
+                    width={2000}
+                    height={1260}
+                    className="w-full h-auto"
                     priority
                   />
                 </div>
@@ -258,19 +258,19 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* -- 5. Grower Product Showcase: Sell Produce ---------------- */}
-        <section id="growers" className="border-t border-border/60 bg-muted/20 py-18 sm:py-24 lg:py-28 scroll-mt-20">
+        {/* -- 5. Desktop Device #2: Grower Tools & Operations --------- */}
+        <section id="growers" className="border-t border-border/60 bg-muted/20 py-18 sm:py-24 lg:py-28 scroll-mt-20 overflow-hidden">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-              {/* Visual Left on desktop (7 cols): High-Resolution Polished Mockup Asset */}
-              <ScrollReveal delay={150} className="lg:col-span-7 order-2 lg:order-1">
-                <div className="relative w-full">
+              {/* Hardware Visual Left on desktop (7 cols): Physical Laptop Device */}
+              <ScrollReveal delay={150} className="lg:col-span-7 order-2 lg:order-1 flex justify-center">
+                <div className="relative w-full max-w-[700px] lg:max-w-none">
                   <Image
-                    src="/showcase/grower-showcase.webp"
-                    alt="UMA Farmer management portal showing inventory controls, pricing, and live fulfillment metrics"
-                    width={1900}
-                    height={1250}
-                    className="w-full h-auto drop-shadow-2xl"
+                    src="/showcase/desktop-grower.webp"
+                    alt="UMA Farmer management portal with inventory controls and order status on a sleek laptop device"
+                    width={2000}
+                    height={1260}
+                    className="w-full h-auto"
                   />
                 </div>
               </ScrollReveal>
@@ -284,7 +284,7 @@ export default async function HomePage() {
                   Your harvest reaches more buyers.
                 </h2>
                 <p className="mt-4 text-sm sm:text-base leading-relaxed text-muted-foreground">
-                  List your produce, set your prices, manage availability, and receive orders directly from local businesses across Butuan.
+                  List your produce, set your farm-gate prices, manage live inventory, and coordinate fulfillment directly with local businesses across Butuan.
                 </p>
 
                 <ul className="mt-6 space-y-3 text-xs sm:text-sm text-foreground">
@@ -292,19 +292,19 @@ export default async function HomePage() {
                     <div className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                       <RiCheckLine className="size-3.5" />
                     </div>
-                    <span>Control wholesale batch sizes and harvest dates</span>
+                    <span>Control wholesale batch sizes, harvest dates, and MOQ</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <div className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                       <RiCheckLine className="size-3.5" />
                     </div>
-                    <span>Instant stock toggles prevent overselling</span>
+                    <span>Instant stock toggles prevent overselling and disputes</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <div className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                       <RiCheckLine className="size-3.5" />
                     </div>
-                    <span>Verified Producer badge highlights authentic local growers</span>
+                    <span>Integrated order progression and direct buyer chat coordination</span>
                   </li>
                 </ul>
 
@@ -324,49 +324,19 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* -- 6. Order + Communication Showcase ----------------------- */}
-        <section id="fulfillment-showcase" className="border-t border-border/60 bg-background py-18 sm:py-24 lg:py-28">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <ScrollReveal className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
-              <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-                Fulfillment & Coordination
-              </span>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-                From order to fulfillment.
-              </h2>
-              <p className="mt-4 text-sm sm:text-base leading-relaxed text-muted-foreground">
-                Coordinate pickup logistics, discuss delivery windows, and track fulfillment step-by-step in one unified thread.
-              </p>
-            </ScrollReveal>
-
-            {/* Large Order + Chat Showcase Mockup Asset */}
-            <ScrollReveal delay={150} className="max-w-5xl mx-auto">
-              <div className="relative w-full">
-                <Image
-                  src="/showcase/order-fulfillment-showcase.webp"
-                  alt="UMA order status progression timeline with itemized receipts and live direct chat coordination"
-                  width={1900}
-                  height={1250}
-                  className="w-full h-auto drop-shadow-2xl"
-                />
-              </div>
-            </ScrollReveal>
-          </div>
-        </section>
-
-        {/* -- 7. Mobile / Responsive Product Showcase ---------------- */}
-        <section id="mobile-showcase" className="border-t border-border/60 bg-muted/20 py-18 sm:py-24 lg:py-28">
+        {/* -- 6. Mobile Device: Responsive Platform ------------------ */}
+        <section id="mobile-showcase" className="border-t border-border/60 bg-background py-18 sm:py-24 lg:py-28 overflow-hidden">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-              {/* Phone Mockup on Left (5 cols): High-Resolution Polished Mockup Asset */}
+              {/* Phone Mockup on Left (5 cols): Realistic Smartphone Hardware */}
               <ScrollReveal delay={150} className="lg:col-span-5 flex justify-center">
-                <div className="relative max-w-[340px] sm:max-w-[380px] w-full">
+                <div className="relative max-w-[280px] sm:max-w-[320px] w-full">
                   <Image
-                    src="/showcase/mobile-showcase.webp"
-                    alt="UMA responsive mobile experience in smartphone frame showing produce search and category browsing"
-                    width={1000}
-                    height={1500}
-                    className="w-full h-auto drop-shadow-2xl"
+                    src="/showcase/phone-marketplace.webp"
+                    alt="UMA responsive mobile experience inside a realistic titanium smartphone"
+                    width={800}
+                    height={1200}
+                    className="w-full h-auto"
                   />
                 </div>
               </ScrollReveal>
