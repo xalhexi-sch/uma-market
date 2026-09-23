@@ -134,7 +134,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 5,
     harvest_offset_days: -1,
     available_offset_days: 7,
-    imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1763266065684-a32c71bbd82f?w=800&auto=format&fit=crop&q=80",
   },
   {
     id: "a0000001-0000-0000-0000-000000000002",
@@ -149,7 +149,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 10,
     harvest_offset_days: 0,
     available_offset_days: 5,
-    imageUrl: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1769195045431-15f636e12b68?w=800&auto=format&fit=crop&q=80",
   },
   {
     id: "a0000001-0000-0000-0000-000000000003",
@@ -164,7 +164,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 10,
     harvest_offset_days: -2,
     available_offset_days: 6,
-    imageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1639428134238-b548770d4b77?w=800&auto=format&fit=crop&q=80",
   },
   {
     id: "a0000001-0000-0000-0000-000000000004",
@@ -226,7 +226,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 10,
     harvest_offset_days: -1,
     available_offset_days: 7,
-    imageUrl: "https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1526318472351-c75fcf070305?w=800&auto=format&fit=crop&q=80",
   },
 
   // 3. Rice & Grains (3 items)
@@ -258,7 +258,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 25,
     harvest_offset_days: -15,
     available_offset_days: 90,
-    imageUrl: "https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/e/ec/White_rice_raw.jpg",
   },
   {
     id: "a0000001-0000-0000-0000-000000000010",
@@ -305,7 +305,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 10,
     harvest_offset_days: -3,
     available_offset_days: 14,
-    imageUrl: "https://images.unsplash.com/photo-1730815048561-45df6f7f331d?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/a/a7/Purpleyamphoto.jpg",
   },
   {
     id: "a0000001-0000-0000-0000-000000000013",
@@ -320,7 +320,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 20,
     harvest_offset_days: -1,
     available_offset_days: 10,
-    imageUrl: "https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/f/ff/Cassava_Harvest_Manihot_esculenta_Tubers.png",
   },
 
   // 5. Herbs & Spices (3 items)
@@ -416,7 +416,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 10,
     harvest_offset_days: 0,
     available_offset_days: 2,
-    imageUrl: "https://images.unsplash.com/photo-1524704654690-b56c05c78a00?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/9/91/Piles_of_fresh_Tilapia_fish.jpg",
   },
   {
     id: "a0000001-0000-0000-0000-000000000020",
@@ -431,7 +431,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 10,
     harvest_offset_days: 0,
     available_offset_days: 3,
-    imageUrl: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/8/88/Milkfish_%28Chanos_chanos%29_locally_called_%27bangus%27_in_a_Philippine_market.jpg",
   },
 
   // 8. Other (1 item)
@@ -448,7 +448,7 @@ const DEMO_PRODUCTS: SeedProductDef[] = [
     min_order_quantity: 3,
     harvest_offset_days: -15,
     available_offset_days: 365,
-    imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://live.staticflickr.com/65535/51330848773_92478805dd_b.jpg",
   },
 ];
 
@@ -466,18 +466,23 @@ async function uploadProductImage(
 ): Promise<string | null> {
   const storagePath = `products/${farmerClerkId}/${slug}.jpg`;
   try {
-    const res = await fetch(remoteUrl);
+    const res = await fetch(remoteUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) UMA-Market-Audit/1.0",
+      },
+    });
     if (!res.ok) {
       console.warn(`[storage] Could not download image for ${slug} (${res.status}). Skipping storage upload.`);
       return null;
     }
     const arrayBuffer = await res.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    const contentType = res.headers.get("content-type") || "image/jpeg";
 
     const { error } = await supabase.storage
       .from("product-images")
       .upload(storagePath, buffer, {
-        contentType: "image/jpeg",
+        contentType,
         upsert: true,
       });
 
