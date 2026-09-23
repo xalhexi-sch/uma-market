@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -42,12 +43,39 @@ export default async function BusinessDashboardPage() {
 
   return (
     <div className="flex flex-col gap-8 p-6 lg:p-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Source local. Support local. Grow together.
-        </p>
+      {/* Agricultural Visual Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
+        <div className="relative h-44 sm:h-52 w-full overflow-hidden">
+          <Image
+            src="/dashboard-banner.jpg"
+            alt="Fresh produce from local farmers in Butuan"
+            fill
+            priority
+            sizes="(max-width: 1024px) 100vw, 1200px"
+            className="object-cover object-[center_35%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent" />
+          <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-8 text-white">
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
+              Butuan Agricultural Network
+            </span>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-white sm:text-2xl">
+              Fresh produce from local farmers
+            </h2>
+            <p className="mt-1 max-w-md text-xs sm:text-sm text-stone-200">
+              Source verified produce directly from local farms. Real-time availability, direct prices, and flexible fulfillment.
+            </p>
+            <div className="mt-3.5">
+              <Link
+                href="/business/products"
+                className="inline-flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow-xs transition-colors hover:bg-white"
+              >
+                Browse products
+                <RiArrowRightLine className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Metric cards */}

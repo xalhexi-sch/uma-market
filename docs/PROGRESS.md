@@ -368,12 +368,18 @@ Executed and verified against the **live remote Supabase database** (`https://od
   - Implemented dynamic navigation CTAs on `/`: authenticated users see "Dashboard" and Clerk `UserButton` in the navbar, and "Go to Dashboard" in the hero and final CTA sections; unauthenticated visitors continue to see "Sign in" and "Get started".
   - Updated `DashboardSidebar` and `DashboardMobileNav` to include a clickable brand header leading to `/` and an explicit "Marketplace Home" navigation link, enabling bidirectional navigation between `/` and `/farmer`, `/business`, and `/admin`.
   - Preserved role-based authorization guards across all dashboard layouts and sub-pages.
-- **4. Landing Page Final Visual Polish:**
-  - Integrated high-resolution farmer + sunrise agricultural photograph (`public/hero-farm.jpg`) as the hero visual centerpiece.
-  - Replaced the previous single-column empty hero overlay with an editorial 2-column composition: Left column showcases the tagline badge, exact headline `"Fresh from Butuan's farms to your business."`, supporting copy, responsive CTAs, and verified agricultural trust indicators; Right column showcases the framed photograph with gallery-style matte border, rounded radius, and subtle geographic/provenance metadata.
-  - Preserved the strict 6-section sequence: Hero, Value strip, How UMA works (3 steps), For Farmers / For Businesses (2-sided comparison), Final CTA, and Footer.
-  - Elevated section rhythm, responsive spacing, and typographic hierarchy while strictly adhering to UMA's white-first, green-accented design tokens.
-  - Verified clean responsiveness across desktop (1280px) and mobile viewports (390px) without horizontal overflow or clipped imagery.
+- **4. Landing Page Final Visual Direction (Full-Bleed Photographic Hero):**
+  - Integrated the farmer + sunrise agricultural photograph (`public/hero-farmer-sunrise.jpg`) as a full-bleed, full-width photographic hero across the entire viewport.
+  - Implemented an intentional directional readability scrim (`from-black/85 via-black/55 to-transparent`), providing strong contrast for white typography on the left while leaving the farmer, crops, and sunrise completely unobstructed and visually dominant on the right.
+  - Preserved the exact headline `"Fresh from Butuan's farms to your business."` and concise supporting copy.
+  - Streamlined CTAs strictly to two: `"Explore products"` and `"Sell on UMA"` (with `"Go to Dashboard"` for authenticated sessions).
+  - Compacted the value strip into a subtle, non-card 4-pillar bar (`Origin`, `Trade`, `Access`, `Supply`).
+  - Formatted "How UMA Works" into an open, airy, 3-step typographic process (`Discover`, `Order`, `Fulfill`) free of heavy cards.
+  - Formatted "For Farmers / For Businesses" into a clean two-column layout with subtle vertical divider and green dot bullets rather than card boxes.
+  - Maintained full public accessibility of `/` for both authenticated and unauthenticated visitors.
+- **5. Business Dashboard Agricultural Banner:**
+  - Restored the dedicated agricultural visual banner in `src/app/(dashboard)/business/page.tsx` titled `"Fresh produce from local farmers"` utilizing the wide farm landscape image (`public/dashboard-banner.jpg`).
+  - Provides a distinct, purpose-built agricultural touchpoint for commercial buyers without duplicating the public landing hero.
 
 | Test Item | Verification Method | Result | Verification Details |
 |---|---|---|---|
@@ -382,8 +388,9 @@ Executed and verified against the **live remote Supabase database** (`https://od
 | **Realtime Chat Live Delivery** | `order-chat.tsx` + `client.ts` | ✅ **PASS** | `setAuth` primed on socket before channel join, join payload carries `access_token` |
 | **Onboarding Loading Feedback** | `onboarding-form.tsx` | ✅ **PASS** | Immediate button disabled state, spinner animation, duplicate submission prevention |
 | **Authenticated Root Routing** | `page.tsx` + `sidebar.tsx` + `mobile-nav.tsx` | ✅ **PASS** | Root `/` accessible to all users; contextual CTAs render; dashboard routes preserve RLS and role protection |
-| **Landing Page Editorial Hero** | Browser verification (desktop & mobile) | ✅ **PASS** | Farmer + sunrise photo rendered in 2-col layout; exact copy preserved; zero layout shift |
-| **Responsive Mobile Layout** | Browser verification (390x844 viewport) | ✅ **PASS** | Natural vertical stacking; full-width touch-friendly CTAs; no horizontal overflow |
+| **Full-Bleed Photographic Hero** | Browser verification (desktop & mobile) | ✅ **PASS** | Farmer + sunrise full-bleed background; high text contrast on left; farmer dominant on right |
+| **Compact Value Strip & Editorial Sections** | Browser verification | ✅ **PASS** | Subtle 4-pillar divider bar, open 3-step process, 2-column typographic split without card bloat |
+| **Business Dashboard Banner** | Route compilation & code check | ✅ **PASS** | "Fresh produce from local farmers" banner rendered in `/business` with wide farm landscape |
 
 ---
 

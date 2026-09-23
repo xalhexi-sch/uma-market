@@ -2,16 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
-import {
-  RiPlantLine,
-  RiBuildingLine,
-  RiArrowRightLine,
-  RiCheckLine,
-  RiSearchLine,
-  RiShoppingBagLine,
-  RiTruckLine,
-  RiShieldCheckLine,
-} from "@remixicon/react";
+import { RiPlantLine, RiArrowRightLine } from "@remixicon/react";
 import type { UserRole } from "@/lib/constants";
 import { APP_NAME } from "@/lib/constants";
 
@@ -85,349 +76,232 @@ export default async function HomePage() {
       </header>
 
       <main className="flex-1">
-        {/* ── 1. Hero ─────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden bg-background">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16 lg:py-20">
-            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12">
-              {/* Left Column: Text & CTAs */}
-              <div className="flex flex-col justify-center">
-                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
-                  <RiPlantLine className="size-3.5 shrink-0" />
-                  <span>Butuan City · Agricultural Marketplace</span>
-                </div>
+        {/* -- 1. Full-Width Photographic Hero ---------------------- */}
+        <section className="relative isolate flex min-h-[580px] sm:min-h-[640px] lg:min-h-[720px] w-full items-center overflow-hidden">
+          {/* Full-bleed background image */}
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            <Image
+              src="/hero-farmer-sunrise.jpg"
+              alt="Butuan farmer harvesting fresh crops at sunrise"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-[65%_35%] sm:object-[60%_35%] lg:object-[68%_35%]"
+            />
+            {/* Directional readability scrim: dark on left for text contrast, transparent on right for farmer & sunrise */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-transparent sm:from-black/80 sm:via-black/45 lg:from-black/75 lg:via-black/30 lg:to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent sm:hidden" />
+          </div>
 
-                <h1 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl lg:leading-[1.12]">
-                  Fresh from Butuan&apos;s farms to your business.
-                </h1>
+          <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 py-20 sm:py-28 lg:py-32">
+            <div className="max-w-xl text-white">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
+                Butuan City · Agricultural Marketplace
+              </p>
 
-                <p className="mt-5 text-base leading-relaxed text-muted-foreground sm:text-lg sm:leading-relaxed">
-                  Source local produce, check availability, and manage orders
-                  in one place — directly from the farmers who grow it.
-                </p>
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl lg:text-6xl lg:leading-[1.08]">
+                Fresh from Butuan&apos;s farms to your business.
+              </h1>
 
-                <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-                  {isAuthenticated ? (
+              <p className="mt-5 text-base leading-relaxed text-stone-200 sm:text-lg sm:leading-relaxed">
+                Source local produce, check availability, and manage orders
+                in one place — directly from the farmers who grow it.
+              </p>
+
+              {/* Only two CTAs */}
+              <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+                {isAuthenticated ? (
+                  <Link
+                    href={dashboardHref}
+                    className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
+                  >
+                    Go to Dashboard
+                    <RiArrowRightLine className="size-4" />
+                  </Link>
+                ) : (
+                  <>
                     <Link
-                      href={dashboardHref}
+                      href="/sign-up"
                       className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
                     >
-                      Go to Dashboard
+                      Explore products
                       <RiArrowRightLine className="size-4" />
                     </Link>
-                  ) : (
-                    <>
-                      <Link
-                        href="/sign-up"
-                        className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
-                      >
-                        Explore products
-                        <RiArrowRightLine className="size-4" />
-                      </Link>
-                      <Link
-                        href="#farmers"
-                        className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-background px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-                      >
-                        Sell on UMA
-                      </Link>
-                    </>
-                  )}
-                </div>
-
-                {/* Agricultural Trust Highlights */}
-                <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2.5 border-t border-border/70 pt-6 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <RiCheckLine className="size-4 shrink-0 text-primary" />
-                    <span>Direct farm pricing</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <RiCheckLine className="size-4 shrink-0 text-primary" />
-                    <span>Verified local growers</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <RiCheckLine className="size-4 shrink-0 text-primary" />
-                    <span>Flexible fulfillment</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Framed Editorial Agricultural Image */}
-              <div className="w-full">
-                <div className="relative mx-auto w-full max-w-lg lg:max-w-none">
-                  <div className="overflow-hidden rounded-2xl border border-border/80 bg-card p-1.5 shadow-md shadow-muted/50">
-                    <div className="overflow-hidden rounded-xl bg-muted">
-                      <Image
-                        src="/hero-farm.jpg"
-                        alt="Local farmer harvesting fresh greens in Butuan at sunrise"
-                        width={1024}
-                        height={576}
-                        priority
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 560px"
-                        className="h-auto w-full object-cover object-center"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between px-1 text-xs text-muted-foreground">
-                    <span>Butuan City, Agusan del Norte</span>
-                    <span className="flex items-center gap-1.5 font-medium text-foreground">
-                      <span className="inline-block size-2 rounded-full bg-emerald-600" />
-                      Direct farm harvest
-                    </span>
-                  </div>
-                </div>
+                    <Link
+                      href="#farmers"
+                      className="inline-flex items-center justify-center gap-2 rounded-md border border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/20"
+                    >
+                      Sell on UMA
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </section>
 
-        {/* -- 2. Value strip ---------------------------------------- */}
-        <section className="border-y border-border/70 bg-muted/25">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-7 sm:py-8">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-              {[
-                {
-                  label: "Local Produce",
-                  sub: "Directly from Butuan farms",
-                  icon: RiPlantLine,
-                },
-                {
-                  label: "Direct Connections",
-                  sub: "No middlemen, transparent prices",
-                  icon: RiShoppingBagLine,
-                },
-                {
-                  label: "Fair Opportunities",
-                  sub: "Equal market access for growers",
-                  icon: RiShieldCheckLine,
-                },
-                {
-                  label: "Reliable Supply",
-                  sub: "Scheduled pickup and local delivery",
-                  icon: RiTruckLine,
-                },
-              ].map((item) => (
-                <div key={item.label} className="flex items-start gap-3.5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <item.icon className="size-4.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{item.sub}</p>
-                  </div>
-                </div>
-              ))}
+        {/* -- 2. Compact Value / Proof Strip ----------------------- */}
+        <section className="border-b border-border/60 bg-background">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-7">
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-8 sm:divide-x sm:divide-border/60">
+              <div className="sm:pr-6">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Origin</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">Grown in Butuan City</p>
+              </div>
+              <div className="sm:px-6">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Trade</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">Direct farm-gate pricing</p>
+              </div>
+              <div className="sm:px-6">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Access</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">Equal market access</p>
+              </div>
+              <div className="sm:pl-6">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Supply</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">Reliable wholesale delivery</p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ── 3. How UMA works ────────────────────────────────────── */}
+        {/* -- 3. How UMA Works ------------------------------------- */}
         <section id="how" className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-24 lg:py-28">
-          <div className="mb-14 text-center">
+          <div className="max-w-xl">
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-              Simple Wholesale Workflow
+              Process
             </p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               How UMA works
             </h2>
-            <p className="mx-auto mt-3 max-w-lg text-sm text-muted-foreground sm:text-base">
-              Three straightforward steps connecting local agricultural supply with commercial demand.
+            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+              A straightforward three-step connection between local agricultural harvest and commercial demand.
             </p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-3 lg:gap-8">
-            {[
-              {
-                step: "01",
-                icon: RiSearchLine,
-                title: "Discover",
-                description:
-                  "Browse fresh produce listings from verified Butuan farmers. Filter by category, price, and current harvest availability.",
-              },
-              {
-                step: "02",
-                icon: RiShoppingBagLine,
-                title: "Order",
-                description:
-                  "Place wholesale orders directly with the grower. Choose between direct farm pickup or seller delivery to your premises.",
-              },
-              {
-                step: "03",
-                icon: RiTruckLine,
-                title: "Fulfill",
-                description:
-                  "Coordinate seamlessly through threaded order chat. Track status updates from acceptance through fulfillment.",
-              },
-            ].map((item) => (
-              <div
-                key={item.step}
-                className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-6 sm:p-7 shadow-xs transition-colors hover:border-border"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <item.icon className="size-5" />
-                    </div>
-                    <span className="text-xs font-bold tracking-widest text-muted-foreground/80">
-                      STEP {item.step}
-                    </span>
-                  </div>
-                  <h3 className="mt-5 text-lg font-semibold text-foreground">
-                    {item.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {item.description}
-                  </p>
-                </div>
-              </div>
-            ))}
+          <div className="mt-12 grid gap-10 border-t border-border/60 pt-10 sm:grid-cols-3 sm:gap-8 lg:gap-12">
+            <div>
+              <span className="font-mono text-xs font-bold text-primary">01</span>
+              <h3 className="mt-3 text-base font-semibold text-foreground">Discover</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Browse fresh produce listings from verified Butuan farmers. Filter by category, price, and harvest availability.
+              </p>
+            </div>
+            <div>
+              <span className="font-mono text-xs font-bold text-primary">02</span>
+              <h3 className="mt-3 text-base font-semibold text-foreground">Order</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Place wholesale orders directly with the grower. Choose between direct farm pickup or seller delivery.
+              </p>
+            </div>
+            <div>
+              <span className="font-mono text-xs font-bold text-primary">03</span>
+              <h3 className="mt-3 text-base font-semibold text-foreground">Fulfill</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Coordinate details through threaded order chat. Track status updates from acceptance through handover.
+              </p>
+            </div>
           </div>
         </section>
 
-        {/* ── 4. For Farmers / For Businesses ─────────────────────── */}
-        <section className="border-t border-border/70 bg-muted/20">
+        {/* -- 4. For Farmers / For Businesses ---------------------- */}
+        <section className="border-t border-border/60 bg-muted/20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-24 lg:py-28">
-            <div className="mb-14 text-center">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                Two-Sided Agricultural Market
-              </p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                Built for local growers and commercial buyers
-              </h2>
-              <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
-                Whether you harvest crops or supply commercial kitchens, UMA gives you direct control without middlemen.
-              </p>
-            </div>
-
-            <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
+            <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 lg:divide-x lg:divide-border/60">
               {/* For Farmers */}
-              <div
-                id="farmers"
-                className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-8 sm:p-10 shadow-xs"
-              >
+              <div id="farmers" className="flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <RiPlantLine className="size-6" />
-                    </div>
-                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                      Growers & Producers
-                    </span>
-                  </div>
-
-                  <h3 className="mt-6 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                    Growers & Producers
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                     For Farmers
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    List your produce, manage your availability, and receive wholesale orders
-                    from local businesses — directly, fairly, and without intermediary markups.
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                    List your harvest, set fair prices, and supply local businesses — directly, fairly, and without intermediary markups.
                   </p>
 
-                  <ul className="mt-6 flex flex-col gap-3">
-                    {[
-                      "Manage your product listings and harvest schedules",
-                      "Set your own wholesale prices and minimum quantities",
-                      "Receive and fulfill orders directly from verified buyers",
-                      "Direct messaging to coordinate pickup or delivery",
-                      "Build recurring relationships with local restaurants and stores",
-                    ].map((item) => (
-                      <li key={item} className="flex items-start gap-2.5 text-sm text-foreground">
-                        <RiCheckLine className="size-4.5 shrink-0 text-primary" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
+                  <ul className="mt-6 space-y-3 text-sm text-foreground">
+                    <li className="flex items-start gap-3">
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Full control over your wholesale pricing and batch quantities</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Real-time visibility into incoming commercial orders</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Direct messaging to coordinate pickup or delivery logistics</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Build stable relationships with local restaurants and retailers</span>
+                    </li>
                   </ul>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-border/60">
-                  {isAuthenticated && role === "farmer" ? (
-                    <Link
-                      href="/farmer"
-                      className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
-                    >
-                      Go to Farmer Dashboard
-                      <RiArrowRightLine className="size-4" />
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/sign-up"
-                      className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
-                    >
-                      Sell on UMA
-                      <RiArrowRightLine className="size-4" />
-                    </Link>
-                  )}
+                <div className="mt-8 border-t border-border/60 pt-6">
+                  <Link
+                    href={isAuthenticated && role === "farmer" ? "/farmer" : "/sign-up"}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
+                  >
+                    {isAuthenticated && role === "farmer" ? "Open Farmer Dashboard" : "Sell on UMA"}
+                    <RiArrowRightLine className="size-4" />
+                  </Link>
                 </div>
               </div>
 
               {/* For Businesses */}
-              <div
-                id="businesses"
-                className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-8 sm:p-10 shadow-xs"
-              >
+              <div id="businesses" className="flex flex-col justify-between lg:pl-16">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <RiBuildingLine className="size-6" />
-                    </div>
-                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                      Commercial Buyers
-                    </span>
-                  </div>
-
-                  <h3 className="mt-6 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                    Commercial Buyers
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                     For Businesses
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    Find fresh, locally grown produce for your restaurant, catering service,
-                    or retail market. Order in volume straight from the growers.
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                    Procure fresh produce directly from Butuan farms for your kitchen or retail store. Direct from the source.
                   </p>
 
-                  <ul className="mt-6 flex flex-col gap-3">
-                    {[
-                      "Browse verified local Butuan farms and crop listings",
-                      "Check real-time stock availability and harvest windows",
-                      "Place wholesale orders with flexible fulfillment options",
-                      "Direct order-threaded communication with farmers",
-                      "Support the Butuan City agricultural economy",
-                    ].map((item) => (
-                      <li key={item} className="flex items-start gap-2.5 text-sm text-foreground">
-                        <RiCheckLine className="size-4.5 shrink-0 text-primary" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
+                  <ul className="mt-6 space-y-3 text-sm text-foreground">
+                    <li className="flex items-start gap-3">
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Browse verified local farms and active crop listings</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Transparent wholesale pricing without middleman markups</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Flexible fulfillment: choose farm pickup or seller delivery</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>Support Butuan City&apos;s local farming community</span>
+                    </li>
                   </ul>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-border/60">
-                  {isAuthenticated && role === "business" ? (
-                    <Link
-                      href="/business"
-                      className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
-                    >
-                      Go to Business Dashboard
-                      <RiArrowRightLine className="size-4" />
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/sign-up"
-                      className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
-                    >
-                      Start sourcing
-                      <RiArrowRightLine className="size-4" />
-                    </Link>
-                  )}
+                <div className="mt-8 border-t border-border/60 pt-6">
+                  <Link
+                    href={isAuthenticated && role === "business" ? "/business" : "/sign-up"}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
+                  >
+                    {isAuthenticated && role === "business" ? "Open Business Dashboard" : "Start sourcing"}
+                    <RiArrowRightLine className="size-4" />
+                  </Link>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── 5. Final CTA ─────────────────────────────────────────── */}
-        <section className="border-t border-border/70 bg-background">
+        {/* -- 5. Final CTA ------------------------------------------- */}
+        <section className="border-t border-border/60 bg-background">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-28 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-              Strengthen Your Supply Chain
-            </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
               Ready to get started?
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -435,7 +309,7 @@ export default async function HomePage() {
               building a stronger, direct, and more transparent local food system.
             </p>
 
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               {isAuthenticated ? (
                 <Link
                   href={dashboardHref}
@@ -450,7 +324,7 @@ export default async function HomePage() {
                     href="/sign-up"
                     className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
                   >
-                    Create your account
+                    Explore products
                     <RiArrowRightLine className="size-4" />
                   </Link>
                   <Link
@@ -466,8 +340,8 @@ export default async function HomePage() {
         </section>
       </main>
 
-      {/* ── 6. Footer ───────────────────────────────────────────── */}
-      <footer className="border-t border-border/70 bg-muted/25">
+      {/* -- 6. Footer --------------------------------------------- */}
+      <footer className="border-t border-border/60 bg-muted/20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
           <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
             <div className="flex items-center gap-2.5">
@@ -477,7 +351,7 @@ export default async function HomePage() {
               <span className="text-sm font-bold tracking-tight text-foreground">
                 {APP_NAME}
               </span>
-              <span className="text-muted-foreground/50">·</span>
+              <span className="text-muted-foreground/40">·</span>
               <span className="text-xs text-muted-foreground">
                 Butuan City, Agusan del Norte
               </span>
@@ -496,7 +370,7 @@ export default async function HomePage() {
             </nav>
           </div>
 
-          <div className="mt-6 border-t border-border/50 pt-6 text-center text-xs text-muted-foreground">
+          <div className="mt-6 border-t border-border/40 pt-6 text-center text-xs text-muted-foreground">
             <p>
               &copy; {new Date().getFullYear()} {APP_NAME}. A localized agricultural marketplace for Butuan City.
             </p>
