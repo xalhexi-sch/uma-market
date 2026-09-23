@@ -4,6 +4,7 @@ import { useState } from "react";
 import { moderateProductStatus } from "@/app/(dashboard)/admin/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { CURRENCY } from "@/lib/constants";
 import type { Product } from "@/lib/types";
 
@@ -20,7 +21,10 @@ export function AdminProductRow({ product }: AdminProductRowProps) {
     const res = await moderateProductStatus(product.id, newStatus);
     setLoading(false);
     if (res.success) {
+      toast.success(`Product ${newStatus === "archived" ? "archived" : "restored"}.`);
       setStatus(newStatus);
+    } else {
+      toast.error(res.error ?? "Action failed.");
     }
   }
 

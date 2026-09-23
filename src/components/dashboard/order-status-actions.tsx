@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import {
   Dialog,
   DialogContent,
@@ -63,8 +64,10 @@ export function OrderStatusActions({ orderId, currentStatus }: OrderStatusAction
     startTransition(async () => {
       const result = await updateOrderStatus(orderId, newStatus, reason);
       if (result.success) {
+        toast.success(newStatus === "cancelled" ? "Order declined." : "Order status updated.");
         router.refresh();
       } else {
+        toast.error(result.error ?? "Could not update order.");
         setError(result.error ?? "Could not update order.");
       }
     });

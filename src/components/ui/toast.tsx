@@ -7,7 +7,33 @@ import { cn } from "cn"
 import { Button } from "@/components/ui/button"
 import { RiCloseLine, RiCheckboxCircleLine, RiInformationLine, RiErrorWarningLine, RiCloseCircleLine, RiLoaderLine } from "@remixicon/react"
 
-const toast = ToastPrimitive.createToastManager()
+const baseToast = ToastPrimitive.createToastManager()
+
+export interface ToastOptions {
+  description?: React.ReactNode
+  timeout?: number
+}
+
+const toast = Object.assign(
+  (title: React.ReactNode, options?: ToastOptions) => {
+    return baseToast.add({ title, ...options })
+  },
+  baseToast,
+  {
+    success: (title: React.ReactNode, options?: ToastOptions) => {
+      return baseToast.add({ title, type: "success", ...options })
+    },
+    error: (title: React.ReactNode, options?: ToastOptions) => {
+      return baseToast.add({ title, type: "error", ...options })
+    },
+    info: (title: React.ReactNode, options?: ToastOptions) => {
+      return baseToast.add({ title, type: "info", ...options })
+    },
+    warning: (title: React.ReactNode, options?: ToastOptions) => {
+      return baseToast.add({ title, type: "warning", ...options })
+    },
+  }
+)
 
 function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
   return <ToastPrimitive.Provider {...props} />

@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
+import { Toaster } from "@/components/ui/toast";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -29,7 +30,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col font-sans">
         <ClerkProvider dynamic>
-          {children}
+          <Toaster>
+            {children}
+          </Toaster>
         </ClerkProvider>
       </body>
     </html>

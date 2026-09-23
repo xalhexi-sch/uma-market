@@ -13,6 +13,7 @@ import { useSupabase } from "@/hooks/use-supabase";
 import { getProductImageUrl, validateProductImageFile, PRODUCT_IMAGES_BUCKET } from "@/lib/supabase/storage";
 import type { Category, Product } from "@/lib/types";
 import { PRODUCT_UNITS } from "@/lib/constants";
+import { toast } from "@/components/ui/toast";
 
 interface ProductFormProps {
   categories: Category[];
@@ -127,8 +128,10 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
           : await updateProduct(product!.id, data);
 
       if (result.success) {
+        toast.success(mode === "create" ? "Product created successfully." : "Product updated successfully.");
         router.push("/farmer/products");
       } else {
+        toast.error(result.error ?? "Something went wrong.");
         setError(result.error ?? "Something went wrong.");
       }
     });
@@ -139,8 +142,10 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
     startArchive(async () => {
       const result = await archiveProduct(product.id);
       if (result.success) {
+        toast.success("Product archived.");
         router.push("/farmer/products");
       } else {
+        toast.error(result.error ?? "Could not archive.");
         setError(result.error ?? "Could not archive.");
       }
     });

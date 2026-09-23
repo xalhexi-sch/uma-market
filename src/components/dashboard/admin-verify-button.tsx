@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { RiCheckboxCircleFill, RiShieldCheckLine } from "@remixicon/react";
 import { toggleProfileVerification } from "@/app/(dashboard)/admin/actions";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 
 interface AdminVerifyButtonProps {
   clerkId: string;
@@ -15,7 +16,12 @@ export function AdminVerifyButton({ clerkId, isVerified }: AdminVerifyButtonProp
 
   function handleToggle() {
     startTransition(async () => {
-      await toggleProfileVerification(clerkId, !isVerified);
+      const res = await toggleProfileVerification(clerkId, !isVerified);
+      if (res.success) {
+        toast.success(isVerified ? "Verification revoked." : "User verified.");
+      } else {
+        toast.error(res.error ?? "Action failed.");
+      }
     });
   }
 

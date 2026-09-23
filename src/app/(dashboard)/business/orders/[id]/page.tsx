@@ -6,6 +6,7 @@ import { RiArrowLeftLine, RiPlantLine, RiTruckLine, RiStore2Line } from "@remixi
 import { getBusinessOrderById } from "@/lib/supabase/queries/orders";
 import { getOrderMessages } from "@/lib/supabase/queries/messages";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
+import { CancelOrderButton } from "@/components/dashboard/cancel-order-button";
 import { OrderChat } from "@/components/dashboard/order-chat";
 import { CURRENCY, FULFILLMENT_LABELS, ORDER_STATUS_LABELS } from "@/lib/constants";
 import type { UserRole, OrderStatus } from "@/lib/constants";
@@ -67,7 +68,12 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
               })}
             </p>
           </div>
+        <div className="flex items-center gap-3 flex-wrap">
           <OrderStatusBadge status={order.status} />
+          {order.status === "pending" && (
+            <CancelOrderButton orderId={order.id} />
+          )}
+        </div>
         </div>
 
         {/* Status timeline */}

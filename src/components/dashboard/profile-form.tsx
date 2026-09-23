@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/toast";
 import { updateProfile } from "@/app/(dashboard)/profile/actions";
 import type { Profile } from "@/lib/types";
 
@@ -57,8 +58,10 @@ export function ProfileForm({ profile, role }: ProfileFormProps) {
 
     if (!res.success) {
       setError(res.error ?? "Failed to save profile.");
+      toast.error(res.error ?? "Failed to save profile.");
     } else {
       setSuccess(true);
+      toast.success("Profile updated successfully.");
       router.refresh();
       setTimeout(() => setSuccess(false), 4000);
     }
