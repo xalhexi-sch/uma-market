@@ -182,7 +182,8 @@ export async function getProductById(id: string): Promise<Product | null> {
       price_per_unit, unit, quantity_available, min_order_quantity,
       image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
       farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, phone, is_verified),
-      category:categories(id, name, slug)
+      category:categories(id, name, slug),
+      images:product_images(id, product_id, image_path, sort_order)
     `
     )
     .eq("id", id)
@@ -200,7 +201,8 @@ export async function getProductById(id: string): Promise<Product | null> {
           price_per_unit, unit, quantity_available, min_order_quantity,
           image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
           farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, phone, is_verified),
-          category:categories(id, name, slug)
+          category:categories(id, name, slug),
+          images:product_images(id, product_id, image_path, sort_order)
         `
         )
         .eq("id", id)
@@ -218,20 +220,38 @@ export async function getProductById(id: string): Promise<Product | null> {
   if (error) throw error;
   const product = data as unknown as Product | null;
 
-  if (product && !product.farmer && product.farmer_clerk_id) {
-    try {
-      const admin = createAdminClient();
-      const { data: farmerProfile } = await admin
-        .from("profiles")
-        .select("clerk_id, full_name, business_name, city, avatar_url, bio, is_verified")
-        .eq("clerk_id", product.farmer_clerk_id)
-        .maybeSingle();
+  if (product) {
+    // Normalize and sort images
+    if (product.images && product.images.length > 0) {
+      product.images.sort((a, b) => a.sort_order - b.sort_order);
+    } else if (product.image_path || product.image_url) {
+      product.images = [
+        {
+          id: "primary",
+          product_id: product.id,
+          image_path: product.image_path || product.image_url || "",
+          sort_order: 0,
+        },
+      ];
+    } else {
+      product.images = [];
+    }
 
-      if (farmerProfile) {
-        product.farmer = farmerProfile as Product["farmer"];
+    if (!product.farmer && product.farmer_clerk_id) {
+      try {
+        const admin = createAdminClient();
+        const { data: farmerProfile } = await admin
+          .from("profiles")
+          .select("clerk_id, full_name, business_name, city, avatar_url, bio, is_verified")
+          .eq("clerk_id", product.farmer_clerk_id)
+          .maybeSingle();
+
+        if (farmerProfile) {
+          product.farmer = farmerProfile as Product["farmer"];
+        }
+      } catch {
+        // Graceful fallback
       }
-    } catch {
-      // Graceful fallback
     }
   }
 
@@ -277,7 +297,8 @@ export async function getFarmerProductById(
       id, farmer_clerk_id, category_id, name, description,
       price_per_unit, unit, quantity_available, min_order_quantity,
       image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
-      category:categories(id, name, slug)
+      category:categories(id, name, slug),
+      images:product_images(id, product_id, image_path, sort_order)
     `
     )
     .eq("id", id)
@@ -285,7 +306,24 @@ export async function getFarmerProductById(
     .maybeSingle();
 
   if (error) throw error;
-  return data as unknown as Product | null;
+  const product = data as unknown as Product | null;
+  if (product) {
+    if (product.images && product.images.length > 0) {
+      product.images.sort((a, b) => a.sort_order - b.sort_order);
+    } else if (product.image_path || product.image_url) {
+      product.images = [
+        {
+          id: "primary",
+          product_id: product.id,
+          image_path: product.image_path || product.image_url || "",
+          sort_order: 0,
+        },
+      ];
+    } else {
+      product.images = [];
+    }
+  }
+  return product;
 }
 
 /**

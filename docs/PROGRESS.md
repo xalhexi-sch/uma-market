@@ -600,6 +600,41 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+### Product Media Gallery (`feat/product-media-gallery`) (Complete & Verified ✅)
+- **1. Database Schema & RLS Policies (`20260924000001_product_media_gallery.sql`):**
+  - Created `public.product_images` table (`id`, `product_id`, `image_path`, `sort_order`, `created_at`, `UNIQUE(product_id, image_path)`).
+  - Configured RLS policies:
+    - `SELECT`: Public can view active product images; farmers can view their own; admins view all.
+    - `INSERT`, `UPDATE`, `DELETE`: Farmers can only mutate images for products they own (`auth.jwt()->>'sub' = farmer_clerk_id`).
+    - `ALL`: Admin role access.
+  - Safe backfill: Migrated all existing `products.image_path` entries into `product_images` (`sort_order = 0`), ensuring zero regression for existing listings.
+- **2. Reusable ProductGallery Component (`src/components/marketplace/product-gallery.tsx`):**
+  - Built with existing shadcn/ui `Carousel` (`embla-carousel-react`).
+  - Desktop: Large main display, slide counter pill (`1 / 3`), Previous/Next arrow buttons, and clickable thumbnail strip with active green focus ring (`ring-2 ring-primary`).
+  - Mobile: Smooth touch-swipeable carousel, responsive height, and thumbnail indicators with zero horizontal overflow.
+  - Single-image products: Clean hero display with all redundant carousel buttons and thumbnails hidden.
+  - Zero-image products: Branded fallback placeholder rendered cleanly.
+  - Keyboard navigation: Left/right arrow keys navigate slides via embla.
+- **3. Farmer Multi-Photo Management (`src/components/dashboard/product-form.tsx` & `actions.ts`):**
+  - Upgraded farmer create/edit form to support up to 5 produce photos (JPEG, PNG, WebP up to 5MB).
+  - Primary / Cover photo clearly badged, always synchronized with `products.image_path` for backwards compatibility with cards, cart, and search.
+  - Secondary photos grid with "Set as Primary" and "Remove" actions.
+  - Safe storage deletion: When removing a photo, underlying storage objects are cleaned up only if not referenced by other products or gallery records.
+- **4. Verified Live Integration:**
+  - Integrated `<ProductGallery>` into public `/products/[id]` and buyer `/business/products/[id]`.
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Production Build** | `npm run build` | ✅ **PASS** | 35 routes compiled cleanly via Turbopack |
+| **Multi-Image Carousel** | Browser subagent (1440px) | ✅ **PASS** | Slide counter (`1 / 3`), next/prev controls, and thumbnail click jump to slide |
+| **Single-Image Product** | Browser subagent (1440px) | ✅ **PASS** | Single clean image; redundant carousel controls and thumbnails hidden |
+| **No-Image Fallback** | Browser subagent (1440px) | ✅ **PASS** | Branded SVG placeholder rendered cleanly with no layout distortion |
+| **Mobile Responsiveness** | Browser subagent (390px) | ✅ **PASS** | Touch-swipeable carousel; zero horizontal overflow (`scrollWidth === clientWidth`) |
+| **Database Migration & Backfill** | `npx supabase db push` | ✅ **PASS** | `20260924000001_product_media_gallery.sql` applied; existing products backfilled |
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
@@ -614,3 +649,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Final Public Landing Refinement:** ✅ Complete & Verified (Visual composition, oversized asymmetric bleed, restrained buyer trust, dark mode + "D" shortcut, /about route, 0 lint errors, and 36 compiled routes)
 - **Product Content & Image Audit (`feat/product-content-audit`):** ✅ Complete & Verified (24 produce listings audited, 11 photo mismatches corrected in storage, branded fallback placeholder `/product-placeholder.svg`, client-safe `ProductImage` fallback component, 0 lint errors, 34 compiled routes)
 - **Visual Correction — Device Mockups & Hardware Presentation:** ✅ Complete & Verified (2 large landscape iPad Pro tablets, 1 thick 3D titanium smartphone, real UMA UI, unclipped soft shadows, unified settling animations, 0 lint errors, and 36 compiled routes)
+- **Product Media Gallery (`feat/product-media-gallery`):** ✅ Complete & Verified (`product_images` table, RLS policies, backfill, shadcn Carousel gallery, farmer multi-photo upload/edit up to 5 photos, safe deletion, 0 lint errors, and 35 compiled routes)
