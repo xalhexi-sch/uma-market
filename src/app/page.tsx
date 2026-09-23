@@ -39,14 +39,14 @@ export default async function HomePage() {
   const dashboardHref = role ? `/${role}` : "/onboarding";
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground overflow-x-clip">
       {/* ── Client Landing Navbar (Transparent over hero, solid on scroll) ── */}
       <LandingNavbar
         isAuthenticated={!!isAuthenticated}
         dashboardHref={dashboardHref}
       />
 
-      <main className="flex-1">
+      <main className="flex-1 overflow-x-clip">
         {/* -- 1. Full-Width Photographic Hero (Approved Foundation) ---- */}
         <section className="relative isolate flex min-h-[560px] sm:min-h-[620px] lg:min-h-[700px] w-full items-center overflow-hidden">
           {/* Full-bleed background image */}
@@ -146,7 +146,7 @@ export default async function HomePage() {
         {/* -- 4. Real Software Showcase: Marketplace Discovery ------- */}
         <section
           id="marketplace-showcase"
-          className="border-t border-border/60 bg-background py-14 sm:py-20 lg:py-24 overflow-hidden"
+          className="border-t border-border/60 bg-background py-14 sm:py-20 lg:py-24"
         >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
@@ -194,16 +194,16 @@ export default async function HomePage() {
                 </div>
               </ScrollReveal>
 
-              {/* Hardware Visual Right (7 cols): Oversized Campaign Laptop Bleeding Right */}
-              <ScrollReveal delay={100} className="lg:col-span-7 flex justify-center lg:justify-end">
-                <div className="relative w-full max-w-[640px] lg:max-w-none lg:w-[124%] lg:-mr-16 xl:-mr-24 lg:translate-x-4">
+              {/* Hardware Visual Right (7 cols): Oversized Landscape Tablet Bleeding Right */}
+              <ScrollReveal delay={100} rotate={1.2} className="lg:col-span-7 flex justify-center lg:justify-end">
+                <div className="relative w-full max-w-[660px] lg:max-w-none lg:w-[126%] lg:-mr-16 xl:-mr-24 lg:translate-x-4">
                   <Image
                     src="/showcase/desktop-marketplace.webp"
-                    alt="UMA Market wholesale produce catalog displayed on a realistic aluminum laptop"
-                    width={2000}
-                    height={1260}
+                    alt="UMA Market wholesale produce catalog displayed on a premium landscape tablet"
+                    width={1600}
+                    height={1426}
                     priority
-                    className="w-full h-auto drop-shadow-2xl select-none pointer-events-none"
+                    className="w-full h-auto select-none pointer-events-none"
                   />
                 </div>
               </ScrollReveal>
@@ -214,19 +214,19 @@ export default async function HomePage() {
         {/* -- 5. Real Software Showcase: Grower Operations ----------- */}
         <section
           id="growers"
-          className="border-t border-border/60 bg-muted/20 py-14 sm:py-20 lg:py-24 scroll-mt-20 overflow-hidden"
+          className="border-t border-border/60 bg-muted/20 py-14 sm:py-20 lg:py-24 scroll-mt-20"
         >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-              {/* Hardware Visual Left (7 cols): Oversized Slate Tablet Bleeding Left */}
-              <ScrollReveal delay={100} className="lg:col-span-7 order-2 lg:order-1 flex justify-center lg:justify-start">
-                <div className="relative w-full max-w-[640px] lg:max-w-none lg:w-[124%] lg:-ml-16 xl:-ml-24 lg:-translate-x-4">
+              {/* Hardware Visual Left (7 cols): Oversized Landscape Tablet Bleeding Left */}
+              <ScrollReveal delay={100} rotate={-1.2} className="lg:col-span-7 order-2 lg:order-1 flex justify-center lg:justify-start">
+                <div className="relative w-full max-w-[660px] lg:max-w-none lg:w-[126%] lg:-ml-16 xl:-ml-24 lg:-translate-x-4">
                   <Image
                     src="/showcase/desktop-grower.webp"
-                    alt="UMA Farmer management portal with inventory controls and order status on an aluminum slate tablet"
-                    width={1960}
-                    height={1160}
-                    className="w-full h-auto drop-shadow-2xl select-none pointer-events-none"
+                    alt="UMA Farmer management portal with inventory controls and order status on a premium landscape tablet"
+                    width={1600}
+                    height={1426}
+                    className="w-full h-auto select-none pointer-events-none"
                   />
                 </div>
               </ScrollReveal>
@@ -283,19 +283,19 @@ export default async function HomePage() {
         {/* -- 6. Real Software Showcase: Mobile Anywhere ------------- */}
         <section
           id="mobile-showcase"
-          className="border-t border-border/60 bg-background py-14 sm:py-20 lg:py-24 overflow-hidden"
+          className="border-t border-border/60 bg-background py-14 sm:py-20 lg:py-24"
         >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-              {/* Phone Mockup on Left (5 cols): Realistic Titanium Smartphone */}
-              <ScrollReveal delay={100} className="lg:col-span-5 flex justify-center">
-                <div className="relative max-w-[280px] sm:max-w-[310px] w-full">
+              {/* Phone Mockup on Left (5 cols): Realistic 3D Titanium Smartphone */}
+              <ScrollReveal delay={100} rotate={1.8} className="lg:col-span-5 flex justify-center">
+                <div className="relative max-w-[300px] sm:max-w-[340px] lg:max-w-[360px] w-full">
                   <Image
                     src="/showcase/phone-marketplace.webp"
-                    alt="UMA responsive mobile experience inside a realistic titanium smartphone"
+                    alt="UMA responsive mobile experience inside a realistic 3D titanium smartphone"
                     width={800}
-                    height={1200}
-                    className="w-full h-auto drop-shadow-2xl select-none pointer-events-none"
+                    height={1810}
+                    className="w-full h-auto select-none pointer-events-none"
                   />
                 </div>
               </ScrollReveal>

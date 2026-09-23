@@ -7,6 +7,7 @@ interface ScrollRevealProps {
   className?: string;
   delay?: number;
   yOffset?: number;
+  rotate?: number;
 }
 
 export function ScrollReveal({
@@ -14,6 +15,7 @@ export function ScrollReveal({
   className = "",
   delay = 0,
   yOffset = 28,
+  rotate = 0,
 }: ScrollRevealProps) {
   const [isVisible, setIsVisible] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -49,8 +51,8 @@ export function ScrollReveal({
       style={{
         opacity: isVisible ? 1 : 0,
         transform: isVisible
-          ? "translate3d(0, 0, 0) scale(1)"
-          : `translate3d(0, ${yOffset}px, 0) scale(0.985)`,
+          ? "translate3d(0, 0, 0) scale(1) rotate(0deg)"
+          : `translate3d(0, ${yOffset}px, 0) scale(0.97) rotate(${rotate}deg)`,
         transitionDelay: `${delay}ms`,
         willChange: isVisible ? "auto" : "opacity, transform",
       }}
