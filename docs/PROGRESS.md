@@ -257,8 +257,61 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+## Slice 5 — Pilot Readiness & Operational Integrity
+**Status:** ✅ **Complete & Verified**
+
+### Checkpoint 5.1: Structural Integrity & User Feedback (Verified ✅)
+- Wired `Toaster` with Base UI in root `layout.tsx` and created typed helper methods (`toast.success`, `toast.error`, `toast.info`, `toast.warning`).
+- Wired toast notifications across profile saves, produce listing CRUD, cart adds, order cancellations, and admin moderation.
+- Implemented branded custom 404 pages: global (`src/app/not-found.tsx`) and dashboard (`src/app/(dashboard)/not-found.tsx`).
+- Created skeleton loading states (`loading.tsx`) across all 10 primary dashboard routes.
+- Built buyer pending-order cancellation with confirmation dialog (`CancelOrderButton`) and `cancelOrder` server action enforcing RLS policy `"orders: business cancels pending"`.
+
+### Checkpoint 5.2: Profile Resilience & Clerk Webhook (Verified ✅)
+- Implemented `POST /api/webhooks/clerk` with cryptographic signature verification via `verifyWebhook(req)` from `@clerk/nextjs/webhooks`.
+- Handled lifecycle events:
+  - `user.created`: Upserts stub profile if valid role metadata exists.
+  - `user.updated`: Logged safely without overwriting UMA-owned profile fields; fallback stub creation if profile row was dropped.
+  - `user.deleted`: Automatically archives farmer products (`status = 'archived'`) while preserving historical profile and order records.
+- Added profile recovery banner to `(dashboard)/layout.tsx` prompting users to complete setup if profile record is missing.
+- Documented `CLERK_WEBHOOK_SIGNING_SECRET` in `.env.example`.
+
+### Checkpoint 5.3: Demo Data & Marketplace Content (Verified ✅)
+- Built idempotent seeding script `scripts/seed-demo-data.ts` executable via `npm run seed:demo`.
+- Seeded 4 fictional demo farmers and 2 fictional commercial buyers with realistic Agusan Valley/Butuan agricultural profiles.
+- Seeded 21 wholesale products across all 8 catalog categories with market-accurate ₱ pricing, stock quantities, and MOQs.
+- Uploaded high-resolution produce photography buffers directly to Supabase Storage `product-images` bucket serving via public CDN URLs.
+- Seeded 4 wholesale orders with item snapshots across pending, preparing, completed, and cancelled states.
+
+### Checkpoint 5.4: Admin Completeness & Operational Polish (Verified ✅)
+- Built `/admin/orders/[id]` detail inspection page with counterparty contact dossiers, fulfillment logistics, item breakdown, and read-only message audit log.
+- Linked order reference numbers in `/admin/orders` to detail audit views.
+- Extended farmer dashboard with Total Revenue (`₱`) and Fulfillment Rate (`%`) KPI cards.
+- Polished empty states across farmer orders, produce listings, and conversations with actionable CTA buttons.
+
+### Slice 5 Verification Results
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **Base UI Toast Provider** | Root layout inspection & TypeScript | ✅ **PASS** | Wrapped in `<Toaster>`, typed helper methods functional |
+| **Buyer Order Cancellation** | Server action & Base UI AlertDialog | ✅ **PASS** | Cancels pending order, updates DB state, triggers toast |
+| **Global 404 Routing** | HTTP GET `/random-missing-page-test` | ✅ **PASS** | Returns HTTP 404 with UMA Market branded layout |
+| **Dashboard 404 Routing** | HTTP GET `/dashboard/invalid-route` | ✅ **PASS** | Returns HTTP 404 with back-to-dashboard CTA |
+| **Route Skeleton Loading** | 10x `loading.tsx` verification | ✅ **PASS** | All routes supply skeleton UI during suspense |
+| **Clerk Webhook Security** | HTTP POST `/api/webhooks/clerk` unsigned | ✅ **PASS** | Rejected with HTTP 400 `Webhook verification failed` |
+| **Proxy Non-Blocking Gate** | Next.js dev server request trace | ✅ **PASS** | Public webhook endpoint reached without redirect loop |
+| **Demo Data Seed Idempotency** | Double execution of `npm run seed:demo` | ✅ **PASS** | Clean execution with 0 errors on repeated runs |
+| **Produce Storage Upload** | Supabase Storage `product-images` CDN | ✅ **PASS** | 21 images uploaded and served via CDN public URLs |
+| **Admin Order Inspection** | Next.js App Router dynamic route | ✅ **PASS** | `/admin/orders/[id]` compiles and inspects orders & messages |
+| **Farmer Revenue & Fulfillment** | `getFarmerOrderMetrics` query | ✅ **PASS** | Real-time aggregate calculation of completed revenue & rate |
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Turbopack Build** | `npm run build` | ✅ **PASS** | 30 dynamic routes compiled cleanly |
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
 - **Slice 3:** ✅ Complete & Verified Across All Checkpoints & Security Matrix
 - **Slice 4:** ✅ Complete & Verified Across Checkpoints 4.1, 4.2, 4.3 & 4.4
+- **Slice 5:** ✅ Complete & Verified Across Checkpoints 5.1, 5.2, 5.3 & 5.4

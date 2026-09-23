@@ -7,10 +7,13 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Slice 4 — Production Readiness, Visual Commerce & Mobile Polish**
-- **Current Checkpoint:** Checkpoint 4.4 Completed (Mobile Navigation & Production Hardening)
+- **Current Slice:** **Slice 5 — Pilot Readiness & Operational Integrity**
+- **Current Checkpoint:** Slice 5 Completed & Verified ✅
+- **Slice 1 Status:** ✅ **Complete & Fully Verified**
+- **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
+- **Slice 5 Status:** ✅ **Complete & Fully Verified**
 
 ---
 
@@ -99,18 +102,42 @@
   - UI Primitive Audit: Verified zero unsupported `Button asChild` instances across all components.
   - Verified 15/15 test cases in comprehensive automated test suite.
 
+### Slice 5 — Pilot Readiness & Operational Integrity (Verified ✅)
+- [x] **Checkpoint 5.1: Structural Integrity & User Feedback:**
+  - Base UI Toaster integration in root layout with typed helpers (`toast.success`, `toast.error`, `toast.info`, `toast.warning`).
+  - Toast feedback wired across profile forms, product creation/editing, cart adds, order cancellations, and admin moderation.
+  - Branded 404 pages: Global (`src/app/not-found.tsx`) and Dashboard (`src/app/(dashboard)/not-found.tsx`).
+  - Skeleton loading states (`loading.tsx`) across all 10 primary dashboard routes.
+  - Buyer pending-order cancellation with confirmation dialog (`CancelOrderButton`) and `cancelOrder` server action enforcing RLS policy `"orders: business cancels pending"`.
+- [x] **Checkpoint 5.2: Profile Resilience & Clerk Webhook:**
+  - Clerk Webhook route handler (`src/app/api/webhooks/clerk/route.ts`) with cryptographic signature verification via `verifyWebhook(req)`.
+  - Lifecycle event handling: stub creation for `user.created`, non-destructive logging and missing-profile restoration for `user.updated`, and produce archival for `user.deleted`.
+  - Profile recovery banner in `(dashboard)/layout.tsx` when a profile record is missing.
+  - Documented `CLERK_WEBHOOK_SIGNING_SECRET` in `.env.example`.
+- [x] **Checkpoint 5.3: Realistic Demo Data & Marketplace Seed:**
+  - Idempotent seed script (`scripts/seed-demo-data.ts`) executable via `npm run seed:demo`.
+  - 4 fictional demo farmers and 2 fictional commercial buyers.
+  - 21 wholesale products across all 8 catalog categories with market-accurate ₱ prices, stock, and MOQs.
+  - 21 high-resolution produce photographs uploaded to Supabase Storage `product-images` bucket.
+  - 4 wholesale orders across pending, preparing, completed, and cancelled states with item snapshots.
+- [x] **Checkpoint 5.4: Admin Completeness & Operational Polish:**
+  - Admin order detail inspection page (`/admin/orders/[id]`) with counterparty profiles, fulfillment logistics, line item breakdown, and read-only message audit log.
+  - Clickable order reference links in `/admin/orders` table.
+  - Farmer dashboard revenue summary (total from completed orders) and fulfillment rate KPI cards.
+  - Actionable CTAs in empty states for orders, products, and messages.
+
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Slice 4 is **COMPLETE** and verified across all four checkpoints (4.1, 4.2, 4.3, 4.4).
-- Production-readiness checkpoint complete. Ready for next phase directives.
+- Slice 5 is **COMPLETE** and verified across all four checkpoints (5.1, 5.2, 5.3, 5.4).
+- Production and pilot readiness complete. Ready for next directives (Slice 6).
 
 ---
 
 ## 4. Known Issues
 
-- **None.** Build passes cleanly (29 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings/errors, remote Supabase database and RLS policies verified.
+- **None.** Build passes cleanly (30 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database, storage bucket, and RLS policies verified.
 
 ---
 
@@ -150,21 +177,16 @@
 
 ---
 
-## 7. Latest Verification Results (Slice 3 Live QA)
+## 7. Latest Verification Results (Slice 5 Live QA)
 
-- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 25 routes compiled cleanly with Turbopack)
-- **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings/errors)
-- **Farmer Profile Operations:** ✅ **PASS** (Loaded live profile, updated bio/phone via RLS, refreshed verification)
-- **Business Profile Operations:** ✅ **PASS** (Loaded live profile, updated bio/phone via RLS, refreshed verification)
-- **Profile Cross-User Security:** ✅ **PASS** (Buyer2, Farmer2, and Buyer1 blocked from modifying unowned profiles; 0 rows affected)
-- **Order-Threaded Messaging (Business Send):** ✅ **PASS** (Sent message on real order `2c33a782-...`, persisted in remote `messages` table)
-- **Order-Threaded Messaging (Farmer Read):** ✅ **PASS** (Farmer queried and received message via RLS participant policy)
-- **Order-Threaded Messaging (Farmer Reply):** ✅ **PASS** (Farmer sent reply, persisted in remote `messages` table)
-- **Order-Threaded Messaging (Business Read):** ✅ **PASS** (Business queried and received reply via RLS participant policy)
-- **Messaging Cross-Tenant Privacy:** ✅ **PASS** (Unrelated Buyer2 and Farmer2 queried conversation and received 0 rows via RLS)
-- **Messaging Anti-Tamper & Anti-Spoofing:** ✅ **PASS** (Unrelated insertion blocked by RLS; spoofing sender ID blocked by RLS)
-- **Admin Live Metrics:** ✅ **PASS** (2 farmers, 2 buyers, 2 active produce items, ₱1,625 volume)
-- **Admin Produce Catalog & Moderation:** ✅ **PASS** (Archived produce and restored to active; verified in database)
-- **Admin Audit Log & Directories:** ✅ **PASS** (Wholesale orders audit and user directories queried successfully)
-- **Admin Server-Side Action Protection:** ✅ **PASS** (Non-admin claims rejected from `moderateProductStatus`)
-- **Navigation Integrity:** ✅ **PASS** (All 16 dashboard routes verified; zero 404 errors)
+- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 30 routes compiled cleanly with Turbopack)
+- **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors)
+- **Clerk Webhook Security:** ✅ **PASS** (Unsigned request rejected with HTTP 400 `Webhook verification failed`)
+- **Proxy Middleware Routing:** ✅ **PASS** (Webhook endpoint and dynamic routes reached cleanly without redirect loops)
+- **Custom 404 Pages:** ✅ **PASS** (Global and dashboard branded 404 pages render on non-existent routes)
+- **Toast Feedback System:** ✅ **PASS** (Base UI toast manager with success/error/info/warning functional across dashboard)
+- **Buyer Order Cancellation:** ✅ **PASS** (Pending order cancellation dialog with server action and RLS enforcement)
+- **Admin Order Audit Inspection:** ✅ **PASS** (`/admin/orders/[id]` loads order details and read-only message thread)
+- **Farmer Revenue & Fulfillment Metrics:** ✅ **PASS** (Aggregate calculations of revenue and fulfillment rate verified)
+- **Demo Data Seed Idempotency:** ✅ **PASS** (Executed `npm run seed:demo` idempotently with 0 errors)
+- **Storage Photography CDN:** ✅ **PASS** (21 produce photos uploaded to `product-images` bucket and accessible via public CDN)
