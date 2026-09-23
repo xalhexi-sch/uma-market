@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { RiMenuLine, RiCloseLine, RiPlantLine, RiShoppingCart2Line } from "@remixicon/react";
+import { RiMenuLine, RiShoppingCart2Line, RiArrowRightLine } from "@remixicon/react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { APP_NAME } from "@/lib/constants";
 
@@ -22,10 +23,9 @@ export function MarketplaceMobileNav({
   const [open, setOpen] = useState(false);
 
   const navLinks = [
-    { label: "Products", href: "/products", isActive: activeRoute === "products" },
+    { label: "Market", href: "/products", isActive: activeRoute === "products" },
     { label: "How it works", href: "/#how" },
-    { label: "For Farmers", href: "/#farmers" },
-    { label: "For Businesses", href: "/#businesses" },
+    { label: "For growers", href: "/#growers" },
   ];
 
   return (
@@ -48,21 +48,17 @@ export function MarketplaceMobileNav({
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
-                <RiPlantLine className="size-4.5" />
-              </div>
+              <Image
+                src="/brand/icon/uma-icon-512.png"
+                alt="UMA Market"
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-lg shadow-xs shrink-0"
+              />
               <SheetTitle className="text-base font-bold tracking-tight text-foreground">
                 {APP_NAME}
               </SheetTitle>
             </Link>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-md p-1 text-muted-foreground hover:text-foreground"
-              aria-label="Close menu"
-            >
-              <RiCloseLine className="size-5" />
-            </button>
           </SheetHeader>
 
           {/* Nav links */}
@@ -81,6 +77,13 @@ export function MarketplaceMobileNav({
                 {item.label}
               </Link>
             ))}
+            <Link
+              href="/#growers"
+              onClick={() => setOpen(false)}
+              className="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+            >
+              I&apos;m a grower
+            </Link>
           </nav>
         </div>
 
@@ -109,18 +112,19 @@ export function MarketplaceMobileNav({
           ) : (
             <>
               <Link
+                href="/products"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+              >
+                Explore the market
+                <RiArrowRightLine className="size-4" />
+              </Link>
+              <Link
                 href="/sign-in"
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-center rounded-md border border-border py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
               >
                 Sign in
-              </Link>
-              <Link
-                href="/sign-up"
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-center rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 shadow-xs"
-              >
-                Get started
               </Link>
             </>
           )}

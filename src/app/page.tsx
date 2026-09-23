@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
-import { UserButton } from "@clerk/nextjs";
-import { RiPlantLine, RiArrowRightLine } from "@remixicon/react";
+import { RiArrowRightLine } from "@remixicon/react";
 import type { UserRole } from "@/lib/constants";
 import { APP_NAME } from "@/lib/constants";
+import { LandingNavbar } from "@/components/marketplace/landing-navbar";
 
 export default async function HomePage() {
   const { isAuthenticated, sessionClaims } = await auth();
@@ -13,68 +13,11 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      {/* ── Nav ─────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
-              <RiPlantLine className="size-4.5" />
-            </div>
-            <span className="text-base font-bold tracking-tight text-foreground">
-              {APP_NAME}
-            </span>
-          </Link>
-
-          {/* Center nav */}
-          <nav className="hidden items-center gap-8 md:flex">
-            {[
-              { label: "Products", href: "/products" },
-              { label: "How it works", href: "#how" },
-              { label: "For Farmers", href: "#farmers" },
-              { label: "For Businesses", href: "#businesses" },
-            ].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Auth CTAs */}
-          <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <Link
-                  href={dashboardHref}
-                  className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
-                >
-                  Dashboard
-                </Link>
-                <UserButton />
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/sign-in"
-                  className="text-sm font-medium text-foreground transition-colors hover:text-primary"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/sign-up"
-                  className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
-                >
-                  Get started
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* ── Client Landing Navbar (Transparent over hero, solid light on scroll) ── */}
+      <LandingNavbar
+        isAuthenticated={!!isAuthenticated}
+        dashboardHref={dashboardHref}
+      />
 
       <main className="flex-1">
         {/* -- 1. Full-Width Photographic Hero ---------------------- */}
@@ -89,12 +32,14 @@ export default async function HomePage() {
               sizes="100vw"
               className="object-cover object-[65%_35%] sm:object-[60%_35%] lg:object-[68%_35%]"
             />
+            {/* Top gradient scrim behind transparent navbar to guarantee text and logo contrast */}
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 via-black/35 to-transparent pointer-events-none" />
             {/* Directional readability scrim: dark on left for text contrast, transparent on right for farmer & sunrise */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-transparent sm:from-black/80 sm:via-black/45 lg:from-black/75 lg:via-black/30 lg:to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent sm:hidden" />
           </div>
 
-          <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 py-20 sm:py-28 lg:py-32">
+          <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 pt-28 pb-20 sm:pt-36 sm:pb-28 lg:pt-40 lg:pb-32">
             <div className="max-w-xl text-white">
               <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
                 Butuan City · Agricultural Marketplace
@@ -109,30 +54,40 @@ export default async function HomePage() {
                 in one place — directly from the farmers who grow it.
               </p>
 
-              {/* Only two CTAs */}
+              {/* Primary: Explore the market / Secondary: I'm a grower or Dashboard */}
               <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
                 {isAuthenticated ? (
-                  <Link
-                    href={dashboardHref}
-                    className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
-                  >
-                    Go to Dashboard
-                    <RiArrowRightLine className="size-4" />
-                  </Link>
+                  <>
+                    <Link
+                      href="/products"
+                      className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
+                    >
+                      Explore the market
+                      <RiArrowRightLine className="size-4" />
+                    </Link>
+                    <Link
+                      href={dashboardHref}
+                      className="inline-flex items-center justify-center gap-2 rounded-md border border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/20"
+                    >
+                      Dashboard
+                      <RiArrowRightLine className="size-4" />
+                    </Link>
+                  </>
                 ) : (
                   <>
                     <Link
                       href="/products"
                       className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
                     >
-                      Explore products
+                      Explore the market
                       <RiArrowRightLine className="size-4" />
                     </Link>
                     <Link
-                      href="#farmers"
+                      href="#growers"
                       className="inline-flex items-center justify-center gap-2 rounded-md border border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/20"
                     >
-                      Sell on UMA
+                      I&apos;m a grower
+                      <RiArrowRightLine className="size-4" />
                     </Link>
                   </>
                 )}
@@ -204,20 +159,23 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* -- 4. For Farmers / For Businesses ---------------------- */}
-        <section className="border-t border-border/60 bg-muted/20">
+        {/* -- 4. For Growers / For Businesses ---------------------- */}
+        <section id="growers" className="border-t border-border/60 bg-muted/20 scroll-mt-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-24 lg:py-28">
             <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 lg:divide-x lg:divide-border/60">
-              {/* For Farmers */}
+              {/* For Growers */}
               <div id="farmers" className="flex flex-col justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-primary">
                     Growers & Producers
                   </p>
                   <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                    For Farmers
+                    For Growers
                   </h2>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                  <p className="mt-3 text-sm font-medium text-foreground sm:text-base">
+                    Sell your produce directly to local businesses.
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                     List your harvest, set fair prices, and supply local businesses — directly, fairly, and without intermediary markups.
                   </p>
 
@@ -246,7 +204,7 @@ export default async function HomePage() {
                     href={isAuthenticated && role === "farmer" ? "/farmer" : "/sign-up"}
                     className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
                   >
-                    {isAuthenticated && role === "farmer" ? "Open Farmer Dashboard" : "Sell on UMA"}
+                    {isAuthenticated && role === "farmer" ? "Open Farmer Dashboard" : "I'm a grower"}
                     <RiArrowRightLine className="size-4" />
                   </Link>
                 </div>
@@ -312,25 +270,41 @@ export default async function HomePage() {
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               {isAuthenticated ? (
-                <Link
-                  href={dashboardHref}
-                  className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
-                >
-                  Go to Dashboard
-                  <RiArrowRightLine className="size-4" />
-                </Link>
+                <>
+                  <Link
+                    href="/products"
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
+                  >
+                    Explore the market
+                    <RiArrowRightLine className="size-4" />
+                  </Link>
+                  <Link
+                    href={dashboardHref}
+                    className="inline-flex items-center gap-2 rounded-md border border-border px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted/50"
+                  >
+                    Go to Dashboard
+                    <RiArrowRightLine className="size-4" />
+                  </Link>
+                </>
               ) : (
                 <>
                   <Link
                     href="/products"
                     className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
                   >
-                    Explore products
+                    Explore the market
+                    <RiArrowRightLine className="size-4" />
+                  </Link>
+                  <Link
+                    href="#growers"
+                    className="inline-flex items-center gap-2 rounded-md border border-border px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted/50"
+                  >
+                    I&apos;m a grower
                     <RiArrowRightLine className="size-4" />
                   </Link>
                   <Link
                     href="/sign-in"
-                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:ml-2"
                   >
                     Already have an account? Sign in →
                   </Link>
@@ -346,9 +320,13 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
           <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <RiPlantLine className="size-3.5" />
-              </div>
+              <Image
+                src="/brand/icon/uma-icon-512.png"
+                alt="UMA Market"
+                width={24}
+                height={24}
+                className="h-6 w-6 rounded-md shadow-xs shrink-0"
+              />
               <span className="text-sm font-bold tracking-tight text-foreground">
                 {APP_NAME}
               </span>
@@ -360,13 +338,13 @@ export default async function HomePage() {
 
             <nav className="flex items-center gap-6 text-xs text-muted-foreground">
               <Link href="/products" className="transition-colors hover:text-foreground">
-                Products
+                Market
               </Link>
               <a href="#how" className="transition-colors hover:text-foreground">
                 How it works
               </a>
-              <a href="#farmers" className="transition-colors hover:text-foreground">
-                For Farmers
+              <a href="#growers" className="transition-colors hover:text-foreground">
+                For growers
               </a>
               <a href="#businesses" className="transition-colors hover:text-foreground">
                 For Businesses

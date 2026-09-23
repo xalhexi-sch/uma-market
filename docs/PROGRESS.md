@@ -420,6 +420,45 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+### Brand, Navbar & CTA Polish (Complete & Verified ✅)
+- **1. Transparent-Over-Hero Public Navbar:**
+  - `LandingNavbar` client component with scroll listener (`window.scrollY > 20`).
+  - Transparent at top of hero with crisp white brand text and subtle drop shadow over agricultural hero photograph.
+  - Added subtle top gradient scrim (`from-black/80 via-black/35 to-transparent`) behind navbar to guarantee high contrast.
+  - Smooth 300ms transition to solid light background (`bg-background/95 backdrop-blur-md border-b border-border/60 shadow-xs`) with dark-on-light text on scroll.
+  - Spans full width (`w-full inset-x-0`) across desktop and mobile viewports with centered content grid (`max-w-6xl mx-auto`).
+- **2. Navigation Hierarchy:**
+  - Structure: Left: UMA Market brand mark + text; Center: `Market` (`/products`), `How it works` (`/#how`), `For growers` (`/#growers`); Right: `I'm a grower` (`/#growers`), `Explore the market` (`/products`), `Sign in` / `Dashboard` + Clerk `UserButton`.
+  - Zero messages links or dashboard-specific admin controls exposed in public navbar.
+- **3. CTA & Branding Hierarchy:**
+  - Marketplace-first framing: Local Farm Produce → Available on UMA → For Local Business Buyers.
+  - Primary CTA: "Explore the market →" (`/products`) with highest visual prominence.
+  - Secondary CTA: "I'm a grower →" (`/#growers`) cleanly visible but visually subordinate.
+  - Authenticated landing page `/` remains accessible; authenticated CTA pair: "Explore the market →" + "Dashboard →".
+  - Section 4 Grower Framing: "For Growers" / "Sell your produce directly to local businesses."
+  - Section 5 Final CTA: "Explore the market →" + "I'm a grower →" / "Go to Dashboard →".
+- **4. Favicon & Brand Asset Finalization:**
+  - Generated multi-resolution `favicon.ico` containing 16x16, 32x32, and 48x48 icons from official brand asset `uma-icon-512.png`.
+  - Finalized `icon.png` (512x512) for high-DPI displays and home screens.
+  - Configured Next.js App Router metadata with `{ icon: [...], apple: [...] }`.
+  - Works crisp against browser light and dark UI themes without full wordmark or tiny typography.
+- **5. Mobile Navigation Polish:**
+  - Responsive slide-over drawer with official UMA brand mark, clean navigation hierarchy, single integrated close trigger, and prominent "Explore the market" and auth actions.
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Production Build** | `npm run build` | ✅ **PASS** | 34 routes compiled cleanly via Turbopack |
+| **Transparent Navbar** | Browser subagent | ✅ **PASS** | Transparent at top of hero; logo and nav text crisp and readable over photo |
+| **Solid Scrolled Navbar** | Browser subagent | ✅ **PASS** | Smooth transition to full-width solid light navbar with dark text on scroll |
+| **Brand Logo Visibility** | Browser subagent | ✅ **PASS** | Official brand mark and typography remains visible and crisp in both transparent and solid states |
+| **Explore the Market CTA** | Browser subagent | ✅ **PASS** | Clicking hero and navbar CTA navigates directly to `/products` |
+| **I'm a Grower CTA** | Browser subagent | ✅ **PASS** | Smoothly scrolls to `#growers` section with grower-specific selling copy |
+| **Favicon Resolution** | PIL inspection + metadata | ✅ **PASS** | Multi-size ICO (16, 32, 48) and PNG (512) loaded cleanly |
+| **Mobile Drawer (375px)** | Browser subagent | ✅ **PASS** | Clean slide-over drawer with aligned nav links, prominent CTAs, and zero duplicate close buttons |
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
@@ -428,3 +467,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Slice 5:** ✅ Complete & Verified Across Checkpoints 5.1, 5.2, 5.3 & 5.4
 - **Slice 6:** ✅ Complete & Verified Across Checkpoints 6.1–6.5, QA Polish & Landing Page Polish
 - **Public Marketplace:** ✅ Complete & Verified (/products & /products/[id])
+- **Brand, Navbar & CTA Polish:** ✅ Complete & Verified (Transparent-to-solid navbar, brand mark, favicons, CTA hierarchy)

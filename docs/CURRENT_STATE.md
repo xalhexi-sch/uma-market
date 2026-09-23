@@ -7,14 +7,14 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Public Marketplace & Production Polish**
-- **Current Checkpoint:** Public Marketplace (`/products` & `/products/[id]`) ✅ | Landing Page Visual Polish ✅ | QA Polish ✅ | Production Deployment Verified ✅
+- **Current Slice:** **Brand, Navbar & CTA Polish**
+- **Current Checkpoint:** Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Landing Page Visual Polish ✅ | QA Polish ✅ | Production Deployment Verified ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
-- **Slice 6 Status:** ✅ **Production Deployment & Public Marketplace Complete**
+- **Slice 6 Status:** ✅ **Production Deployment, Public Marketplace & Brand/Navbar Polish Complete**
 
 ---
 
@@ -180,14 +180,14 @@
 
 ## 3. What Is Currently Being Worked On
 
-- Public Marketplace routes (`/products` and `/products/[id]`) are fully implemented and verified.
-- Production build (34 routes), ESLint (0 errors, 0 warnings), and mobile/desktop browser verification are complete.
+- Brand, Navbar & CTA Polish is complete and fully verified.
+- Production build (34 routes), ESLint (0 errors, 0 warnings), and browser visual verification (transparent navbar, scroll transition, CTAs, mobile drawer, favicons) are complete.
 
 ---
 
 ## 4. Known Issues
 
-- **None.** Build passes cleanly (32 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database, storage bucket, realtime channels, and RLS policies verified.
+- **None.** Build passes cleanly (34 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database, storage bucket, realtime channels, and RLS policies verified.
 
 ---
 
@@ -227,12 +227,13 @@
 
 ---
 
-## 7. Latest Verification Results (Public Marketplace)
+## 7. Latest Verification Results (Brand, Navbar & CTA Polish)
 
 - **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 34 routes compiled cleanly with Turbopack, including `/products` and `/products/[id]`)
 - **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors)
-- **Public Marketplace Browsing:** ✅ **PASS** (Unauthenticated visitors browse `/products` and view `/products/[id]` with real producer provenance)
-- **Role-Aware Ordering:** ✅ **PASS** (Visitors receive "Sign in to Order" CTA; Commercial buyers add to cart; Farmers receive informational notice; Admins receive moderation shortcut)
-- **Draft Product Isolation:** ✅ **PASS** (Zero draft products leaked; strictly active products returned)
-- **Real Data Discovery:** ✅ **PASS** (Available Now, Fresh Picks, Category Discovery, and All Produce Listings rendered from real database rows without faked stats)
-- **Mobile Responsiveness:** ✅ **PASS** (Verified on 375px viewport with slide-out navigation sheet, responsive touch targets, and zero overflow)
+- **Transparent Navbar Over Hero:** ✅ **PASS** (Transparent background sitting cleanly over hero photograph; brand icon and text legible with top gradient scrim)
+- **Scroll Transition to Solid Navbar:** ✅ **PASS** (Transitions smoothly to light/solid background on scroll with dark text and crisp brand mark; full-width across viewport)
+- **Navigation Hierarchy:** ✅ **PASS** (Left: UMA Market brand mark + text; Center: `Market`, `How it works`, `For growers`; Right: `I'm a grower`, `Explore the market →`, `Sign in` / `Dashboard`)
+- **CTA Hierarchy:** ✅ **PASS** (Primary: "Explore the market →" to `/products`; Secondary: "I'm a grower →" to `/#growers`; grower section lead: "Sell your produce directly to local businesses.")
+- **Favicon & Icon Metadata:** ✅ **PASS** (Finalized multi-resolution 16/32/48 ICO and 512px PNG from official brand asset `uma-icon-512.png`; works in light and dark browser UI)
+- **Mobile Navigation Drawer:** ✅ **PASS** (Verified on 375px viewport with slide-over sheet, clean links, zero double close buttons, and prominent CTAs)

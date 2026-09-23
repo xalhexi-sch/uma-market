@@ -1,7 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
-import { RiPlantLine, RiShoppingCart2Line } from "@remixicon/react";
+import { RiShoppingCart2Line, RiArrowRightLine } from "@remixicon/react";
 import { APP_NAME } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 import { MarketplaceMobileNav } from "./marketplace-mobile-nav";
@@ -13,20 +14,24 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
   const isBusiness = role === "business";
 
   const navLinks = [
-    { label: "Products", href: "/products", isActive: activeRoute === "products" },
+    { label: "Market", href: "/products", isActive: activeRoute === "products" },
     { label: "How it works", href: "/#how" },
-    { label: "For Farmers", href: "/#farmers" },
-    { label: "For Businesses", href: "/#businesses" },
+    { label: "For growers", href: "/#growers" },
   ];
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
-            <RiPlantLine className="size-4.5" />
-          </div>
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <Image
+            src="/brand/icon/uma-icon-512.png"
+            alt="UMA Market"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-lg shadow-xs shrink-0 transition-transform group-hover:scale-105"
+            priority
+          />
           <span className="text-base font-bold tracking-tight text-foreground">
             {APP_NAME}
           </span>
@@ -73,16 +78,23 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
           ) : (
             <>
               <Link
+                href="/#growers"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                I&apos;m a grower
+              </Link>
+              <Link
                 href="/sign-in"
-                className="text-sm font-medium text-foreground transition-colors hover:text-primary"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 Sign in
               </Link>
               <Link
-                href="/sign-up"
-                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
+                href="/products"
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
               >
-                Get started
+                Explore the market
+                <RiArrowRightLine className="size-3.5" />
               </Link>
             </>
           )}
