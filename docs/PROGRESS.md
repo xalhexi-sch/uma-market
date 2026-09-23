@@ -567,6 +567,38 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+### Visual Correction: Device Mockups & Hardware Presentation (Complete & Verified ✅)
+- **1. Landscape Tablets (iPad Pro Form Factor):**
+  - Replaced the thin laptop chassis visual with two premium landscape tablet / display form factors (iPad Pro visual language).
+  - Thick physical brushed aluminum body, visible precision-milled metallic edge and bezel thickness, speaker holes, chamfered rim, and realistic rounded corners.
+  - Subtle 3D perspective and rotation:
+    - Marketplace tablet (`desktop-marketplace.webp`, 1600x1426): Angled slightly inward to the right (`rotate={1.2}` reveal settling).
+    - Grower tablet (`desktop-grower.webp`, 1600x1426): Angled symmetrically inward to the left (`rotate={-1.2}` reveal settling).
+  - 100% authentic UMA UI content preserved inside each screen with zero green fringing and seamless inner bezel blending.
+- **2. Thick 3D Smartphone (Titanium Flagship Form Factor):**
+  - Replaced flat phone with tactile 3D titanium smartphone render (`phone-marketplace.webp`, 800x1810).
+  - Visible body thickness, physical tactile side buttons, antenna bands, rounded metallic frame, Dynamic Island, and generous status bar breathing room.
+  - Screen displays authentic mobile marketplace layout.
+- **3. Unclipped Soft Diffused Shadows & Overflow Handling:**
+  - Provided generous canvas padding so multi-layered contact and ambient shadows diffuse naturally to 0 opacity without harsh boundary cuts.
+  - Replaced restrictive `overflow-hidden` on sections with `overflow-x-clip` on root wrapper and `<main>` container, eliminating horizontal scroll while allowing vertical device shadows to breathe completely.
+- **4. Unified Physical Reveal Animation:**
+  - Updated `ScrollReveal` (`src/components/marketplace/showcase/scroll-reveal.tsx`) to support `rotate?: number`.
+  - Animates the physical device container as ONE single object (`opacity`, `translateY`, `scale`, and settling `rotate` into `rotate(0deg)`).
+  - Preserved strict `motion-reduce:transition-none motion-reduce:!transform-none motion-reduce:!opacity-100` accessibility compliance.
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Production Build** | `npm run build` | ✅ **PASS** | 36 routes compiled cleanly via Turbopack |
+| **Marketplace Tablet Mockup** | Visual & image audit | ✅ **PASS** | Premium landscape iPad Pro form factor; authentic produce catalog; no laptop base |
+| **Grower Tablet Mockup** | Visual & image audit | ✅ **PASS** | Matching landscape iPad Pro; authentic inventory & metrics UI; visible metallic edge |
+| **3D Smartphone Mockup** | Visual & image audit | ✅ **PASS** | Thick titanium flagship; tactile buttons; Dynamic Island; status bar padding |
+| **Shadow Clipping Prevention** | Code & layout inspection | ✅ **PASS** | Zero shadow cutoff; diffuse ambient fade; `overflow-x-clip` container containment |
+| **Page Structure & Scope Integrity** | Git diff audit | ✅ **PASS** | Zero modifications to hero, copy, data, nav, auth, or backend logic |
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
@@ -579,3 +611,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Public Experience UX/UI Refinement:** ✅ Complete & Verified (Fresh on UMA product rail, verified produce photography, navbar deduplication, and streamlined marketplace discovery)
 - **Physical Hardware SaaS Showcase Refinement:** ✅ Complete & Verified (2 physical laptops, 1 smartphone, real UMA screens, full code simplification, 0 lint errors, and 35 compiled routes)
 - **Final Public Landing Refinement:** ✅ Complete & Verified (Visual composition, oversized asymmetric bleed, restrained buyer trust, dark mode + "D" shortcut, /about route, 0 lint errors, and 36 compiled routes)
+- **Visual Correction — Device Mockups & Hardware Presentation:** ✅ Complete & Verified (2 large landscape iPad Pro tablets, 1 thick 3D titanium smartphone, real UMA UI, unclipped soft shadows, unified settling animations, 0 lint errors, and 36 compiled routes)

@@ -204,29 +204,32 @@
 - [x] **Product Detail Verification (`src/app/products/[id]/page.tsx`):**
   - Verified complete preservation of wholesale procurement data, producer provenance card, MOQ enforcement, and role-aware order actions. Zero regressions.
 
-### SaaS Showcase Physical Hardware Refinement & Code Simplification (Complete & Verified ✅)
-- [x] **Reduced Device Presentation to Exactly 3 Physical Devices:**
-  - **Desktop Laptop #1 — Marketplace Discovery (`public/showcase/desktop-marketplace.webp`, 170 KB, 2000x1260):**
-    - Realistic physical laptop hardware chassis in anodized Space Gray aluminum with rounded top corners, display camera notch, inner matte bezel, front chassis deck with centered thumb opening notch, and multi-layer realistic ambient drop shadows.
+### Visual Correction: Device Mockups & Hardware Presentation (Complete & Verified ✅)
+- [x] **Refined Device Presentation to 2 Large Landscape Tablets & 1 Thick 3D Smartphone:**
+  - **Marketplace Discovery Tablet (`public/showcase/desktop-marketplace.webp`, 1600x1426):**
+    - Premium Space Gray aluminum tablet in landscape orientation (iPad Pro form factor). Thick physical body, precision-milled metallic edge and bezel thickness, speaker grilles, chamfered rim, and realistic rounded corners.
     - Screen displays authentic UMA `/products` wholesale discovery: search input, Butuan City location indicator, category pills, cart status, and 3 real produce cards (*Carabao Sweet Mangoes ₱130/kg*, *Native Purple Ube ₱95/kg*, *Highland Green Ampalaya ₱75/kg*) with verified grower badges.
-  - **Desktop Laptop #2 — Grower Platform & Operations (`public/showcase/desktop-grower.webp`, 111 KB, 2000x1260):**
-    - Matching physical laptop chassis angled gently in the opposite orientation for visual rhythm and asymmetric layout balance.
+    - Soft, multi-layered contact and ambient drop shadow diffusing smoothly to 0 opacity without harsh boundary cuts.
+  - **Grower Platform Tablet (`public/showcase/desktop-grower.webp`, 1600x1426):**
+    - Matching Space Gray aluminum tablet in landscape orientation, angled symmetrically opposite for visual rhythm.
     - Screen displays authentic UMA `/farmer/products` inventory management: farm profile header ("Agusan Valley Organics"), 3 operational KPI cards (Active Listings, Wholesale Orders, 100% Fulfillment Rate), live inventory table with status badges, and embedded order progression notice with direct buyer chat.
-  - **Mobile Device — Responsive Web Platform (`public/showcase/phone-marketplace.webp`, 66 KB, 800x1200):**
-    - Realistic dark titanium smartphone with physical volume/power buttons, Dynamic Island, status bar (`9:41`), and authentic responsive mobile marketplace UI communicating zero-install universal web access.
-- [x] **Eliminated Redundant Mockups & Cleaned Codebase:**
-  - Removed the redundant 4th order fulfillment/messaging browser block; integrated fulfillment progression and chat coordination into copy and the grower operational tools.
-  - Removed 8 obsolete browser-frame assets (`marketplace-showcase.*`, `grower-showcase.*`, `order-fulfillment-showcase.*`, `mobile-showcase.*`) from `public/showcase/`.
-  - Maintained single clean showcase architecture: 3 physical hardware WebP assets, Next.js `<Image />` tags, and lightweight `<ScrollReveal>` container animations with `prefers-reduced-motion` compliance.
-- [x] **Refined Landing Page Narrative Flow:**
-  - Hero (Farmer + sunrise) → Fresh on UMA (real produce carousel) → Software Showcase ("Real tools for the real work") → Desktop #1 (Marketplace) → Desktop #2 (Grower tools) → Phone (UMA on every screen) → How UMA Works (Discover → Order → Fulfill) → Final CTA.
+    - Unclipped soft diffuse shadow on transparent alpha channel.
+  - **Mobile Experience Smartphone (`public/showcase/phone-marketplace.webp`, 800x1810):**
+    - Realistic thick 3D dark titanium smartphone with physical tactile buttons, antenna bands, Dynamic Island, status bar (`9:41`), and authentic responsive mobile marketplace UI.
+    - Soft contact shadow beneath with zero halo artifacts.
+- [x] **Unclipped Shadows & Layout Containment:**
+  - Removed restrictive `overflow-hidden` from sections 4, 5, and 6.
+  - Integrated `overflow-x-clip` on root wrapper and `<main>` container to lock document horizontal scroll while allowing vertical device shadows to fully render.
+- [x] **Unified Scroll Reveal Animation:**
+  - Animate physical device as ONE single object (`opacity` + `translateY` + `scale` + settling `rotate`) with cubic bezier easing and full `prefers-reduced-motion` compliance.
 
 ---
 
 ## 3. What Is Currently Being Worked On
 
 - Feature branch `feat/public-saas-visual-refinement` is complete and fully verified.
-- Production build (35 routes compiled via Turbopack), ESLint (0 errors, 0 warnings), and physical device mockups verified.
+- Visual correction for hardware device mockups (2 landscape iPad Pro tablets, 1 thick 3D titanium smartphone, unclipped soft shadows) complete.
+- Production build (36 routes compiled via Turbopack), ESLint (0 errors, 0 warnings), and zero horizontal overflow verified.
 
 
 ---
