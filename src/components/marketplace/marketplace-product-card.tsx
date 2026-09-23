@@ -3,6 +3,7 @@ import { RiPlantLine, RiCheckboxCircleFill } from "@remixicon/react";
 import { Badge } from "@/components/ui/badge";
 import { CURRENCY } from "@/lib/constants";
 import { getProductImageUrl } from "@/lib/supabase/storage";
+import { ProductImage } from "@/components/ui/product-image";
 import type { Product } from "@/lib/types";
 
 interface MarketplaceProductCardProps {
@@ -42,19 +43,12 @@ export function MarketplaceProductCard({ product, href }: MarketplaceProductCard
     >
       {/* Produce Image */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            alt={product.name}
-            loading="lazy"
-            className="h-full w-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <RiPlantLine className="size-10 text-muted-foreground/30" />
-          </div>
-        )}
+        <ProductImage
+          src={imageUrl}
+          alt={product.name}
+          loading="lazy"
+          className="h-full w-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+        />
         {product.category && (
           <span className="absolute top-2 left-2 rounded-md bg-background/90 backdrop-blur-xs px-2 py-0.5 text-[11px] font-medium text-foreground shadow-xs">
             {product.category.name}

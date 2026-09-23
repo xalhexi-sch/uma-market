@@ -6,6 +6,7 @@
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
 export const PRODUCT_IMAGES_BUCKET = "product-images";
+export const DEFAULT_PRODUCT_PLACEHOLDER = "/product-placeholder.svg";
 
 /**
  * Converts a canonical storage path into a public serving URL.

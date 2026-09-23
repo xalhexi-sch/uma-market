@@ -378,8 +378,9 @@ Executed and verified against the **live remote Supabase database** (`https://od
   - Formatted "For Farmers / For Businesses" into a clean two-column layout with subtle vertical divider and green dot bullets rather than card boxes.
   - Maintained full public accessibility of `/` for both authenticated and unauthenticated visitors.
 - **5. Business Dashboard Agricultural Banner:**
-  - Restored the dedicated agricultural visual banner in `src/app/(dashboard)/business/page.tsx` titled `"Fresh produce from local farmers"` utilizing the wide farm landscape image (`public/dashboard-banner.jpg`).
-  - Provides a distinct, purpose-built agricultural touchpoint for commercial buyers without duplicating the public landing hero.
+  - Refined the Business Buyer dashboard welcome banner in `src/app/(dashboard)/business/page.tsx` titled `"Fresh produce from local farmers"` with supporting copy `"Source available produce and manage your wholesale orders in one place."`
+  - Re-architected as a polished marketplace welcome card using design tokens (`bg-card`, `border-border`, `text-foreground`, `text-primary`), natural mobile stacking (visual accent header on mobile, right-aligned pane on desktop with seamless directional gradient blend), `Direct Farm Sourcing` indicator cue, and a subtle forest green `"Browse products →"` CTA linking to `/business/products` with hover microinteraction.
+  - Aligned suspense loading skeleton in `src/app/(dashboard)/business/loading.tsx`.
 
 ### Public Marketplace Experience (`/products` & `/products/[id]`) (Complete & Verified ✅)
 - **1. Public Marketplace Catalog (`/products`):**
@@ -611,4 +612,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Public Experience UX/UI Refinement:** ✅ Complete & Verified (Fresh on UMA product rail, verified produce photography, navbar deduplication, and streamlined marketplace discovery)
 - **Physical Hardware SaaS Showcase Refinement:** ✅ Complete & Verified (2 physical laptops, 1 smartphone, real UMA screens, full code simplification, 0 lint errors, and 35 compiled routes)
 - **Final Public Landing Refinement:** ✅ Complete & Verified (Visual composition, oversized asymmetric bleed, restrained buyer trust, dark mode + "D" shortcut, /about route, 0 lint errors, and 36 compiled routes)
-- **Visual Correction — Device Mockups & Hardware Presentation:** ✅ Complete & Verified (2 large landscape iPad Pro tablets, 1 thick 3D titanium smartphone, real UMA UI, unclipped soft shadows, unified settling animations, 0 lint errors, and 36 compiled routes)
+- **Visual Correction — Device Mockups & Hardware Presentation:** ✅ Complete & Verified (2 large landscape iPad Pro tablets, 1 thick 3D titanium smartphone, real UMA UI, unclipped soft shadows, unified settling animations, 0 lint errors, and 36 compiled routes)
