@@ -18,9 +18,8 @@ import { Separator } from "@/components/ui/separator";
 import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
 import { MarketplaceFooter } from "@/components/marketplace/marketplace-footer";
 import { AddToCartControls } from "@/components/dashboard/add-to-cart-controls";
+import { ProductGallery } from "@/components/marketplace/product-gallery";
 import { getProductById } from "@/lib/supabase/queries/products";
-import { getProductImageUrl } from "@/lib/supabase/storage";
-import { ProductImage } from "@/components/ui/product-image";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -59,7 +58,6 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
     "Local Producer";
 
   const isAvailable = product.quantity_available > 0;
-  const imageUrl = getProductImageUrl(product.image_path, product.image_url);
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -110,18 +108,13 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
             {/* Left Column: Produce Imagery & Guarantee */}
             <div className="lg:col-span-5 flex flex-col gap-6">
-              <div className="aspect-square w-full rounded-2xl overflow-hidden bg-muted border border-border/60 shadow-xs relative">
-                <ProductImage
-                  src={imageUrl}
-                  alt={product.name}
-                  className="h-full w-full object-cover"
-                />
-                {product.category && (
-                  <span className="absolute top-4 left-4 rounded-full bg-background/95 backdrop-blur-xs px-3 py-1 text-xs font-semibold text-foreground shadow-xs">
-                    {product.category.name}
-                  </span>
-                )}
-              </div>
+              <ProductGallery
+                images={product.images}
+                productName={product.name}
+                fallbackImagePath={product.image_path}
+                fallbackImageUrl={product.image_url}
+                categoryName={product.category?.name}
+              />
 
               {/* Provenance Card */}
               <div className="rounded-xl border border-border bg-card p-5 shadow-2xs">

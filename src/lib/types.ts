@@ -31,6 +31,15 @@ export interface Category {
   description: string | null;
 }
 
+// ── Product Image ──────────────────────────────────
+export interface ProductImageItem {
+  id: string;
+  product_id: string;
+  image_path: string;
+  sort_order: number;
+  created_at?: string;
+}
+
 // ── Product ────────────────────────────────────────
 export interface Product {
   id: string;
@@ -52,6 +61,7 @@ export interface Product {
   // Joined
   farmer?: Pick<Profile, "clerk_id" | "full_name" | "business_name" | "city" | "avatar_url" | "bio" | "phone" | "is_verified">;
   category?: Pick<Category, "id" | "name" | "slug">;
+  images?: ProductImageItem[];
 }
 
 // ── Order ──────────────────────────────────────────

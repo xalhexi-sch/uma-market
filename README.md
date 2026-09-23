@@ -95,7 +95,7 @@ The application is currently implemented through **Slice 1 (Foundation)** and **
 
 ### 🛍️ Business Buyer Experience
 - **Produce Catalog Browsing:** Filter fresh produce by agricultural categories (Vegetables, Fruits, Grains & Rice, Herbs & Spices, Root Crops) with live instant search.
-- **Produce Detail View:** Full product inspection showing farmer name, harvest availability, stock level, unit measurement, and minimum order requirements.
+- **Produce Detail & Multi-Photo Gallery:** Full product inspection showing multiple produce photos (grading, harvest condition, packaging) via an accessible carousel with thumbnail navigation, farmer provenance, harvest availability, stock level, unit measurement, and minimum order requirements.
 - **Smart Grouped Cart:** Interactive shopping cart that groups items by farm producer with individual producer subtotals and real-time item quantity adjustment.
 - **Streamlined B2B Checkout:** 
   - Choice of fulfillment mode: **Pickup** or **Seller Delivery**.
@@ -109,6 +109,7 @@ The application is currently implemented through **Slice 1 (Foundation)** and **
 ### 🚜 Farmer Management Experience
 - **Produce Inventory CRUD:**
   - Create new produce listings with crop name, category, pricing, packaging unit, available stock, and description.
+  - Attach up to 5 photos per product with primary photo selection and live thumbnail previews.
   - Toggle listing availability (`active` vs `inactive`) to reflect harvest seasonality.
   - Edit pricing and inventory levels in real time.
 - **Incoming Orders Dashboard:**
@@ -295,6 +296,7 @@ erDiagram
     profiles ||--o{ orders : "places (buyer)"
     profiles ||--o{ orders : "receives (farmer)"
     categories ||--o{ products : "classifies"
+    products ||--o{ product_images : "has"
     products ||--o{ cart_items : "included in"
     products ||--o{ order_items : "snapshot in"
     orders ||--|{ order_items : "contains"
@@ -328,6 +330,14 @@ erDiagram
         text unit "kg, sack, crate, bundle"
         integer available_stock
         text status "active | inactive | archived"
+        timestamp created_at
+    }
+
+    product_images {
+        uuid id PK
+        uuid product_id FK "References products.id"
+        text image_path
+        integer sort_order
         timestamp created_at
     }
 

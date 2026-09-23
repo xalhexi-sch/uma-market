@@ -6,9 +6,8 @@ import { RiArrowLeftLine, RiPlantLine, RiMapPinLine, RiCheckboxCircleFill } from
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AddToCartControls } from "@/components/dashboard/add-to-cart-controls";
+import { ProductGallery } from "@/components/marketplace/product-gallery";
 import { getProductById } from "@/lib/supabase/queries/products";
-import { getProductImageUrl } from "@/lib/supabase/storage";
-import { ProductImage } from "@/components/ui/product-image";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -43,8 +42,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
     product.farmer?.full_name ||
     "Local Farm";
   const isAvailable = product.quantity_available > 0;
-  const imageUrl = getProductImageUrl(product.image_path, product.image_url);
-
   return (
     <div className="flex flex-col gap-0 min-h-full">
       {/* Breadcrumb */}
@@ -59,15 +56,14 @@ export default async function ProductDetailPage({ params }: PageProps) {
       </div>
 
       <div className="flex flex-col gap-8 p-6 lg:p-8 lg:flex-row lg:gap-12 max-w-5xl">
-        {/* Image */}
+        {/* Gallery */}
         <div className="w-full lg:w-[420px] shrink-0">
-          <div className="aspect-square w-full rounded-xl overflow-hidden bg-muted">
-            <ProductImage
-              src={imageUrl}
-              alt={product.name}
-              className="h-full w-full object-cover"
-            />
-          </div>
+          <ProductGallery
+            images={product.images}
+            productName={product.name}
+            fallbackImagePath={product.image_path}
+            fallbackImageUrl={product.image_url}
+          />
         </div>
 
         {/* Details */}

@@ -7,14 +7,15 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Final Public Landing Refinement (Visual Composition, Device Mockups, Buyer Trust, Dark Mode, /about)**
-- **Current Checkpoint:** Final Public Landing Refinement ✅ | SaaS Product Showcase Landing Page ✅ | Public Experience UX/UI Refinement ✅ | Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Landing Page Visual Polish ✅ | QA Polish ✅ | Production Deployment Verified ✅
+- **Current Slice:** **Product Media Gallery (`feat/product-media-gallery`)**
+- **Current Checkpoint:** Product Media Gallery (`feat/product-media-gallery`) ✅ | Final Public Landing Refinement ✅ | SaaS Product Showcase Landing Page ✅ | Public Experience UX/UI Refinement ✅ | Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Production Deployment Verified ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
-- **Slice 6 Status:** ✅ **Final Public Landing Refinement Complete & Verified (Exit code 0)**
+- **Slice 6 Status:** ✅ **Complete & Fully Verified**
+- **Product Media Gallery Status:** ✅ **Complete & Fully Verified (Exit code 0)**
 
 ---
 
@@ -276,18 +277,12 @@
 
 ---
 
-## 7. Latest Verification Results (Final Public Landing Refinement)
+## 7. Latest Verification Results (Product Media Gallery — feat/product-media-gallery)
 
-- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 36 routes compiled cleanly with Turbopack, including `/`, `/about`, `/products`, and `/products/[id]`)
+- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 35 dynamic and static routes compiled cleanly via Turbopack)
 - **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors across all files)
-- **Approved Hero Preservation & Copy Cleanup:** ✅ **PASS** (Hero eyebrow removed, directly opening into `"Fresh from Butuan's farms to your business."` with full-bleed photographic sunrise imagery)
-- **Buyer Trust / Social Proof Strip:** ✅ **PASS** (Restrained, safe positioning `"Built for businesses sourcing local produce"` with clean category pills for Restaurants, Canteens, Grocers, Hotels, Caterers; zero fabricated brands)
-- **Section Rhythm & Flow:** ✅ **PASS** (Removed explanatory `"The Software Behind the Market"` bridge; transitions directly from Fresh on UMA into the real product showcases)
-- **Marketplace Laptop Showcase:** ✅ **PASS** (`desktop-marketplace.webp`, oversized aluminum laptop presentation with intentional rightward margin bleed `lg:-mr-16 xl:-mr-24`, realistic display glass, and real produce cards)
-- **Grower Slate Tablet Showcase:** ✅ **PASS** (`desktop-grower.webp`, oversized aluminum slate tablet with intentional leftward margin bleed `lg:-ml-16 xl:-ml-24`, real inventory controls, and live order progression)
-- **Mobile Smartphone Showcase:** ✅ **PASS** (`phone-marketplace.webp`, realistic dark titanium smartphone with Dynamic Island and responsive mobile produce catalog)
-- **Dark Mode System:** ✅ **PASS** (Integrated `next-themes` ThemeProvider, `ThemeToggle` with dual-contrast support over hero and solid surfaces, and global "D" keyboard shortcut)
-- **Keyboard Shortcut Safety:** ✅ **PASS** (Pressing "D" toggles light/dark themes cleanly; safely ignored during input/textarea/contenteditable typing and modifier combinations)
-- **About UMA Page (`/about`):** ✅ **PASS** (Dedicated public destination with grounded, concrete agricultural positioning, regional Butuan context, and who UMA serves)
-- **Horizontal Overflow:** ✅ **PASS** (`scrollWidth <= clientWidth` on all viewports from 375px/390px mobile to 1280px/1440px desktop)
-- **Public Navigation Integrity:** ✅ **PASS** (Minimal navbar: Market, How it works, For growers, About; right CTAs: I'm a grower, Explore the market, ThemeToggle, Auth state)
+- **Database Schema & RLS:** ✅ **PASS** (`public.product_images` table created with RLS enforcing farmer ownership on insert/update/delete; public select on active products; backfill populated existing product primary images)
+- **Product Gallery Carousel:** ✅ **PASS** (Built with shadcn `Carousel`, embla-carousel-react; large primary display, slide counter `1 / 3`, desktop previous/next controls, and active thumbnail ring)
+- **Single & Zero-Image Fallbacks:** ✅ **PASS** (Single-image products display cleanly without redundant arrows/thumbnails; zero-image products display branded placeholder)
+- **Mobile Responsiveness:** ✅ **PASS** (Touch-swipeable carousel with zero horizontal overflow `scrollWidth === clientWidth` on 390px/375px viewports)
+- **Farmer Multi-Photo Uploads:** ✅ **PASS** (Farmer form supports up to 5 photos with primary badge, thumbnail previews, "Set as Primary", "Remove", and safe storage cleanup)
