@@ -11,11 +11,14 @@ import { createClient } from "@/lib/supabase/client";
  * Supabase RLS to identify the user via `auth.jwt()->>'sub'`.
  *
  * Uses `useAuth().getToken()` — a stable function that always returns
- * the freshest Clerk JWT. This avoids the stale-closure problem that
- * occurs when `useSession().session` is captured inside `useMemo`:
- * the session reference doesn't change when Clerk rotates the JWT
- * (~60s), causing `session.getToken()` to return an expired token
- * for long-running operations like Storage uploads.
+ * the freshest Clerk JWT. `skipCache: true` forces Clerk to mint a new
+ * token on every call, preventing the "exp claim timestamp check failed"
+ * error that occurs when Clerk's internal cache returns a token whose
+ * `exp` is in the past (Clerk session tokens expire every ~60s).
+ *
+ * This is critical for multi-file uploads and other long-running
+ * operations where multiple sequential Supabase requests may span
+ * the Clerk token lifetime.
  */
 export function useSupabase() {
   const { getToken, userId } = useAuth();
@@ -23,7 +26,7 @@ export function useSupabase() {
   const supabase = useMemo(
     () =>
       createClient(
-        async () => (await getToken()) ?? null
+        async () => (await getToken({ skipCache: true })) ?? null
       ),
     // getToken is a stable function from useAuth — safe to include.
     // Re-create client only when the authenticated user changes.
@@ -33,4 +36,3 @@ export function useSupabase() {
 
   return supabase;
 }
-
