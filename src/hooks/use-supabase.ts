@@ -1,7 +1,7 @@
 "use client";
 
-import { useSession } from "@clerk/nextjs";
-import { useEffect, useMemo } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -10,38 +10,27 @@ import { createClient } from "@/lib/supabase/client";
  * The Clerk session JWT is passed as the Supabase `accessToken`, enabling
  * Supabase RLS to identify the user via `auth.jwt()->>'sub'`.
  *
- * Use this hook in client components instead of calling `createClient()`
- * directly — it handles the token lifecycle automatically.
- *
- * Note: the returned client instance is stable across renders as long as
- * the session object identity doesn't change.
+ * Uses `useAuth().getToken()` — a stable function that always returns
+ * the freshest Clerk JWT. This avoids the stale-closure problem that
+ * occurs when `useSession().session` is captured inside `useMemo`:
+ * the session reference doesn't change when Clerk rotates the JWT
+ * (~60s), causing `session.getToken()` to return an expired token
+ * for long-running operations like Storage uploads.
  */
 export function useSupabase() {
-  const { session } = useSession();
+  const { getToken, userId } = useAuth();
 
   const supabase = useMemo(
     () =>
       createClient(
-        async () => {
-          if (!session) return null;
-          return (await session.getToken()) ?? null;
-        }
+        async () => (await getToken()) ?? null
       ),
-    // Re-create the client only when the session changes
+    // getToken is a stable function from useAuth — safe to include.
+    // Re-create client only when the authenticated user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [session?.id]
+    [userId]
   );
-
-  // Synchronize Clerk session token with Supabase Realtime WebSocket
-  useEffect(() => {
-    if (session) {
-      session.getToken().then((token) => {
-        if (token) {
-          supabase.realtime.setAuth(token);
-        }
-      });
-    }
-  }, [session, supabase]);
 
   return supabase;
 }
+
