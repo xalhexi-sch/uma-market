@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { RiSendPlane2Line, RiMessage2Line } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,56 +34,81 @@ export function OrderChat({
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const supabase = useSupabase();
+  const { getToken } = useAuth();
 
   // Supabase Realtime subscription for incoming order messages
   useEffect(() => {
-    const channel = supabase
-      .channel(`order-messages:${orderId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `order_id=eq.${orderId}`,
-        },
-        (payload) => {
-          const newMsg = payload.new as Message;
-          if (!newMsg || !newMsg.id) return;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let isCancelled = false;
 
-          setMessages((prev) => {
-            // Deduplicate if message ID already exists
-            if (prev.some((m) => m.id === newMsg.id)) {
-              return prev;
+    async function initSubscription() {
+      try {
+        // Ensure the Realtime WebSocket connection has the authenticated Clerk JWT
+        // BEFORE joining the channel, so the join payload authorizes postgres_changes RLS.
+        const token = await getToken();
+        if (isCancelled) return;
+
+        if (token) {
+          await supabase.realtime.setAuth(token);
+        }
+        if (isCancelled) return;
+
+        channel = supabase
+          .channel(`order-messages:${orderId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "messages",
+              filter: `order_id=eq.${orderId}`,
+            },
+            (payload) => {
+              const newMsg = payload.new as Message;
+              if (!newMsg || !newMsg.id) return;
+
+              setMessages((prev) => {
+                // Deduplicate if message ID already exists
+                if (prev.some((m) => m.id === newMsg.id)) {
+                  return prev;
+                }
+
+                // Replace optimistic message from same sender if matching
+                const optimisticIndex = prev.findIndex(
+                  (m) =>
+                    m.id.startsWith("temp-") &&
+                    m.sender_clerk_id === newMsg.sender_clerk_id &&
+                    m.body === newMsg.body
+                );
+                if (optimisticIndex !== -1) {
+                  const next = [...prev];
+                  next[optimisticIndex] = newMsg;
+                  return next;
+                }
+
+                return [...prev, newMsg];
+              });
             }
-
-            // Replace optimistic message from same sender if matching
-            const optimisticIndex = prev.findIndex(
-              (m) =>
-                m.id.startsWith("temp-") &&
-                m.sender_clerk_id === newMsg.sender_clerk_id &&
-                m.body === newMsg.body
-            );
-            if (optimisticIndex !== -1) {
-              const next = [...prev];
-              next[optimisticIndex] = newMsg;
-              return next;
+          )
+          .subscribe((status, err) => {
+            if (err) {
+              console.warn(`[realtime] Subscription error on order ${orderId}:`, err);
             }
-
-            return [...prev, newMsg];
           });
-        }
-      )
-      .subscribe((status, err) => {
-        if (err) {
-          console.warn(`[realtime] Subscription error on order ${orderId}:`, err);
-        }
-      });
+      } catch (err) {
+        console.warn(`[realtime] Failed to initialize subscription on order ${orderId}:`, err);
+      }
+    }
+
+    initSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
+      isCancelled = true;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [supabase, orderId]);
+  }, [supabase, orderId, getToken]);
 
   // Auto-scroll to bottom on new message
   useEffect(() => {
@@ -115,7 +141,18 @@ export function OrderChat({
     const res = await sendMessage(orderId, clean);
     setSending(false);
 
-    if (!res.success) {
+    if (res.success && res.message) {
+      // Reconcile optimistic message with confirmed server message immediately
+      setMessages((prev) => {
+        const optimisticIndex = prev.findIndex((m) => m.id === tempId);
+        if (optimisticIndex !== -1) {
+          const next = [...prev];
+          next[optimisticIndex] = res.message as Message;
+          return next;
+        }
+        return prev;
+      });
+    } else if (!res.success) {
       setError(res.error ?? "Failed to send message.");
       // Rollback optimistic message
       setMessages((prev) => prev.filter((m) => m.id !== tempId));

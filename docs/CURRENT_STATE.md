@@ -7,14 +7,14 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Slice 6 — Production Deployment**
-- **Current Checkpoint:** 6.1 Code Hardening ✅ | 6.2–6.5 Awaiting Manual Configuration
+- **Current Slice:** **Slice 6 — Production Deployment & QA Polish**
+- **Current Checkpoint:** 6.1 Code Hardening ✅ | QA Polish (Realtime Chat & Onboarding Loading) ✅ | 6.2–6.5 Manual Production Deployment Verified ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
 - **Slice 4 Status:** ✅ **Complete & Fully Verified**
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
-- **Slice 6 Status:** ⏳ **In Progress (Checkpoint 6.1 Complete)**
+- **Slice 6 Status:** ✅ **Production Deployment & QA Polish Complete**
 
 ---
 
@@ -127,7 +127,7 @@
   - Farmer dashboard revenue summary (total from completed orders) and fulfillment rate KPI cards.
   - Actionable CTAs in empty states for orders, products, and messages.
 
-### Slice 6 — Production Deployment (In Progress)
+### Slice 6 — Production Deployment & QA Polish (Complete ✅)
 - [x] **Checkpoint 6.1: Production Code Hardening:**
   - Removed hardcoded Supabase URL fallback in `src/lib/supabase/storage.ts` — env var is sole source of truth.
   - Created `/api/health` endpoint returning `{ status, version, timestamp }` for deployment verification.
@@ -135,24 +135,32 @@
   - Added `metadataBase` to root layout using `NEXT_PUBLIC_APP_URL` for production URL resolution.
   - Enhanced OpenGraph metadata with `siteName`, `locale`, and `robots` configuration.
   - Updated `.env.example` with production vs. development documentation, environment separation guidance, and `NEXT_PUBLIC_APP_URL`.
-- [ ] **Checkpoint 6.2: Vercel Project & GitHub Integration** — Requires manual Vercel account + project setup.
-- [ ] **Checkpoint 6.3: Clerk Production Instance** — Requires manual Clerk Dashboard configuration.
-- [ ] **Checkpoint 6.4: Domain & DNS** — Requires domain purchase and DNS configuration.
-- [ ] **Checkpoint 6.5: Production Verification & Launch Checklist** — End-to-end verification on live deployment.
+- [x] **Checkpoint 6.2–6.5: Production Deployment Verification (Manually Verified):**
+  - Vercel production deployment + custom domain
+  - Clerk Production instance + Google OAuth
+  - Clerk → Supabase Third-Party Auth integration
+  - Farmer & Business onboarding wizard
+  - Admin moderation dashboard
+  - Product creation + Supabase Storage direct uploads (exp claim timestamp check resolved)
+  - Wholesale orders & checkout flows
+  - Message persistence & webhook delivery
+  - Bot sign-up protection
+- [x] **Production QA Polish (Verified ✅):**
+  - **Realtime Chat Live Delivery:** Migrated browser client from `@supabase/ssr` to direct `@supabase/supabase-js` `createClient` with dynamic `accessToken` callback. In `OrderChat`, asynchronously retrieved fresh Clerk JWT via `getToken()` and primed `supabase.realtime.setAuth(token)` before calling `channel.subscribe()`, ensuring Phoenix join payload contains `access_token` so Supabase Realtime authorizes the `postgres_changes` RLS policy without requiring recipient refresh. Reconciled optimistic messages immediately on send success.
+  - **Onboarding Loading Feedback:** Extracted onboarding form to `OnboardingForm` client component with immediate loading feedback on the "Continue" submit button (disabled state, animated `Spinner`, "Setting up your account…" text), duplicate submission prevention, and fieldset disablement during submission while preserving existing Clerk metadata updates, Supabase profile creation, and `/onboarding/complete` session refresh redirects.
 
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- Slice 6 Checkpoint 6.1 (Production Code Hardening) is **COMPLETE**.
-- **Next steps require manual actions:** Vercel project creation, Clerk production instance, domain + DNS, Supabase TPA re-configuration.
-- See `implementation_plan.md` for the full Slice 6 checklist and manual action guide.
+- Production QA Polish is complete.
+- All 6 slices of UMA Market are fully implemented, hardened, verified, and deployed.
 
 ---
 
 ## 4. Known Issues
 
-- **None.** Build passes cleanly (32 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database, storage bucket, and RLS policies verified.
+- **None.** Build passes cleanly (32 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database, storage bucket, realtime channels, and RLS policies verified.
 
 ---
 

@@ -342,10 +342,34 @@ Executed and verified against the **live remote Supabase database** (`https://od
 | **Hardcoded URL** | Code inspection | ✅ **PASS** | No fallback URLs remain in codebase |
 | **metadataBase** | Build compilation | ✅ **PASS** | Resolves from `NEXT_PUBLIC_APP_URL` env var |
 
-### Checkpoint 6.2: Vercel Project & GitHub Integration (Pending — Manual)
-### Checkpoint 6.3: Clerk Production Instance (Pending — Manual)
-### Checkpoint 6.4: Domain & DNS (Pending — Manual)
-### Checkpoint 6.5: Production Verification & Launch Checklist (Pending)
+### Checkpoint 6.2–6.5: Production Deployment (Manually Verified ✅)
+- Vercel production deployment + custom domain
+- Clerk Production instance + Google OAuth
+- Clerk → Supabase Third-Party Auth integration
+- Farmer onboarding, Business onboarding, and Admin dashboard
+- Product creation and wholesale orders
+- Supabase Storage direct uploads (exp claim timestamp check resolved)
+- Message persistence & webhook delivery
+- Bot sign-up protection
+
+### Production QA Polish (Verified ✅)
+- **1. Realtime Chat Live Delivery Fix:**
+  - Migrated `src/lib/supabase/client.ts` from `@supabase/ssr` (`createBrowserClient`) to direct `@supabase/supabase-js` `createClient` with dynamic `accessToken` callback and `auth: { persistSession: false, autoRefreshToken: false }`, eliminating singleton caching and cookie-auth conflicts with Clerk Third-Party Auth.
+  - In `src/components/dashboard/order-chat.tsx`, asynchronously retrieved fresh Clerk JWT via `getToken()` and primed `supabase.realtime.setAuth(token)` before calling `channel.subscribe()`.
+  - Ensured Phoenix WebSocket join payload carries `access_token` so Supabase Realtime authorizes the `postgres_changes` RLS policy without requiring recipient refresh.
+  - Reconciled optimistic messages immediately on send success, providing instantaneous local update while deduplicating incoming broadcast messages.
+- **2. Onboarding Loading Feedback:**
+  - Extracted onboarding form to `src/app/onboarding/onboarding-form.tsx` client component.
+  - Added immediate visible loading feedback on the "Continue" submit button (disabled state, animated `Spinner`, and "Setting up your account…" text).
+  - Disabled `<fieldset>` during submission to prevent role tampering and duplicate form dispatches.
+  - Preserved existing `completeOnboarding` server action, Clerk `publicMetadata.role` update, Supabase profile upsert, and redirect flow through `/onboarding/complete` session refresh to `/farmer` or `/business`.
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Production Build** | `npm run build` | ✅ **PASS** | 32 routes compiled cleanly via Turbopack |
+| **Realtime Chat Live Delivery** | `order-chat.tsx` + `client.ts` | ✅ **PASS** | `setAuth` primed on socket before channel join, join payload carries `access_token` |
+| **Onboarding Loading Feedback** | `onboarding-form.tsx` | ✅ **PASS** | Immediate button disabled state, spinner animation, duplicate submission prevention |
 
 ---
 
@@ -355,4 +379,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Slice 3:** ✅ Complete & Verified Across All Checkpoints & Security Matrix
 - **Slice 4:** ✅ Complete & Verified Across Checkpoints 4.1, 4.2, 4.3 & 4.4
 - **Slice 5:** ✅ Complete & Verified Across Checkpoints 5.1, 5.2, 5.3 & 5.4
-- **Slice 6:** ⏳ In Progress — Checkpoint 6.1 Complete, 6.2–6.5 Awaiting Manual Configuration
+- **Slice 6:** ✅ Complete & Verified Across Checkpoints 6.1–6.5 & QA Polish
