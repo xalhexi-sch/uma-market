@@ -4,27 +4,13 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { RiAddLine, RiPlantLine, RiEditLine } from "@remixicon/react";
 import { getFarmerProducts } from "@/lib/supabase/queries/products";
-import { Badge } from "@/components/ui/badge";
+import { ProductStatusBadge } from "@/components/dashboard/product-status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "My Products" };
 export const dynamic = "force-dynamic";
-
-const STATUS_STYLES: Record<string, string> = {
-  active:      "text-emerald-700 bg-emerald-50 border-emerald-200",
-  draft:       "text-amber-700 bg-amber-50 border-amber-200",
-  out_of_stock:"text-red-700 bg-red-50 border-red-200",
-  archived:    "text-muted-foreground bg-muted border-border",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  active: "Active",
-  draft: "Draft",
-  out_of_stock: "Out of Stock",
-  archived: "Archived",
-};
 
 export default async function FarmerProductsPage() {
   const { userId, sessionClaims } = await auth();
@@ -111,12 +97,7 @@ export default async function FarmerProductsPage() {
                     {product.quantity_available} {product.unit}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge
-                      variant="outline"
-                      className={STATUS_STYLES[product.status] ?? ""}
-                    >
-                      {STATUS_LABELS[product.status] ?? product.status}
-                    </Badge>
+                    <ProductStatusBadge status={product.status} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link

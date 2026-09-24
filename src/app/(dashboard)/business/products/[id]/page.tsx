@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { RiArrowLeftLine, RiPlantLine, RiMapPinLine, RiCheckboxCircleFill } from "@remixicon/react";
+import { RiArrowLeftLine, RiPlantLine, RiMapPinLine } from "@remixicon/react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AddToCartControls } from "@/components/dashboard/add-to-cart-controls";
@@ -110,8 +110,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
               <span className="text-sm font-medium text-foreground">{farmerName}</span>
               {product.farmer?.is_verified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                  <RiCheckboxCircleFill className="size-3.5" />
-                  Verified Local Producer
+                  ✓ Verified Producer
                 </span>
               )}
             </div>

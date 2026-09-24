@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { moderateProductStatus } from "@/app/(dashboard)/admin/actions";
-import { Badge } from "@/components/ui/badge";
+import { ProductStatusBadge } from "@/components/dashboard/product-status-badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { CURRENCY } from "@/lib/constants";
@@ -48,12 +48,7 @@ export function AdminProductRow({ product }: AdminProductRowProps) {
         {product.quantity_available} {product.unit}
       </td>
       <td className="py-3 px-4">
-        <Badge
-          variant={status === "active" ? "default" : "secondary"}
-          className="text-xs capitalize font-medium"
-        >
-          {status}
-        </Badge>
+        <ProductStatusBadge status={status} className="text-xs" />
       </td>
       <td className="py-3 px-4 text-right">
         {isArchived ? (
