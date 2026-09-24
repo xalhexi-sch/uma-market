@@ -36,11 +36,6 @@ export default async function BusinessDashboardPage() {
     getActiveProducts({ limit: 3 }),
   ]);
 
-  const totalSpend = recentOrders.reduce(
-    (sum, o) => sum + (o.total_amount ?? 0),
-    0
-  );
-
   return (
     <div className="flex flex-col gap-8 p-6 lg:p-8">
       {/* Agricultural Visual Banner */}
@@ -103,7 +98,7 @@ export default async function BusinessDashboardPage() {
         />
         <MetricCard
           label="Total Spend"
-          value={metrics.total > 0 ? `${CURRENCY}${totalSpend.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : "—"}
+          value={metrics.total > 0 ? `${CURRENCY}${metrics.totalSpend.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : "—"}
           icon={<RiCoinLine className="size-5 text-muted-foreground" />}
           href="/business/orders"
         />
@@ -133,15 +128,15 @@ export default async function BusinessDashboardPage() {
             </Link>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full min-w-[380px] text-sm">
               <tbody className="divide-y divide-border">
                 {recentOrders.map((order) => {
                   const farmerName =
                     order.farmer?.business_name || order.farmer?.full_name || "—";
                   return (
                     <tr key={order.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <Link
                           href={`/business/orders/${order.id}`}
                           className="font-mono text-xs font-medium text-foreground hover:text-primary"
@@ -150,13 +145,13 @@ export default async function BusinessDashboardPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{farmerName}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-foreground tabular-nums">
+                      <td className="px-4 py-3 text-right font-semibold text-foreground tabular-nums whitespace-nowrap">
                         {CURRENCY}
                         {(order.total_amount ?? 0).toLocaleString("en-PH", {
                           minimumFractionDigits: 2,
                         })}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <OrderStatusBadge status={order.status} />
                       </td>
                     </tr>

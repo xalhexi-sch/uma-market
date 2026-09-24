@@ -8,6 +8,7 @@ import { CartItemRow } from "@/components/dashboard/cart-item-row";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "My Cart" };
 export const dynamic = "force-dynamic";
@@ -102,19 +103,22 @@ export default async function CartPage() {
 
       {/* Summary + checkout */}
       <div className="sticky bottom-0 -mx-6 -mb-6 lg:-mx-8 lg:-mb-8 border-t border-border bg-background/95 backdrop-blur-sm px-6 py-4 lg:px-8">
-        <div className="flex items-center justify-between max-w-4xl">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between max-w-4xl">
           <div>
             <p className="text-sm text-muted-foreground">Total</p>
             <p className="text-2xl font-bold text-foreground">
               {CURRENCY}{grandTotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {Object.keys(byFarmer).length > 1
-                ? `Creates ${Object.keys(byFarmer).length} separate orders (one per farmer)`
-                : ""}
-            </p>
+            {Object.keys(byFarmer).length > 1 && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Creates {Object.keys(byFarmer).length} separate orders (one per farmer)
+              </p>
+            )}
           </div>
-          <Link href="/business/checkout" className={buttonVariants({ size: "lg" })}>
+          <Link
+            href="/business/checkout"
+            className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto justify-center")}
+          >
             <RiShoppingBagLine className="size-4 mr-2" />
             Proceed to Checkout
           </Link>

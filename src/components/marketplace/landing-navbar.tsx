@@ -82,7 +82,7 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
           </nav>
 
           {/* Right CTAs */}
-          <div className="hidden items-center gap-3 sm:flex">
+          <div className="hidden items-center gap-3 md:flex">
             {/* Primary Action: Explore the market */}
             <Link
               href="/products"
@@ -125,7 +125,7 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
           </div>
 
           {/* Mobile Navigation Trigger */}
-          <div className="flex items-center gap-2 sm:hidden">
+          <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle isOverHero={!isScrolled} />
             {isAuthenticated && <UserButton />}
             <button
