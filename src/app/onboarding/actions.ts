@@ -3,7 +3,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ROLES, type UserRole } from "@/lib/constants";
+import { ROLES } from "@/lib/constants";
 
 /**
  * Called when the user submits the onboarding role-selection form.
@@ -19,16 +19,40 @@ import { ROLES, type UserRole } from "@/lib/constants";
  *    before forwarding to the appropriate dashboard.
  */
 export async function completeOnboarding(formData: FormData) {
-  const { userId } = await auth();
+  const { userId, sessionClaims } = await auth();
   if (!userId) redirect("/sign-in");
 
+  // Prevent role re-assignment if user already has an assigned role
+  const existingClaimRole = sessionClaims?.user_role as string | undefined;
+  if (existingClaimRole) {
+    if (existingClaimRole === "farmer") redirect("/farmer");
+    if (existingClaimRole === "business") redirect("/business");
+    if (existingClaimRole === "admin") redirect("/admin");
+    throw new Error("User already has an assigned role.");
+  }
+
+  // Also check authoritative Clerk user record in case session claims haven't updated yet
+  const clerk = await clerkClient();
+  const currentUser = await clerk.users.getUser(userId);
+  const existingClerkRole = currentUser.publicMetadata?.role as string | undefined;
+  if (existingClerkRole) {
+    if (existingClerkRole === "farmer") redirect("/farmer");
+    if (existingClerkRole === "business") redirect("/business");
+    if (existingClerkRole === "admin") redirect("/admin");
+    throw new Error("User already has an assigned role.");
+  }
+
   const role = formData.get("role") as string;
-  if (!Object.values(ROLES).includes(role as UserRole)) {
-    throw new Error("Invalid role selection.");
+  // Strict allowlist: only farmer and business are permitted via public onboarding.
+  // The 'admin' role must NEVER be assignable through public onboarding.
+  const ALLOWED_ONBOARDING_ROLES: string[] = [ROLES.FARMER, ROLES.BUSINESS];
+  if (!ALLOWED_ONBOARDING_ROLES.includes(role)) {
+    throw new Error(
+      "Invalid role selection. Only farmer and business accounts can be created through onboarding."
+    );
   }
 
   // 1. Set role in Clerk publicMetadata
-  const clerk = await clerkClient();
   const clerkUser = await clerk.users.updateUser(userId, {
     publicMetadata: { role },
   });
