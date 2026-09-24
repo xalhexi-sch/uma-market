@@ -8,6 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { createProduct, updateProduct, archiveProduct } from "@/app/(dashboard)/farmer/products/actions";
 import { useSupabase } from "@/hooks/use-supabase";
 import { getProductImageUrl, validateProductImageFile, PRODUCT_IMAGES_BUCKET } from "@/lib/supabase/storage";
@@ -236,19 +244,23 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="category">Category</Label>
-          <select
-            id="category"
-            value={form.category_id}
-            onChange={(e) => set("category_id", e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          <Select
+            value={form.category_id || undefined}
+            onValueChange={(val) => {
+              if (val) set("category_id", val);
+            }}
           >
-            <option value="">Select a category</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="category" className="w-full h-9">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -445,18 +457,23 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="unit">Unit</Label>
-            <select
-              id="unit"
+            <Select
               value={form.unit}
-              onChange={(e) => set("unit", e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              onValueChange={(val) => {
+                if (val) set("unit", val);
+              }}
             >
-              {PRODUCT_UNITS.map((u) => (
-                <option key={u.value} value={u.value}>
-                  {u.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="unit" className="w-full h-9">
+                <SelectValue placeholder="Select unit" />
+              </SelectTrigger>
+              <SelectContent>
+                {PRODUCT_UNITS.map((u) => (
+                  <SelectItem key={u.value} value={u.value}>
+                    {u.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -517,28 +534,27 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
           Publishing
         </h2>
 
-        <div className="flex flex-col gap-2">
+        <RadioGroup
+          value={form.status}
+          onValueChange={(val) => {
+            if (val === "active" || val === "draft") set("status", val);
+          }}
+          className="flex flex-col gap-3"
+        >
           {(["active", "draft"] as const).map((s) => (
-            <label key={s} className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="status"
-                value={s}
-                checked={form.status === s}
-                onChange={() => set("status", s)}
-                className="mt-0.5 text-primary"
-              />
-              <div>
-                <p className="text-sm font-medium text-foreground capitalize">{s}</p>
-                <p className="text-xs text-muted-foreground">
+            <div key={s} className="flex items-start gap-3">
+              <RadioGroupItem value={s} id={`status-${s}`} className="mt-0.5" />
+              <Label htmlFor={`status-${s}`} className="cursor-pointer font-normal flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-foreground capitalize">{s}</span>
+                <span className="text-xs text-muted-foreground">
                   {s === "active"
                     ? "Visible to businesses and available for ordering."
                     : "Saved but not visible to buyers yet."}
-                </p>
-              </div>
-            </label>
+                </span>
+              </Label>
+            </div>
           ))}
-        </div>
+        </RadioGroup>
       </section>
 
       {error && (

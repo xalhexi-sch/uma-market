@@ -160,7 +160,7 @@ export function OrderChat({
   }
 
   return (
-    <div className="flex flex-col h-[420px] rounded-lg border border-border bg-card">
+    <div className="flex flex-col h-[340px] sm:h-[420px] rounded-lg border border-border bg-card">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-4 py-3 bg-muted/30">
         <RiMessage2Line className="size-4 text-primary" />

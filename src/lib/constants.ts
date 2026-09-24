@@ -55,6 +55,13 @@ export const PRODUCT_STATUS = {
 export type ProductStatus =
   (typeof PRODUCT_STATUS)[keyof typeof PRODUCT_STATUS];
 
+export const PRODUCT_STATUS_LABELS: Record<ProductStatus, string> = {
+  active: "Active",
+  draft: "Draft",
+  out_of_stock: "Out of Stock",
+  archived: "Archived",
+};
+
 // ── Product Units ──────────────────────────────────
 export const PRODUCT_UNITS = [
   { value: "kg", label: "Kilogram (kg)" },

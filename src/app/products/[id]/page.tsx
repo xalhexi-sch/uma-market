@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   RiArrowLeftLine,
   RiMapPinLine,
-  RiCheckboxCircleFill,
   RiTruckLine,
   RiStore2Line,
   RiCalendarEventLine,
@@ -123,9 +122,8 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                     Producer Provenance
                   </span>
                   {product.farmer?.is_verified && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                      <RiCheckboxCircleFill className="size-3.5" />
-                      Verified Local Producer
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                      ✓ Verified Producer
                     </span>
                   )}
                 </div>
@@ -180,25 +178,17 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                 </div>
               </div>
 
-              {/* In-Stock & Availability Badges */}
+              {/* Availability Indicator */}
               <div className="flex items-center gap-3">
                 {isAvailable ? (
-                  <div className="flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                    <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
-                    <span>
-                      {product.quantity_available} {product.unit} In Stock &amp; Available
-                    </span>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                    <span>In Stock · {product.quantity_available} {product.unit} available</span>
                   </div>
                 ) : (
-                  <Badge variant="secondary" className="px-3 py-1">
+                  <Badge variant="secondary" className="px-3 py-1 text-xs">
                     Out of Stock
                   </Badge>
-                )}
-
-                {product.min_order_quantity > 1 && (
-                  <span className="text-xs text-muted-foreground">
-                    Min. Order: <strong className="text-foreground">{product.min_order_quantity} {product.unit}</strong>
-                  </span>
                 )}
               </div>
 
