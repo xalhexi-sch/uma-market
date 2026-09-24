@@ -24,7 +24,7 @@ export function MarketplaceFooter() {
             </span>
           </div>
 
-          <nav className="flex items-center gap-6 text-xs text-muted-foreground">
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
             <Link href="/products" className="transition-colors hover:text-foreground">
               Market
             </Link>
@@ -37,12 +37,27 @@ export function MarketplaceFooter() {
             <Link href="/about" className="transition-colors hover:text-foreground">
               About
             </Link>
+            <Link href="/privacy" className="transition-colors hover:text-foreground">
+              Privacy
+            </Link>
+            <Link href="/terms" className="transition-colors hover:text-foreground">
+              Terms
+            </Link>
           </nav>
         </div>
 
-        <div className="mt-6 border-t border-border/40 pt-6 text-center text-xs text-muted-foreground">
+        <div className="mt-6 border-t border-border/40 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-xs text-muted-foreground">
           <p>
             &copy; {new Date().getFullYear()} {APP_NAME}. A localized agricultural marketplace connecting Butuan producers directly with commercial buyers.
+          </p>
+          <p className="shrink-0 text-xs text-muted-foreground">
+            contact:{" "}
+            <a
+              href="mailto:michael.banas@urios.edu.ph"
+              className="font-mono text-muted-foreground/90 underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+            >
+              michael.banas@urios.edu.ph
+            </a>
           </p>
         </div>
       </div>
