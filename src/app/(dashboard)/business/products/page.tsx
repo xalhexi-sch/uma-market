@@ -4,9 +4,9 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RiSearchLine } from "@remixicon/react";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductCard } from "@/components/dashboard/product-card";
+import { ProductFilters } from "@/components/products/product-filters";
 import { getActiveProducts, getCategories } from "@/lib/supabase/queries/products";
 import type { ProductSort } from "@/lib/supabase/queries/products";
 import type { UserRole } from "@/lib/constants";
@@ -120,50 +120,16 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
       </div>
 
       {/* Filters & Sorting */}
-      <form method="GET" className="flex flex-col gap-4">
-        {category && <input type="hidden" name="category" value={category} />}
-        
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              name="q"
-              defaultValue={q}
-              placeholder="Search products or farmers…"
-              className="pl-9"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <select
-              name="sort"
-              defaultValue={activeSort}
-              className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
-            >
-              <option value="newest">Newest Added</option>
-              <option value="harvest_newest">Freshest Harvest</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="name_asc">Name: A to Z</option>
-            </select>
-
-            <select
-              name="in_stock"
-              defaultValue={inStockOnly ? "true" : "false"}
-              className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
-            >
-              <option value="true">In Stock Only</option>
-              <option value="false">All Availability</option>
-            </select>
-
-            <button
-              type="submit"
-              className="h-9 px-3 text-xs font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
-            >
-              Apply
-            </button>
-          </div>
-        </div>
+      <div className="flex flex-col gap-4">
+        <ProductFilters
+          basePath="/business/products"
+          variant="business"
+          initialSearch={q}
+          initialCategory={category}
+          categories={categories}
+          initialSort={activeSort}
+          initialInStockOnly={inStockOnly}
+        />
 
         {/* Category Pills */}
         <div className="flex items-center gap-2 flex-wrap">
@@ -191,7 +157,7 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
             </Link>
           ))}
         </div>
-      </form>
+      </div>
 
       {/* Product grid */}
       <Suspense fallback={<ProductGridSkeleton />}>
