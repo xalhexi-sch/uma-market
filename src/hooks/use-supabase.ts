@@ -25,9 +25,11 @@ export function useSupabase() {
 
   const supabase = useMemo(
     () =>
-      createClient(
-        async () => (await getToken({ skipCache: true })) ?? null
-      ),
+      createClient(async () => {
+        // Prevent calling Clerk's client-side getToken() during Next.js SSR pass
+        if (typeof window === "undefined") return null;
+        return (await getToken({ skipCache: true })) ?? null;
+      }),
     // getToken is a stable function from useAuth — safe to include.
     // Re-create client only when the authenticated user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
