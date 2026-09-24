@@ -6,10 +6,11 @@ import { RiArrowLeftLine, RiPlantLine, RiTruckLine, RiStore2Line } from "@remixi
 import { getBusinessOrderById } from "@/lib/supabase/queries/orders";
 import { getOrderMessages } from "@/lib/supabase/queries/messages";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
+import { OrderStatusTimeline } from "@/components/dashboard/order-status-timeline";
 import { CancelOrderButton } from "@/components/dashboard/cancel-order-button";
 import { OrderChat } from "@/components/dashboard/order-chat";
-import { CURRENCY, FULFILLMENT_LABELS, ORDER_STATUS_LABELS } from "@/lib/constants";
-import type { UserRole, OrderStatus } from "@/lib/constants";
+import { CURRENCY, FULFILLMENT_LABELS } from "@/lib/constants";
+import type { UserRole, OrderStatus, FulfillmentType } from "@/lib/constants";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -19,10 +20,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
   return { title: `Order #${id.slice(0, 8).toUpperCase()}` };
 }
-
-const STATUS_FLOW: OrderStatus[] = [
-  "pending", "accepted", "preparing", "ready", "for_delivery", "completed",
-];
 
 export default async function BusinessOrderDetailPage({ params }: PageProps) {
   const { userId, sessionClaims } = await auth();
@@ -37,9 +34,6 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
 
   const farmerName = order.farmer?.business_name || order.farmer?.full_name || "Local Farm";
   const isDelivery = order.fulfillment_type === "seller_delivery";
-  const isCancelled = order.status === "cancelled";
-  const activeIndex = isCancelled ? -1 : STATUS_FLOW.indexOf(order.status as OrderStatus);
-
 
   return (
     <div className="flex flex-col gap-0 min-h-full">
@@ -68,50 +62,20 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
               })}
             </p>
           </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <OrderStatusBadge status={order.status} />
-          {order.status === "pending" && (
-            <CancelOrderButton orderId={order.id} />
-          )}
-        </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <OrderStatusBadge status={order.status} />
+            {order.status === "pending" && (
+              <CancelOrderButton orderId={order.id} />
+            )}
+          </div>
         </div>
 
         {/* Status timeline */}
-        {!isCancelled ? (
-          <div className="flex items-center gap-0">
-            {STATUS_FLOW.map((s, i) => {
-              const isPast = i <= activeIndex;
-              const isActive = i === activeIndex;
-              if (s === "for_delivery" && !isDelivery) return null;
-              return (
-                <div key={s} className="flex flex-1 items-center gap-0">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`h-2.5 w-2.5 rounded-full border-2 transition-colors ${
-                        isPast
-                          ? "bg-primary border-primary"
-                          : "bg-background border-border"
-                      } ${isActive ? "ring-2 ring-primary/30" : ""}`}
-                    />
-                    <span className={`mt-1.5 text-[10px] text-center ${isPast ? "text-primary font-medium" : "text-muted-foreground"}`}>
-                      {ORDER_STATUS_LABELS[s]}
-                    </span>
-                  </div>
-                  {i < STATUS_FLOW.length - 1 && (
-                    <div className={`h-[2px] flex-1 -mt-3.5 mx-0.5 transition-colors ${i < activeIndex ? "bg-primary" : "bg-border"}`} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="rounded-lg bg-destructive/5 border border-destructive/20 px-4 py-3">
-            <p className="text-sm font-medium text-destructive">Order Cancelled</p>
-            {order.cancellation_reason && (
-              <p className="text-sm text-muted-foreground mt-0.5">{order.cancellation_reason}</p>
-            )}
-          </div>
-        )}
+        <OrderStatusTimeline
+          status={order.status as OrderStatus}
+          fulfillmentType={order.fulfillment_type as FulfillmentType}
+          cancellationReason={order.cancellation_reason}
+        />
 
         {/* Farmer */}
         <div className="flex items-center gap-3 rounded-xl border border-border p-4">
