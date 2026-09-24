@@ -155,13 +155,25 @@ export async function updateProduct(productId: string, data: Partial<ProductForm
   }
 
   const updates: Record<string, unknown> = {};
-  if (data.name !== undefined) updates.name = data.name.trim();
+  if (data.name !== undefined) {
+    if (!data.name.trim()) return { success: false, error: "Product name is required." };
+    updates.name = data.name.trim();
+  }
   if (data.category_id !== undefined) updates.category_id = data.category_id || null;
   if (data.description !== undefined) updates.description = data.description.trim() || null;
-  if (data.price_per_unit !== undefined) updates.price_per_unit = data.price_per_unit;
+  if (data.price_per_unit !== undefined) {
+    if (data.price_per_unit <= 0) return { success: false, error: "Price must be greater than 0." };
+    updates.price_per_unit = data.price_per_unit;
+  }
   if (data.unit !== undefined) updates.unit = data.unit;
-  if (data.quantity_available !== undefined) updates.quantity_available = data.quantity_available;
-  if (data.min_order_quantity !== undefined) updates.min_order_quantity = data.min_order_quantity;
+  if (data.quantity_available !== undefined) {
+    if (data.quantity_available < 0) return { success: false, error: "Quantity cannot be negative." };
+    updates.quantity_available = data.quantity_available;
+  }
+  if (data.min_order_quantity !== undefined) {
+    if (data.min_order_quantity <= 0) return { success: false, error: "Minimum order must be greater than 0." };
+    updates.min_order_quantity = data.min_order_quantity;
+  }
   if (data.harvest_date !== undefined) updates.harvest_date = data.harvest_date || null;
   if (data.available_until !== undefined) updates.available_until = data.available_until || null;
   if (data.status !== undefined) updates.status = data.status;
