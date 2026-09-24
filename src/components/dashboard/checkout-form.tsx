@@ -56,8 +56,8 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
       if (result.orderIds.length === 1) {
         router.push(`/business/checkout/confirmation/${result.orderIds[0]}`);
       } else {
-        // Multi-farmer orders -> full orders list
-        router.push("/business/orders");
+        // Multi-farmer orders -> dedicated multi-order confirmation screen
+        router.push(`/business/checkout/confirmation?order_ids=${result.orderIds.join(",")}`);
       }
     });
   }

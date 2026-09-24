@@ -92,15 +92,29 @@ export function AddToCartControls({ product }: AddToCartControlsProps) {
         </div>
       )}
 
-      <Button
-        onClick={handleAddToCart}
-        disabled={isPending || isOutOfStock}
-        className="w-full sm:w-auto"
-        size="lg"
-      >
-        <RiShoppingCart2Line className="size-4 mr-2" />
-        {isPending ? "Adding…" : isOutOfStock ? "Out of Stock" : "Add to Cart"}
-      </Button>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <Button
+          onClick={handleAddToCart}
+          disabled={isPending || isOutOfStock}
+          className="w-full sm:w-auto"
+          size="lg"
+        >
+          <RiShoppingCart2Line className="size-4 mr-2" />
+          {isPending ? "Adding…" : isOutOfStock ? "Out of Stock" : "Add to Cart"}
+        </Button>
+
+        {message?.type === "success" && (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={() => router.push("/business/cart")}
+          >
+            View Cart →
+          </Button>
+        )}
+      </div>
 
       {message && (
         <p
