@@ -179,7 +179,11 @@ export default async function BusinessDashboardPage() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                href={`/business/products/${product.id}`}
+              />
             ))}
           </div>
         </section>
