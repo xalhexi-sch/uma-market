@@ -11,9 +11,9 @@ import {
 } from "@remixicon/react";
 import { getBusinessOrderById } from "@/lib/supabase/queries/orders";
 import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { Separator } from "@/components/ui/separator";
-import { CURRENCY, FULFILLMENT_LABELS, ORDER_STATUS_LABELS } from "@/lib/constants";
+import { CURRENCY, FULFILLMENT_LABELS } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Order Confirmed" };
@@ -61,9 +61,7 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
                 #{order.id.slice(0, 8).toUpperCase()}
               </p>
             </div>
-            <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
-              {ORDER_STATUS_LABELS[order.status]}
-            </Badge>
+            <OrderStatusBadge status={order.status} />
           </div>
 
           {/* Farmer */}
@@ -127,11 +125,23 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
 
         {/* Actions */}
         <div className="flex flex-col gap-3 mt-6 sm:flex-row">
-          <Link href="/business/orders" className={buttonVariants({ className: "flex-1" })}>
+          <Link
+            href="/business/orders"
+            className={buttonVariants({ size: "lg", className: "flex-1 justify-center" })}
+          >
             <RiShoppingBagLine className="size-4 mr-2" />
-            View My Orders
+            View Orders
           </Link>
-          <Link href="/business/products" className={buttonVariants({ variant: "outline", className: "flex-1" })}>Browse More Products</Link>
+          <Link
+            href="/business/products"
+            className={buttonVariants({
+              variant: "outline",
+              size: "lg",
+              className: "flex-1 justify-center",
+            })}
+          >
+            Continue Shopping
+          </Link>
         </div>
       </div>
     </div>

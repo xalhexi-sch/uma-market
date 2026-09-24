@@ -55,6 +55,36 @@ export async function getBusinessOrderById(
 }
 
 /**
+ * Fetch multiple orders by their IDs for a business buyer.
+ */
+export async function getBusinessOrdersByIds(
+  orderIds: string[],
+  businessClerkId: string
+): Promise<Order[]> {
+  if (!orderIds || orderIds.length === 0) return [];
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      `
+      id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
+      total_amount, notes, delivery_address, pickup_date,
+      created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
+      farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
+      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city),
+      items:order_items(id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
+    `
+    )
+    .in("id", orderIds)
+    .eq("business_clerk_id", businessClerkId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as unknown as Order[];
+}
+
+/**
  * Fetch all orders directed to a farmer, newest first.
  */
 export async function getFarmerOrders(farmerClerkId: string): Promise<Order[]> {
