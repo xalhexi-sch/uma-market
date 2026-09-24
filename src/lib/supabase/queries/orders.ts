@@ -114,18 +114,25 @@ export async function getBusinessOrderMetrics(businessClerkId: string) {
 
   const { data, error } = await supabase
     .from("orders")
-    .select("status")
+    .select("status, total_amount")
     .eq("business_clerk_id", businessClerkId);
 
-  if (error) return { active: 0, pendingDelivery: 0, total: 0 };
+  if (error) return { active: 0, pendingDelivery: 0, total: 0, totalSpend: 0 };
 
   const orders = data ?? [];
+  const nonCancelledOrders = orders.filter((o) => o.status !== "cancelled");
+  const totalSpend = nonCancelledOrders.reduce(
+    (sum, o) => sum + (Number(o.total_amount) || 0),
+    0
+  );
+
   return {
     active: orders.filter((o) =>
       ["pending", "accepted", "preparing", "ready"].includes(o.status)
     ).length,
     pendingDelivery: orders.filter((o) => o.status === "for_delivery").length,
     total: orders.length,
+    totalSpend,
   };
 }
 

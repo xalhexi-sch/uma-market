@@ -52,14 +52,14 @@ export default async function AdminDashboardPage() {
           label="Registered Farmers"
           value={metrics.totalFarmers.toString()}
           icon={<RiPlantLine className="size-5 text-emerald-600" />}
-          href="/admin/products"
+          href="/admin/farmers"
           description="Local farm suppliers"
         />
         <MetricCard
           label="Commercial Buyers"
           value={metrics.totalBusinesses.toString()}
           icon={<RiStoreLine className="size-5 text-blue-600" />}
-          href="/admin/orders"
+          href="/admin/businesses"
           description="Restaurants, hotels & caterers"
         />
         <MetricCard

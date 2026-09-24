@@ -107,15 +107,15 @@ export default async function FarmerDashboardPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full min-w-[380px] text-sm">
               <tbody className="divide-y divide-border">
                 {recentOrders.map((order) => {
                   const bizName =
                     order.business?.business_name || order.business?.full_name || "—";
                   return (
                     <tr key={order.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <Link
                           href={`/farmer/orders/${order.id}`}
                           className="font-mono text-xs font-medium text-foreground hover:text-primary"
@@ -124,13 +124,13 @@ export default async function FarmerDashboardPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{bizName}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-foreground tabular-nums">
+                      <td className="px-4 py-3 text-right font-semibold text-foreground tabular-nums whitespace-nowrap">
                         {CURRENCY}
                         {(order.total_amount ?? 0).toLocaleString("en-PH", {
                           minimumFractionDigits: 2,
                         })}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <OrderStatusBadge status={order.status} />
                       </td>
                     </tr>
