@@ -8,11 +8,11 @@ import {
   RiCheckDoubleLine,
   RiCloseCircleLine,
 } from "@remixicon/react";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
 import { MarketplaceFooter } from "@/components/marketplace/marketplace-footer";
 import { MarketplaceProductCard } from "@/components/marketplace/marketplace-product-card";
+import { ProductFilters } from "@/components/products/product-filters";
 import { getActiveProducts, getCategories } from "@/lib/supabase/queries/products";
 import type { ProductSort } from "@/lib/supabase/queries/products";
 import type { Category } from "@/lib/types";
@@ -296,52 +296,16 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
             </div>
 
             {/* Prominent Search & Filter Controls */}
-            <form method="GET" action="/products" className="mt-8 flex flex-col gap-4">
-              {category && <input type="hidden" name="category" value={category} />}
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <div className="relative flex-1">
-                  <RiSearchLine className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    name="q"
-                    defaultValue={q}
-                    placeholder="Search produce, varieties, or farm names…"
-                    className="pl-10 h-11 bg-background text-sm shadow-xs"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-                  <select
-                    name="sort"
-                    defaultValue={activeSort}
-                    className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
-                    aria-label="Sort produce by"
-                  >
-                    <option value="newest">Newest Added</option>
-                    <option value="harvest_newest">Freshest Harvest</option>
-                    <option value="price_asc">Price: Low to High</option>
-                    <option value="price_desc">Price: High to Low</option>
-                    <option value="name_asc">Name: A to Z</option>
-                  </select>
-
-                  <select
-                    name="in_stock"
-                    defaultValue={inStockOnly ? "true" : "false"}
-                    className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
-                    aria-label="Filter availability"
-                  >
-                    <option value="true">In Stock Only</option>
-                    <option value="false">All Availability</option>
-                  </select>
-
-                  <button
-                    type="submit"
-                    className="h-11 px-5 rounded-md bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
+            <div className="mt-8 flex flex-col gap-4">
+              <ProductFilters
+                basePath="/products"
+                variant="marketplace"
+                initialSearch={q}
+                initialCategory={category}
+                categories={categories}
+                initialSort={activeSort}
+                initialInStockOnly={inStockOnly}
+              />
 
               {/* Horizontal Category Pill Bar */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
@@ -369,7 +333,7 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
                   </Link>
                 ))}
               </div>
-            </form>
+            </div>
           </div>
         </section>
 
