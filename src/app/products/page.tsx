@@ -9,11 +9,12 @@ import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
 import { MarketplaceFooter } from "@/components/marketplace/marketplace-footer";
 import { MarketplaceProductCard } from "@/components/marketplace/marketplace-product-card";
 import { ProductFilters } from "@/components/products/product-filters";
+import { CategoryPills } from "@/components/products/category-pills";
 import { ProductSearchProvider } from "@/components/products/product-search-context";
 import { LiveProductGrid } from "@/components/products/live-product-grid";
-import { getActiveProducts, getCategories } from "@/lib/supabase/queries/products";
+import { getActiveProducts, searchActiveProducts, getCategories } from "@/lib/supabase/queries/products";
 import type { ProductSort } from "@/lib/supabase/queries/products";
-import type { Category } from "@/lib/types";
+import type { Category, Product } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Produce Marketplace",
@@ -38,6 +39,7 @@ interface PageProps {
     category?: string;
     sort?: string;
     in_stock?: string;
+    page?: string;
   }>;
 }
 
@@ -174,8 +176,11 @@ async function CuratedDiscovery({
 }
 
 export default async function ProductsMarketplacePage({ searchParams }: PageProps) {
-  const { q, category, sort, in_stock } = await searchParams;
+  const { q, category, sort, in_stock, page } = await searchParams;
   const categories = await getCategories();
+
+  const rawPage = parseInt(page || "1", 10);
+  const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
 
   const isFiltering =
     !!q || !!category || in_stock === "false" || (!!sort && sort !== "newest" && sort !== "relevance");
@@ -188,26 +193,26 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
 
   const selectedCategory = categories.find((c) => c.slug === category);
 
-  // Fetch initial products if query or filter is active
-  const initialProducts = isFiltering
-    ? await getActiveProducts({
-        search: q,
-        categorySlug: category,
-        sort: activeSort,
-        inStockOnly,
-        limit: 48,
-      })
-    : [];
+  // Catalog browsing mode is active if filtering OR requesting page > 1
+  const isCatalogMode = isFiltering || currentPage > 1;
 
-  const buildCategoryHref = (catSlug?: string) => {
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (sort && sort !== "newest" && (sort !== "relevance" || !q)) params.set("sort", sort);
-    if (in_stock === "false") params.set("in_stock", "false");
-    if (catSlug) params.set("category", catSlug);
-    const str = params.toString();
-    return `/products${str ? `?${str}` : ""}`;
-  };
+  let initialProducts: Product[] = [];
+  let totalCount = 0;
+  let totalPages = 1;
+
+  if (isCatalogMode) {
+    const result = await searchActiveProducts({
+      search: q,
+      categorySlug: category,
+      sort: activeSort,
+      inStockOnly,
+      page: currentPage,
+      limit: 24,
+    });
+    initialProducts = result.products;
+    totalCount = result.totalCount;
+    totalPages = result.totalPages;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -247,32 +252,14 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
                   initialInStockOnly={inStockOnly}
                 />
 
-                {/* Horizontal Category Pill Bar */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
-                  <Link
-                    href={buildCategoryHref()}
-                    className={`rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs ${
-                      !category
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                    }`}
-                  >
-                    All Produce
-                  </Link>
-                  {categories.map((cat) => (
-                    <Link
-                      key={cat.slug}
-                      href={buildCategoryHref(cat.slug)}
-                      className={`rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs ${
-                        category === cat.slug
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                      }`}
-                    >
-                      {cat.name}
-                    </Link>
-                  ))}
-                </div>
+                {/* Shared Horizontal Category Pill Bar */}
+                <CategoryPills
+                  basePath="/products"
+                  categories={categories}
+                  activeCategory={category}
+                  allLabel="All Produce"
+                  searchParams={{ q, sort, in_stock }}
+                />
               </div>
             </div>
           </section>
@@ -286,7 +273,11 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
               initialCategory={category}
               categoryName={selectedCategory?.name}
               inStockOnly={inStockOnly}
-              initialCuratedNode={!isFiltering ? <CuratedDiscovery categories={categories} /> : null}
+              initialCuratedNode={!isCatalogMode ? <CuratedDiscovery categories={categories} /> : null}
+              totalPages={totalPages}
+              currentPage={currentPage}
+              totalCount={totalCount}
+              searchParams={{ q, category, sort, in_stock }}
             />
           </section>
         </ProductSearchProvider>

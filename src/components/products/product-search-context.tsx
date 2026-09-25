@@ -138,6 +138,7 @@ export function ProductSearchProvider({
         if (typeof window !== "undefined") {
           const browserParams = new URLSearchParams(window.location.search);
           browserParams.set("q", trimmed);
+          browserParams.delete("page");
           const qs = browserParams.toString();
           window.history.replaceState(null, "", `${basePath}${qs ? `?${qs}` : ""}`);
         }
@@ -205,6 +206,7 @@ export function ProductSearchProvider({
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       params.delete("q");
+      params.delete("page");
       if (params.get("sort") === "relevance") {
         params.delete("sort");
       }
@@ -234,6 +236,7 @@ export function ProductSearchProvider({
         params.delete("q");
         if (params.get("sort") === "relevance") params.delete("sort");
       }
+      params.delete("page");
       const qs = params.toString();
       router.push(`${basePath}${qs ? `?${qs}` : ""}`);
     },
