@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { RiSearchLine, RiFilter3Line, RiCloseCircleLine } from "@remixicon/react";
+import { RiSearchLine, RiFilter3Line, RiCloseCircleLine, RiLoader4Line } from "@remixicon/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ import {
 import type { ProductSort } from "@/lib/supabase/queries/products";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useProductSearchOptional } from "@/components/products/product-search-context";
 
 interface ProductFiltersProps {
   basePath: "/products" | "/business/products";
@@ -57,9 +58,12 @@ export function ProductFilters({
   initialInStockOnly = true,
 }: ProductFiltersProps) {
   const router = useRouter();
+  const searchContext = useProductSearchOptional();
 
   // Local state initialized with current active props
-  const [draftSearch, setDraftSearch] = useState(initialSearch);
+  const [draftSearch, setDraftSearch] = useState(
+    searchContext?.searchQuery !== undefined ? searchContext.searchQuery : initialSearch
+  );
   const [draftSort, setDraftSort] = useState<ProductSort>(initialSort);
   const [draftInStock, setDraftInStock] = useState<string>(
     initialInStockOnly ? "true" : "false"
@@ -76,7 +80,7 @@ export function ProductFilters({
   });
 
   if (
-    prevProps.initialSearch !== initialSearch ||
+    (prevProps.initialSearch !== initialSearch && !searchContext) ||
     prevProps.initialSort !== initialSort ||
     prevProps.initialInStockOnly !== initialInStockOnly ||
     prevProps.initialCategory !== initialCategory
@@ -87,7 +91,9 @@ export function ProductFilters({
       initialInStockOnly,
       initialCategory,
     });
-    setDraftSearch(initialSearch);
+    if (!searchContext) {
+      setDraftSearch(initialSearch);
+    }
     setDraftSort(initialSort);
     setDraftInStock(initialInStockOnly ? "true" : "false");
     setDraftCategory(initialCategory);
@@ -110,7 +116,7 @@ export function ProductFilters({
     const inStockVal = overrides?.inStock !== undefined ? overrides.inStock : draftInStock;
     const catVal = overrides?.category !== undefined ? overrides.category : draftCategory;
 
-    // LOW-02: If search is cleared or empty, reset relevance sort to newest
+    // If search is cleared or empty, reset relevance sort to newest
     if (!qVal?.trim() && sortVal === "relevance") {
       sortVal = "newest";
       setDraftSort("newest");
@@ -141,6 +147,9 @@ export function ProductFilters({
     setDraftInStock("true");
     setDraftCategory("");
     setSheetOpen(false);
+    if (searchContext) {
+      searchContext.clearSearch();
+    }
     router.push(basePath);
   };
 
@@ -149,14 +158,28 @@ export function ProductFilters({
       {/* ─── Desktop & Tablet Layout (>= sm) ─── */}
       <div className="hidden sm:flex items-center gap-3 w-full">
         <div className={cn("relative flex-1", variant === "business" && "max-w-sm")}>
-          <RiSearchLine className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          {searchContext?.isSearching ? (
+            <RiLoader4Line className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin pointer-events-none" />
+          ) : (
+            <RiSearchLine className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          )}
           <Input
             value={draftSearch}
-            onChange={(e) => setDraftSearch(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setDraftSearch(val);
+              if (searchContext) {
+                searchContext.setSearchQuery(val);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                handleApply({ search: draftSearch });
+                if (searchContext) {
+                  searchContext.commitSearch(draftSearch);
+                } else {
+                  handleApply({ search: draftSearch });
+                }
               }
             }}
             placeholder={
@@ -177,7 +200,11 @@ export function ProductFilters({
                 setDraftSearch("");
                 const nextSort = draftSort === "relevance" ? "newest" : draftSort;
                 if (draftSort === "relevance") setDraftSort("newest");
-                handleApply({ search: "", sort: nextSort });
+                if (searchContext) {
+                  searchContext.clearSearch();
+                } else {
+                  handleApply({ search: "", sort: nextSort });
+                }
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-0.5 rounded-sm"
               aria-label="Clear search text"
@@ -261,7 +288,13 @@ export function ProductFilters({
 
           <button
             type="button"
-            onClick={() => handleApply()}
+            onClick={() => {
+              if (searchContext) {
+                searchContext.commitSearch(draftSearch);
+              } else {
+                handleApply();
+              }
+            }}
             className={cn(
               "cursor-pointer transition-colors shadow-xs rounded-md font-semibold",
               variant === "marketplace"
@@ -278,14 +311,28 @@ export function ProductFilters({
       <div className="flex sm:hidden items-center gap-2 w-full">
         {/* Immediately visible Search input */}
         <div className="relative flex-1 min-w-0">
-          <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          {searchContext?.isSearching ? (
+            <RiLoader4Line className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin pointer-events-none" />
+          ) : (
+            <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          )}
           <Input
             value={draftSearch}
-            onChange={(e) => setDraftSearch(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setDraftSearch(val);
+              if (searchContext) {
+                searchContext.setSearchQuery(val);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                handleApply({ search: draftSearch });
+                if (searchContext) {
+                  searchContext.commitSearch(draftSearch);
+                } else {
+                  handleApply({ search: draftSearch });
+                }
               }
             }}
             placeholder={
@@ -303,7 +350,11 @@ export function ProductFilters({
                 setDraftSearch("");
                 const nextSort = draftSort === "relevance" ? "newest" : draftSort;
                 if (draftSort === "relevance") setDraftSort("newest");
-                handleApply({ search: "", sort: nextSort });
+                if (searchContext) {
+                  searchContext.clearSearch();
+                } else {
+                  handleApply({ search: "", sort: nextSort });
+                }
               }}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-0.5 rounded-sm"
               aria-label="Clear search text"

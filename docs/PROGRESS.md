@@ -739,4 +739,6 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Product Media Gallery (`feat/product-media-gallery`):** ✅ Complete & Verified (`product_images` table, RLS policies, backfill, shadcn Carousel gallery, farmer multi-photo upload/edit up to 5 photos, safe deletion, 0 lint errors, and 35 compiled routes)
 - **Launch Readiness P1 Fixes (`fix/launch-readiness`):** ✅ Complete & Verified (Stock restitution trigger, public farmer privacy, business dashboard navigation consistency, atomic multi-farmer checkout RPC, 0 lint errors, 20 compiled routes)
 - **Feature A (Smart Search & Discovery):** ✅ **COMPLETE & LIVE IN PRODUCTION** (`main` @ `be74155`, PR #24 merged, migrations synchronized, live smoke tests passed, status healthy)
-- **Feature B (Marketplace / Visual Polish):** ⏳ **NEXT ON ROADMAP**
+- **Feature B (Marketplace / Visual Polish):** 🔄 **IN PROGRESS** (`feat/marketplace-polish`)
+  - **Phase 1 (Product Card Foundation & Visual Foundation):** ✅ **Complete & Verified** (Card consolidation, MOQ metadata, producer city provenance, dark-mode badge tokens, aspect-4/3 lock, skeleton CLS correction, header CTA fix, 26/26 tests passed)
+  - **Phase 2 (Search Interaction & Autocomplete):** ⏳ Pending

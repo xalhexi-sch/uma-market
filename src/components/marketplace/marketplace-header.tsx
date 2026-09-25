@@ -87,12 +87,13 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
                 Sign in
               </Link>
               <Link
-                href="/products"
+                href="/sign-up"
                 className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
               >
-                Explore the market
+                Get Started
                 <RiArrowRightLine className="size-3.5" />
               </Link>
+
             </>
           )}
         </div>

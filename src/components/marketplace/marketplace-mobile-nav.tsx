@@ -111,11 +111,11 @@ export function MarketplaceMobileNav({
           ) : (
             <>
               <Link
-                href="/products"
+                href="/sign-up"
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
               >
-                Explore the market
+                Get Started
                 <RiArrowRightLine className="size-4" />
               </Link>
               <Link
