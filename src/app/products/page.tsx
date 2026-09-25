@@ -1,18 +1,16 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  RiSearchLine,
   RiPlantLine,
   RiArrowRightLine,
   RiCheckDoubleLine,
-  RiCloseCircleLine,
 } from "@remixicon/react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
 import { MarketplaceFooter } from "@/components/marketplace/marketplace-footer";
 import { MarketplaceProductCard } from "@/components/marketplace/marketplace-product-card";
 import { ProductFilters } from "@/components/products/product-filters";
+import { ProductSearchProvider } from "@/components/products/product-search-context";
+import { LiveProductGrid } from "@/components/products/live-product-grid";
 import { getActiveProducts, getCategories } from "@/lib/supabase/queries/products";
 import type { ProductSort } from "@/lib/supabase/queries/products";
 import type { Category } from "@/lib/types";
@@ -41,21 +39,6 @@ interface PageProps {
     sort?: string;
     in_stock?: string;
   }>;
-}
-
-function ProductGridSkeleton({ count = 8 }: { count?: number }) {
-  return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex flex-col gap-3 rounded-xl border border-border p-4 bg-card">
-          <Skeleton className="aspect-[4/3] w-full rounded-lg" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-6 w-1/3" />
-          <Skeleton className="h-3 w-1/2" />
-        </div>
-      ))}
-    </div>
-  );
 }
 
 // Category Discovery Cards Component
@@ -190,72 +173,6 @@ async function CuratedDiscovery({
   );
 }
 
-// Filtered Search Results View
-async function FilteredResults({
-  q,
-  category,
-  sort,
-  inStockOnly,
-}: {
-  q?: string;
-  category?: string;
-  sort?: ProductSort;
-  inStockOnly?: boolean;
-}) {
-  const products = await getActiveProducts({
-    search: q,
-    categorySlug: category,
-    sort: sort || "newest",
-    inStockOnly: inStockOnly ?? true,
-    limit: 48,
-  });
-
-  if (products.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center bg-card">
-        <RiSearchLine className="size-12 text-muted-foreground/30 mb-4" />
-        <h3 className="text-lg font-semibold text-foreground">No produce matches your search</h3>
-        <p className="mt-1 text-sm text-muted-foreground max-w-md">
-          We couldn&apos;t find any active produce matching{" "}
-          {q ? <span className="font-medium text-foreground">&ldquo;{q}&rdquo;</span> : "your filters"}.
-          Try adjusting your search terms or clearing category filters.
-        </p>
-        <Link
-          href="/products"
-          className="mt-6 inline-flex items-center gap-1.5 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 border border-border"
-        >
-          <RiCloseCircleLine className="size-4" />
-          Clear all filters
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Showing <span className="font-semibold text-foreground">{products.length}</span>{" "}
-          {products.length === 1 ? "product" : "products"}
-        </p>
-        <Link
-          href="/products"
-          className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
-        >
-          <RiCloseCircleLine className="size-3.5" />
-          Reset filters
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {products.map((product) => (
-          <MarketplaceProductCard key={product.id} product={product} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default async function ProductsMarketplacePage({ searchParams }: PageProps) {
   const { q, category, sort, in_stock } = await searchParams;
   const categories = await getCategories();
@@ -270,6 +187,17 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
     : "newest";
 
   const selectedCategory = categories.find((c) => c.slug === category);
+
+  // Fetch initial products if query or filter is active
+  const initialProducts = isFiltering
+    ? await getActiveProducts({
+        search: q,
+        categorySlug: category,
+        sort: activeSort,
+        inStockOnly,
+        limit: 48,
+      })
+    : [];
 
   const buildCategoryHref = (catSlug?: string) => {
     const params = new URLSearchParams();
@@ -287,92 +215,81 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
       <MarketplaceHeader activeRoute="products" />
 
       <main className="flex-1">
-        {/* Marketplace Hero & Search Section */}
-        <section className="border-b border-border/60 bg-muted/20 py-8 sm:py-12">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="max-w-2xl">
-              <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Produce Marketplace
-              </h1>
-              <p className="mt-2 text-base text-muted-foreground">
-                Find fresh produce from verified Butuan producers. Farm-gate pricing with clear availability.
-              </p>
-            </div>
+        <ProductSearchProvider
+          basePath="/products"
+          variant="marketplace"
+          initialSearch={q || ""}
+          initialCategory={category || ""}
+          initialSort={activeSort}
+          initialInStockOnly={inStockOnly}
+        >
+          {/* Marketplace Hero & Search Section */}
+          <section className="border-b border-border/60 bg-muted/20 py-8 sm:py-12">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+              <div className="max-w-2xl">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                  Produce Marketplace
+                </h1>
+                <p className="mt-2 text-base text-muted-foreground">
+                  Find fresh produce from verified Butuan producers. Farm-gate pricing with clear availability.
+                </p>
+              </div>
 
-            {/* Prominent Search & Filter Controls */}
-            <div className="mt-8 flex flex-col gap-4">
-              <ProductFilters
-                basePath="/products"
-                variant="marketplace"
-                initialSearch={q}
-                initialCategory={category}
-                categories={categories}
-                initialSort={activeSort}
-                initialInStockOnly={inStockOnly}
-              />
+              {/* Prominent Search & Filter Controls */}
+              <div className="mt-8 flex flex-col gap-4">
+                <ProductFilters
+                  basePath="/products"
+                  variant="marketplace"
+                  initialSearch={q}
+                  initialCategory={category}
+                  categories={categories}
+                  initialSort={activeSort}
+                  initialInStockOnly={inStockOnly}
+                />
 
-              {/* Horizontal Category Pill Bar */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
-                <Link
-                  href={buildCategoryHref()}
-                  className={`rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs ${
-                    !category
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                  }`}
-                >
-                  All Produce
-                </Link>
-                {categories.map((cat) => (
+                {/* Horizontal Category Pill Bar */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
                   <Link
-                    key={cat.slug}
-                    href={buildCategoryHref(cat.slug)}
+                    href={buildCategoryHref()}
                     className={`rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs ${
-                      category === cat.slug
+                      !category
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
                     }`}
                   >
-                    {cat.name}
+                    All Produce
                   </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Content Area: Curated Discovery or Filtered Results */}
-        <section className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-14">
-          {isFiltering ? (
-            <div className="flex flex-col gap-6">
-              {/* Active Filter Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
-                <div>
-                  <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                    {selectedCategory ? selectedCategory.name : "Search Results"}
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {q ? `Showing results for "${q}"` : "Filtered produce catalog"}
-                    {inStockOnly ? " · In stock only" : ""}
-                  </p>
+                  {categories.map((cat) => (
+                    <Link
+                      key={cat.slug}
+                      href={buildCategoryHref(cat.slug)}
+                      className={`rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs ${
+                        category === cat.slug
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                      }`}
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
                 </div>
               </div>
-
-              <Suspense fallback={<ProductGridSkeleton count={8} />}>
-                <FilteredResults
-                  q={q}
-                  category={category}
-                  sort={activeSort}
-                  inStockOnly={inStockOnly}
-                />
-              </Suspense>
             </div>
-          ) : (
-            <Suspense fallback={<ProductGridSkeleton count={8} />}>
-              <CuratedDiscovery categories={categories} />
-            </Suspense>
-          )}
-        </section>
+          </section>
+
+          {/* Content Area: Curated Discovery or Live Filtered Results */}
+          <section className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-14">
+            <LiveProductGrid
+              variant="marketplace"
+              initialProducts={initialProducts}
+              initialSearch={q}
+              initialCategory={category}
+              categoryName={selectedCategory?.name}
+              inStockOnly={inStockOnly}
+              initialCuratedNode={!isFiltering ? <CuratedDiscovery categories={categories} /> : null}
+            />
+          </section>
+        </ProductSearchProvider>
       </main>
 
       {/* Shared Editorial Footer */}
