@@ -1,10 +1,12 @@
 "use client";
 
 import React, { type ReactNode } from "react";
+import Link from "next/link";
 import { RiSearchLine, RiCloseCircleLine } from "@remixicon/react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MarketplaceProductCard } from "@/components/marketplace/marketplace-product-card";
 import { useProductSearchOptional } from "@/components/products/product-search-context";
+import { ProductPagination } from "@/components/products/product-pagination";
 import type { Product } from "@/lib/types";
 
 interface LiveProductGridProps {
@@ -15,6 +17,15 @@ interface LiveProductGridProps {
   initialCuratedNode?: ReactNode;
   categoryName?: string;
   inStockOnly?: boolean;
+  totalPages?: number;
+  currentPage?: number;
+  totalCount?: number;
+  searchParams?: {
+    q?: string;
+    category?: string;
+    sort?: string;
+    in_stock?: string;
+  };
 }
 
 function ProductGridSkeleton({ count = 8 }: { count?: number }) {
@@ -40,6 +51,10 @@ export function LiveProductGrid({
   initialCuratedNode,
   categoryName,
   inStockOnly = true,
+  totalPages,
+  currentPage,
+  totalCount,
+  searchParams,
 }: LiveProductGridProps) {
   const searchContext = useProductSearchOptional();
 
@@ -61,6 +76,13 @@ export function LiveProductGrid({
     : currentQuery.trim()
     ? "Search Results"
     : "All Products";
+
+  const isPageOutOfRange =
+    !hasSearched &&
+    currentPage !== undefined &&
+    totalPages !== undefined &&
+    totalPages > 0 &&
+    currentPage > totalPages;
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,6 +130,24 @@ export function LiveProductGrid({
       {/* Loading Skeleton during pending live search */}
       {isSearching ? (
         <ProductGridSkeleton count={8} />
+      ) : isPageOutOfRange ? (
+        /* Out-of-bounds Page State */
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center bg-card">
+          <RiSearchLine className="size-12 text-muted-foreground/30 mb-4" />
+          <h3 className="text-lg font-semibold text-foreground">
+            Page {currentPage} of results does not exist
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground max-w-md">
+            There {totalPages === 1 ? "is" : "are"} only {totalPages}{" "}
+            {totalPages === 1 ? "page" : "pages"} of produce listings available.
+          </p>
+          <Link
+            href={variant === "business" ? "/business/products" : "/products"}
+            className="mt-6 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+          >
+            Return to page 1
+          </Link>
+        </div>
       ) : activeProducts.length === 0 ? (
         /* Empty State */
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center bg-card">
@@ -144,8 +184,18 @@ export function LiveProductGrid({
         <div>
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{activeProducts.length}</span>{" "}
-              {activeProducts.length === 1 ? "product" : "products"}
+              {totalCount !== undefined && totalCount > 0 && !hasSearched ? (
+                <>
+                  Showing <span className="font-semibold text-foreground">{activeProducts.length}</span> of{" "}
+                  <span className="font-semibold text-foreground">{totalCount}</span>{" "}
+                  {totalCount === 1 ? "product" : "products"}
+                </>
+              ) : (
+                <>
+                  Showing <span className="font-semibold text-foreground">{activeProducts.length}</span>{" "}
+                  {activeProducts.length === 1 ? "product" : "products"}
+                </>
+              )}
             </p>
           </div>
 
@@ -164,6 +214,17 @@ export function LiveProductGrid({
               />
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {!hasSearched && totalPages !== undefined && totalPages > 1 && currentPage !== undefined && (
+            <ProductPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              basePath={variant === "business" ? "/business/products" : "/products"}
+              searchParams={searchParams}
+            />
+          )}
         </div>
       )}
     </div>

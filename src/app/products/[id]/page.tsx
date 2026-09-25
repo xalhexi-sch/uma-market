@@ -210,7 +210,9 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                     Minimum Order
                   </span>
                   <span className="mt-0.5 font-semibold text-foreground">
-                    {product.min_order_quantity} {product.unit}
+                    {product.min_order_quantity != null && product.min_order_quantity > 0
+                      ? `${product.min_order_quantity} ${product.unit}`
+                      : "No minimum"}
                   </span>
                 </div>
 

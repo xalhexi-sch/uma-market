@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ProductFilters } from "@/components/products/product-filters";
+import { CategoryPills } from "@/components/products/category-pills";
 import { ProductSearchProvider } from "@/components/products/product-search-context";
 import { LiveProductGrid } from "@/components/products/live-product-grid";
 import { getActiveProducts, getCategories } from "@/lib/supabase/queries/products";
@@ -51,16 +51,6 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
 
   const selectedCategory = categories.find((c) => c.slug === category);
 
-  const buildCategoryHref = (catSlug?: string) => {
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (sort && sort !== "newest" && (sort !== "relevance" || !q)) params.set("sort", sort);
-    if (in_stock === "false") params.set("in_stock", "false");
-    if (catSlug) params.set("category", catSlug);
-    const str = params.toString();
-    return `/business/products${str ? `?${str}` : ""}`;
-  };
-
   return (
     <ProductSearchProvider
       basePath="/business/products"
@@ -91,32 +81,14 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
             initialInStockOnly={inStockOnly}
           />
 
-          {/* Category Pills */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link
-              href={buildCategoryHref()}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors border ${
-                !category
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-              }`}
-            >
-              All Categories
-            </Link>
-            {categories.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={buildCategoryHref(cat.slug)}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors border ${
-                  category === cat.slug
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                }`}
-              >
-                {cat.name}
-              </Link>
-            ))}
-          </div>
+          {/* Shared Horizontal Category Pill Bar */}
+          <CategoryPills
+            basePath="/business/products"
+            categories={categories}
+            activeCategory={category}
+            allLabel="All Categories"
+            searchParams={{ q, sort, in_stock }}
+          />
         </div>
 
         {/* Live Product grid */}
