@@ -1,14 +1,15 @@
 # UMA Market — Current State
 
 **Source of Truth Document**  
-*Last Updated: 2026-09-23 (Slice 6 started)*
+*Last Updated: 2026-09-26 (Feature A Live in Production, Feature B Next)*
 
 ---
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Feature A: Smart Search & Discovery (`feat/smart-search`)**
-- **Current Checkpoint:** Feature A: Smart Search & Discovery (`feat/smart-search`) ✅ | Launch Readiness P1 Fixes (`fix/launch-readiness`) ✅ | Security Hardening & Concurrency Remediation ✅ | Product Media Gallery (`feat/product-media-gallery`) ✅ | Production Deployment Verified ✅
+- **Current Status:** **Feature A: Smart Search & Discovery (`feat/smart-search`)** is ✅ **COMPLETE & LIVE IN PRODUCTION**
+- **Next Roadmap Feature:** **Feature B: Marketplace / Visual Polish**
+- **Current Checkpoint:** Feature A Merged (`be74155`) ✅ | Production Database Migrations Applied & Synchronized (`odnpkqjytrmciwmcehff`) ✅ | Production Incident Resolved ✅ | Live Smoke Tests Passed ✅ | Main Working Tree Clean ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
@@ -17,13 +18,17 @@
 - **Slice 6 Status:** ✅ **Complete & Fully Verified**
 - **Product Media Gallery Status:** ✅ **Complete & Fully Verified**
 - **Launch Readiness P1 Status:** ✅ **Complete & Fully Verified**
-- **Feature A Status:** ✅ **Complete & Fully Verified (26/26 Test Cases Passed, Hardening Remediations Verified)**
+- **Feature A Status:** ✅ **Complete & Live in Production (26/26 Test Cases, Hardening Remediations, Production Migrations 20260926000001 & 20260926000002 Applied & Verified)**
+- **Feature B Status:** ⏳ **Next on Roadmap**
 
 ---
 
 ## 2. What Is Actually Complete
 
-### Feature A — Smart Search & Discovery (Verified ✅)
+### Feature A — Smart Search & Discovery (Complete & Live in Production ✅)
+- [x] **Repository Merge & Release:**
+  - Branch `feat/smart-search` merged into `main` via PR #24 (`be74155`).
+  - Clean working tree on `main` at `be74155283e2260eeea1f2adabf858f21b1e839b`.
 - [x] **PostgreSQL pg_trgm Extension & Functional GIN Trigram Indexes (`20260926000001_smart_search.sql` & `20260926000002_smart_search_hardening.sql`):**
   - Enabled `pg_trgm` extension in `extensions` schema.
   - Implemented functional GIN trigram indexes on `LOWER(products.name)`, `LOWER(products.description)`, `LOWER(categories.name)`, `LOWER(profiles.business_name)`, and `LOWER(profiles.full_name)` enabling bitmap index scan query planning.
@@ -44,6 +49,19 @@
   - 26/26 automated test cases passed via `scripts/verify-smart-search.ts`.
   - Zero ESLint errors/warnings (`npm run lint`).
   - Clean Next.js compilation across all 38 routes (`npm run build`).
+- [x] **Production Migration Deployment (`odnpkqjytrmciwmcehff`):**
+  - Applied migrations `20260926000001_smart_search.sql` and `20260926000002_smart_search_hardening.sql` via `npx supabase db push`.
+  - Verified 11/11 local and remote migrations are 100% synchronized.
+  - Verified `pg_trgm` v1.6 installed, `public.search_products` (`SECURITY DEFINER`, search_path pinned) active with execute permissions for `anon`, `authenticated`, and `service_role`.
+- [x] **Production Incident & Recovery:**
+  - *Incident:* Immediately following PR #24 merge, Vercel automatically deployed commit `be74155` to production while the production database had not yet received the new migrations. Next.js SSR threw `PGRST202: Could not find function public.search_products` resulting in error digest `3154098985@E394` on routes calling `getActiveProducts`.
+  - *Resolution:* Root cause identified through read-only inspection. Forward fix authorized: applied the two migrations directly to production Supabase. PostgREST schema cache reloaded immediately, fully resolving `PGRST202` and restoring all routes to 200 OK with zero code changes or rollbacks required.
+- [x] **Production Smoke-Test Verification:**
+  - `https://uma.xalhexi.wtf/` (Homepage): HTTP 200, `<FreshOnUmaRail />` renders active produce cards.
+  - `https://uma.xalhexi.wtf/products`: HTTP 200, category pills and active produce grids render cleanly.
+  - `https://uma.xalhexi.wtf/products?q=Tomatp`: HTTP 200, typo tolerance confirmed returning "Tomato" and "Ampayon Fresh Red Tomatoes".
+  - Production RPC smoke tests verified: NULL query returns full catalog, SQL injection text returns 0 rows safely, parameter limits clamped <= 100, farmer phone/address 100% excluded, status strictly filtered to `active`.
+  - Vercel streaming logs confirmed 0 digests and 0 errors. Status: **HEALTHY**.
 
 ### Slice 1 — Platform Foundation (Verified ✅)
 - [x] Clerk Authentication (`@clerk/nextjs` v7) with custom sign-in and sign-up pages
@@ -271,15 +289,19 @@
 
 ## 3. What Is Currently Being Worked On
 
-- Branch `fix/launch-readiness` is complete and fully verified.
-- All 4 P1 launch readiness blockers resolved and verified with automated test suites.
-- Production build (20 routes compiled via Turbopack), ESLint (0 errors, 0 warnings) verified.
+- **Feature A (Smart Search & Discovery):** Merged to `main` (`be74155`), migrations applied to production Supabase (`odnpkqjytrmciwmcehff`), smoke tests passed, and live in production.
+- **Next Roadmap Target:** **Feature B — Marketplace / Visual Polish** (catalog visual polish, card layout refinements, visual hierarchy, and buyer experience polish).
+- Current branch: `main` (clean working tree, up to date with `origin/main`).
 
 ---
 
 ## 4. Known Issues
 
-- **None.** Build passes cleanly (20 routes compiled via Turbopack, 0 errors), ESLint passes with 0 warnings and 0 errors, remote Supabase database trigger and RPC applied and verified.
+- **None.** Production site (`https://uma.xalhexi.wtf`) is operational and healthy.
+- Build compiles cleanly across all 38 routes via Turbopack (`npm run build`).
+- Zero ESLint errors or warnings (`npm run lint`).
+- Remote production Supabase database schema is 100% synchronized with all 11 local migrations.
+- Previous `PGRST202` schema cache mismatch resolved via forward deployment.
 
 ---
 
@@ -319,12 +341,12 @@
 
 ---
 
-## 7. Latest Verification Results (Product Media Gallery — feat/product-media-gallery)
+## 7. Latest Verification Results (Feature A — Smart Search & Discovery)
 
-- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 35 dynamic and static routes compiled cleanly via Turbopack)
+- **Build (`npm run build`):** ✅ **PASS** (Exit code 0, 38 dynamic and static routes compiled cleanly via Turbopack)
 - **Lint (`npm run lint`):** ✅ **PASS** (Exit code 0, zero warnings, zero errors across all files)
-- **Database Schema & RLS:** ✅ **PASS** (`public.product_images` table created with RLS enforcing farmer ownership on insert/update/delete; public select on active products; backfill populated existing product primary images)
-- **Product Gallery Carousel:** ✅ **PASS** (Built with shadcn `Carousel`, embla-carousel-react; large primary display, slide counter `1 / 3`, desktop previous/next controls, and active thumbnail ring)
-- **Single & Zero-Image Fallbacks:** ✅ **PASS** (Single-image products display cleanly without redundant arrows/thumbnails; zero-image products display branded placeholder)
-- **Mobile Responsiveness:** ✅ **PASS** (Touch-swipeable carousel with zero horizontal overflow `scrollWidth === clientWidth` on 390px/375px viewports)
-- **Farmer Multi-Photo Uploads:** ✅ **PASS** (Farmer form supports up to 5 photos with primary badge, thumbnail previews, "Set as Primary", "Remove", and safe storage cleanup)
+- **Pre-Merge Test Suite (`scripts/verify-smart-search.ts`):** ✅ **PASS** (26/26 test cases passed, including typo tolerance, GIN trigram index utilization, and bounds clamping)
+- **Production Migrations (`odnpkqjytrmciwmcehff`):** ✅ **PASS** (`20260926000001_smart_search.sql` and `20260926000002_smart_search_hardening.sql` applied; 11/11 migrations synchronized)
+- **Production RPC Smoke Tests:** ✅ **PASS** (NULL query returns catalog count 24; 'tomato' returns 2 matches; 'Tomatp' typo matches 2 listings; '???' returns 0; injection test literal-safe; limit capped <= 100)
+- **Production Privacy & Security:** ✅ **PASS** (Farmer phone and address 100% excluded; 100% active status isolation; draft/archived excluded)
+- **Production HTTP Verification (`https://uma.xalhexi.wtf`):** ✅ **PASS** (HTTP 200 on `/`, `/products`, `/products?q=Tomatp`, `/about`, `/api/health`; previous `3154098985` digest eradicated)

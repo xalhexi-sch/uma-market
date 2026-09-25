@@ -668,7 +668,7 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
-### Feature A — Smart Search & Discovery (`feat/smart-search`) (Complete & Hardened ✅)
+### Feature A — Smart Search & Discovery (`feat/smart-search` → `main`) (Complete & Live in Production ✅)
 - **1. Database Schema & Functional GIN Trigram Indexes (`20260926000001_smart_search.sql` & `20260926000002_smart_search_hardening.sql`):**
   - Enabled `pg_trgm` extension in `extensions` schema.
   - Implemented functional GIN trigram indexes on `LOWER(name)`, `LOWER(description)`, `LOWER(categories.name)`, `LOWER(profiles.business_name)`, and `LOWER(profiles.full_name)` enabling bitmap index scan query planning.
@@ -687,14 +687,24 @@ Executed and verified against the **live remote Supabase database** (`https://od
   - Added "Most Relevant" (`relevance`) sorting option across marketplace and business browsing views.
   - Added inline clear search button (`RiCloseCircleLine`) in `ProductFilters` with automatic relevance sort reset to `newest`.
   - Updated `/products` and `/business/products` to default to `relevance` sort when a search query is active.
-- **4. Automated Test Verification:**
+- **4. Automated Pre-Merge Test Verification:**
   - Created 26-case test suite (`scripts/verify-smart-search.ts`) covering typo tolerance ("Tomatp" -> "Tomatoes", "petchay", "talongg", "camot"), multi-word queries, farmer discovery, category matching, combined filtering/sorting, SQL injection safety, draft exclusion, privacy, punctuation-only handling, cross-category isolation, 500-char input resilience, RPC parameter clamping, and null relationship payloads.
+- **5. Pull Request Merge & Release:**
+  - PR #24 (`feat(search): smart search and discovery`) approved and merged into `main` at commit `be74155283e2260eeea1f2adabf858f21b1e839b`.
+- **6. Production Deployment & Incident Recovery:**
+  - *Incident Summary:* Following PR #24 merge to `main`, Vercel automatic continuous deployment deployed `be74155` to `https://uma.xalhexi.wtf`. Because production Supabase (`odnpkqjytrmciwmcehff`) had not yet had migrations `20260926000001` and `20260926000002` applied, Next.js Server Components calling `getActiveProducts` encountered `PGRST202: Could not find the function public.search_products(...)`, surfacing server error digest `3154098985@E394` on `/` and `/products`.
+  - *Resolution:* Root cause definitively diagnosed via read-only Vercel and Supabase schema cache inspection. Authorized forward deployment applied migrations `20260926000001_smart_search.sql` and `20260926000002_smart_search_hardening.sql` via `npx supabase db push`. PostgREST schema cache immediately updated, instantly clearing `PGRST202` and restoring all routes to healthy status without application rollback or code modification.
+- **7. Production Verification & Live Smoke Tests (`odnpkqjytrmciwmcehff` & `https://uma.xalhexi.wtf`):**
+  - Database: All 11 remote migrations synchronized with local codebase (`npx supabase migration list`). `pg_trgm` v1.6 and functional GIN trigram indexes active. Execute permissions granted to `anon`, `authenticated`, and `service_role`.
+  - RPC Smoke Tests: NULL search returns full catalog (24 items); normal search ('tomato') returns 2 matches; typo search ('Tomatp') matches 'Tomato' and 'Ampayon Fresh Red Tomatoes'; punctuation ('???') returns 0; SQL injection text safely handled with 0 rows; parameter limit capped <= 100.
+  - Privacy & Status: Farmer phone and address verified 100% excluded; only active listings returned (zero draft/archived exposure).
+  - Live HTTP Probing: `/`, `/products`, `/about`, and `/api/health` return HTTP 200 with zero error digests; `/products?q=Tomatp` renders typo-tolerant tomato listings in production HTML.
 
 | Test Item | Verification Method | Result | Verification Details |
 |---|---|---|---|
 | **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
 | **Production Build** | `npm run build` | ✅ **PASS** | 38 routes compiled cleanly via Turbopack |
-| **Smart Search Suite** | `scripts/verify-smart-search.ts` | ✅ **PASS** | 26/26 test cases passed against remote test DB |
+| **Smart Search Pre-Merge Suite** | `scripts/verify-smart-search.ts` | ✅ **PASS** | 26/26 test cases passed against remote test DB |
 | **Typo Tolerance** | Trigram word similarity | ✅ **PASS** | "Tomatp" matched "Ampayon Fresh Red Tomatoes" |
 | **Producer Discovery** | Farmer name/business trigram | ✅ **PASS** | "Verdant Ridge" & "Golden Harvest" returned active listings |
 | **Punctuation Guard** | Alphanumeric validation | ✅ **PASS** | "???" and "!@#$%" return 0 results cleanly |
@@ -704,6 +714,11 @@ Executed and verified against the **live remote Supabase database** (`https://od
 | **Null Relationship JSON** | Conditional JSON aggregation | ✅ **PASS** | Category/farmer return strict null when absent |
 | **Security & Privacy** | DB query assertion | ✅ **PASS** | Drafts excluded; farmer phone/address omitted from payload |
 | **SQL Injection Resilience** | Parameterized string test | ✅ **PASS** | Safe literal escaping; 0 false matches |
+| **Production Migrations** | `npx supabase db push` | ✅ **PASS** | Migrations `20260926000001` & `20260926000002` applied to `odnpkqjytrmciwmcehff` |
+| **Migration Synchronization** | `npx supabase migration list` | ✅ **PASS** | 11/11 migrations synchronized between local and remote |
+| **Production RPC Smoke Tests** | Supabase JS client vs prod | ✅ **PASS** | NULL query, 'tomato', typo 'Tomatp', '???', injection, limit clamp all passed |
+| **Production Farmer Privacy** | Prod DB payload assertion | ✅ **PASS** | `phone` and `address` fields 100% excluded from public payload |
+| **Production Live HTTP** | Live fetch against `uma.xalhexi.wtf` | ✅ **PASS** | HTTP 200 on `/`, `/products`, `/products?q=Tomatp`; server error digest gone |
 
 ---
 
@@ -723,4 +738,5 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Visual Correction — Device Mockups & Hardware Presentation:** ✅ Complete & Verified (2 large landscape iPad Pro tablets, 1 thick 3D titanium smartphone, real UMA UI, unclipped soft shadows, unified settling animations, 0 lint errors, and 36 compiled routes)
 - **Product Media Gallery (`feat/product-media-gallery`):** ✅ Complete & Verified (`product_images` table, RLS policies, backfill, shadcn Carousel gallery, farmer multi-photo upload/edit up to 5 photos, safe deletion, 0 lint errors, and 35 compiled routes)
 - **Launch Readiness P1 Fixes (`fix/launch-readiness`):** ✅ Complete & Verified (Stock restitution trigger, public farmer privacy, business dashboard navigation consistency, atomic multi-farmer checkout RPC, 0 lint errors, 20 compiled routes)
-- **Feature A (Smart Search & Discovery):** ✅ Complete & Hardened Across All 26 Test Cases (`feat/smart-search`)
+- **Feature A (Smart Search & Discovery):** ✅ **COMPLETE & LIVE IN PRODUCTION** (`main` @ `be74155`, PR #24 merged, migrations synchronized, live smoke tests passed, status healthy)
+- **Feature B (Marketplace / Visual Polish):** ⏳ **NEXT ON ROADMAP**
