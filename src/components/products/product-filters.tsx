@@ -106,9 +106,15 @@ export function ProductFilters({
     category?: string;
   }) => {
     const qVal = overrides?.search !== undefined ? overrides.search : draftSearch;
-    const sortVal = overrides?.sort !== undefined ? overrides.sort : draftSort;
+    let sortVal = overrides?.sort !== undefined ? overrides.sort : draftSort;
     const inStockVal = overrides?.inStock !== undefined ? overrides.inStock : draftInStock;
     const catVal = overrides?.category !== undefined ? overrides.category : draftCategory;
+
+    // LOW-02: If search is cleared or empty, reset relevance sort to newest
+    if (!qVal?.trim() && sortVal === "relevance") {
+      sortVal = "newest";
+      setDraftSort("newest");
+    }
 
     const params = new URLSearchParams();
     if (qVal && qVal.trim()) {
@@ -169,7 +175,9 @@ export function ProductFilters({
               type="button"
               onClick={() => {
                 setDraftSearch("");
-                handleApply({ search: "" });
+                const nextSort = draftSort === "relevance" ? "newest" : draftSort;
+                if (draftSort === "relevance") setDraftSort("newest");
+                handleApply({ search: "", sort: nextSort });
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-0.5 rounded-sm"
               aria-label="Clear search text"
@@ -293,7 +301,9 @@ export function ProductFilters({
               type="button"
               onClick={() => {
                 setDraftSearch("");
-                handleApply({ search: "" });
+                const nextSort = draftSort === "relevance" ? "newest" : draftSort;
+                if (draftSort === "relevance") setDraftSort("newest");
+                handleApply({ search: "", sort: nextSort });
               }}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-0.5 rounded-sm"
               aria-label="Clear search text"

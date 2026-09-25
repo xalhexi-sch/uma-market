@@ -17,29 +17,31 @@
 - **Slice 6 Status:** ✅ **Complete & Fully Verified**
 - **Product Media Gallery Status:** ✅ **Complete & Fully Verified**
 - **Launch Readiness P1 Status:** ✅ **Complete & Fully Verified**
-- **Feature A Status:** ✅ **Complete & Fully Verified (20/20 Test Cases Passed)**
+- **Feature A Status:** ✅ **Complete & Fully Verified (26/26 Test Cases Passed, Hardening Remediations Verified)**
 
 ---
 
 ## 2. What Is Actually Complete
 
 ### Feature A — Smart Search & Discovery (Verified ✅)
-- [x] **PostgreSQL pg_trgm Extension & Specialized GIN Indexes (`20260926000001_smart_search.sql`):**
+- [x] **PostgreSQL pg_trgm Extension & Functional GIN Trigram Indexes (`20260926000001_smart_search.sql` & `20260926000002_smart_search_hardening.sql`):**
   - Enabled `pg_trgm` extension in `extensions` schema.
-  - Added GIN trigram indexes on `products.name`, `products.description`, `categories.name`, `profiles.business_name`, and `profiles.full_name`.
+  - Implemented functional GIN trigram indexes on `LOWER(products.name)`, `LOWER(products.description)`, `LOWER(categories.name)`, `LOWER(profiles.business_name)`, and `LOWER(profiles.full_name)` enabling bitmap index scan query planning.
   - Added composite B-Tree index on `products (status, category_id, quantity_available)`.
-- [x] **Authoritative Search RPC (`search_products`):**
+- [x] **Authoritative Hardened Search RPC (`search_products`):**
   - Multi-field weighted scoring (`products.name` > `categories.name` > `profiles.business_name`/`full_name` > `products.description`).
-  - Strict noise threshold cutoff preventing false matches on random or special-character queries.
+  - Punctuation-only search guard (e.g. `???`, `!@#$%` return 0 results cleanly, avoiding unintended full-catalog exposure).
+  - Parameter bounds clamping (`p_search` <= 100 chars, `p_limit` in [1, 100], `p_offset` >= 0, `p_category_slug` normalized).
+  - Safe nullable relationship projections: returns SQL `NULL` for category/farmer instead of dummy objects with null properties.
   - Server-side atomic category and in-stock filtering before pagination (resolving PostgREST in-memory filter truncation bug).
   - Atomic `total_count` window calculation for pagination.
   - Public data protection: farmer profile projection strictly excludes `phone` and `address`.
 - [x] **Query & UI Integration:**
   - Upgraded `getActiveProducts` and added `searchActiveProducts` in `src/lib/supabase/queries/products.ts`.
   - Added "Most Relevant" (`relevance`) sorting option across marketplace and business browsing views.
-  - Added inline clear search button (`RiCloseCircleLine`) in `ProductFilters`.
+  - Added inline clear search button (`RiCloseCircleLine`) in `ProductFilters` with automatic relevance sort reset to `newest`.
 - [x] **Automated Test Verification:**
-  - 20/20 automated test cases passed via `scripts/verify-smart-search.ts`.
+  - 26/26 automated test cases passed via `scripts/verify-smart-search.ts`.
   - Zero ESLint errors/warnings (`npm run lint`).
   - Clean Next.js compilation across all 38 routes (`npm run build`).
 

@@ -125,8 +125,8 @@ export async function searchActiveProducts({
       status: row.status,
       created_at: row.created_at,
       updated_at: row.updated_at,
-      category: row.category,
-      farmer: row.farmer,
+      category: row.category && (row.category as { id?: string }).id ? row.category : undefined,
+      farmer: row.farmer && (row.farmer as { clerk_id?: string }).clerk_id ? row.farmer : undefined,
       images,
     };
   });

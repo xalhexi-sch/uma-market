@@ -230,7 +230,7 @@ The test plan defines concrete automated and manual verification cases across al
 ### E. Migration & Rollout Strategy
 
 1. **Test Environment Execution First:**
-   - Apply migration `20260926000001_smart_search.sql` strictly to the dedicated UMA test/security Supabase project (`odnpkqjytrmciwmcehff`).
+   - Apply migration `20260926000001_smart_search.sql` strictly to the dedicated UMA test/security Supabase project (`xckdihprwjdwutglytwu`).
    - Run verification test script against test database using signed Clerk tokens and anonymous client.
 2. **Performance Validation:**
    - Execute `EXPLAIN ANALYZE` on `search_products` with sample queries.

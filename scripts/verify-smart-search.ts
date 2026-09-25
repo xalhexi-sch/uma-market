@@ -276,6 +276,92 @@ async function run() {
     assert("TEST-20", "Pagination: limit/offset & total_count", !!isPaginated, isPaginated ? `Page 1 count: ${r1.length}, Page 2 count: ${r2.length}, Total count: ${r1[0].total_count}` : "Pagination mismatch");
   }
 
+  // 21. TEST-21: Punctuation-only search: q="???" returns 0 rows (MED-01)
+  {
+    const { data, error } = await publicClient.rpc("search_products", { p_search: "???" });
+    const rows = (data ?? []) as SearchRow[];
+    const zeroResults = !error && rows.length === 0;
+    assert("TEST-21", "Punctuation query: ???", !!zeroResults, zeroResults ? "Zero matches returned cleanly" : `Returned ${rows.length} false match(es)`);
+  }
+
+  // 22. TEST-22: Punctuation-only search: q="!@#$%" returns 0 rows (MED-01)
+  {
+    const { data, error } = await publicClient.rpc("search_products", { p_search: "!@#$%" });
+    const rows = (data ?? []) as SearchRow[];
+    const zeroResults = !error && rows.length === 0;
+    assert("TEST-22", "Punctuation query: !@#$%", !!zeroResults, zeroResults ? "Zero matches returned cleanly" : `Returned ${rows.length} false match(es)`);
+  }
+
+  // 23. TEST-23: Cross-category isolation: q="bangus", category="vegetables" returns 0 items
+  {
+    const { data, error } = await publicClient.rpc("search_products", {
+      p_search: "bangus",
+      p_category_slug: "vegetables",
+    });
+    const rows = (data ?? []) as SearchRow[];
+    const isolated = !error && rows.length === 0;
+    assert("TEST-23", "Cross-category isolation: bangus in vegetables", !!isolated, isolated ? "0 items returned (vegetables strictly isolated)" : `Leaked ${rows.length} seafood item(s)`);
+  }
+
+  // 24. TEST-24: Long query resilience: 500-character search string (MED-02)
+  {
+    const longQ = "tomato ".repeat(75); // 525 characters
+    const start = Date.now();
+    const { data, error } = await publicClient.rpc("search_products", { p_search: longQ });
+    const elapsedMs = Date.now() - start;
+    const rows = (data ?? []) as SearchRow[];
+    const safe = !error && rows.length > 0 && elapsedMs < 1000;
+    assert("TEST-24", "Long query resilience: 500+ chars", !!safe, safe ? `Safe execution in ${elapsedMs}ms, matched "${rows[0]?.name}"` : `Failed or timed out: ${error?.message || `${elapsedMs}ms`}`);
+  }
+
+  // 25. TEST-25: RPC parameter bounds & normalization (MED-02, LOW-03)
+  {
+    const { data: limitData, error: limitErr } = await publicClient.rpc("search_products", { p_limit: 100000 });
+    const { data: negOffsetData, error: offsetErr } = await publicClient.rpc("search_products", { p_offset: -10 });
+    const { data: emptySlugData, error: emptySlugErr } = await publicClient.rpc("search_products", { p_category_slug: "" });
+    const { data: spaceSlugData, error: spaceSlugErr } = await publicClient.rpc("search_products", { p_category_slug: "   " });
+
+    const limitRows = (limitData ?? []) as SearchRow[];
+    const offsetRows = (negOffsetData ?? []) as SearchRow[];
+    const emptyRows = (emptySlugData ?? []) as SearchRow[];
+    const spaceRows = (spaceSlugData ?? []) as SearchRow[];
+
+    const boundsClamped =
+      !limitErr && !offsetErr && !emptySlugErr && !spaceSlugErr &&
+      limitRows.length <= 100 &&
+      offsetRows.length > 0 &&
+      emptyRows.length > 0 &&
+      spaceRows.length > 0;
+
+    assert(
+      "TEST-25",
+      "RPC parameter clamping & normalization",
+      !!boundsClamped,
+      boundsClamped
+        ? `Limit clamped <= 100 (${limitRows.length} rows), negative offset clamped, empty/whitespace slug normalized`
+        : "Bounds clamping failed"
+    );
+  }
+
+  // 26. TEST-26: Null relationship payload handling (LOW-01)
+  {
+    // Check that when category or farmer relationship is absent, JSON returns SQL null rather than an empty object
+    const { data: testRows, error } = await publicClient.rpc("search_products", { p_limit: 1 });
+    const row = testRows?.[0] as SearchRow | undefined;
+    // Verify that the farmer/category objects are either genuine objects with valid keys or null (never empty dummy objects)
+    const validCategoryShape = !error && row && (row.category === null || (row.category && typeof row.category.id === "string"));
+    const validFarmerShape = !error && row && (row.farmer === null || (row.farmer && typeof row.farmer.clerk_id === "string"));
+
+    assert(
+      "TEST-26",
+      "Null category/farmer relationship handling",
+      !!(validCategoryShape && validFarmerShape),
+      validCategoryShape && validFarmerShape
+        ? "Category and farmer objects maintain strict nullable JSON shapes"
+        : "Found empty dummy object for category/farmer"
+    );
+  }
+
   console.log("\n==============================================================================");
   const total = results.length;
   const passed = results.filter((r) => r.passed).length;
