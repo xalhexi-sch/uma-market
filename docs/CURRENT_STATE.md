@@ -7,8 +7,8 @@
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Slice:** **Launch Readiness P1 Fixes (`fix/launch-readiness`)**
-- **Current Checkpoint:** Launch Readiness P1 Fixes (`fix/launch-readiness`) ✅ | Product Media Gallery (`feat/product-media-gallery`) ✅ | Final Public Landing Refinement ✅ | SaaS Product Showcase Landing Page ✅ | Public Experience UX/UI Refinement ✅ | Brand, Navbar & CTA Polish ✅ | Public Marketplace (`/products` & `/products/[id]`) ✅ | Production Deployment Verified ✅
+- **Current Slice:** **Feature A: Smart Search & Discovery (`feat/smart-search`)**
+- **Current Checkpoint:** Feature A: Smart Search & Discovery (`feat/smart-search`) ✅ | Launch Readiness P1 Fixes (`fix/launch-readiness`) ✅ | Security Hardening & Concurrency Remediation ✅ | Product Media Gallery (`feat/product-media-gallery`) ✅ | Production Deployment Verified ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
@@ -16,11 +16,34 @@
 - **Slice 5 Status:** ✅ **Complete & Fully Verified**
 - **Slice 6 Status:** ✅ **Complete & Fully Verified**
 - **Product Media Gallery Status:** ✅ **Complete & Fully Verified**
-- **Launch Readiness P1 Status:** ✅ **Complete & Fully Verified (Exit code 0)**
+- **Launch Readiness P1 Status:** ✅ **Complete & Fully Verified**
+- **Feature A Status:** ✅ **Complete & Fully Verified (26/26 Test Cases Passed, Hardening Remediations Verified)**
 
 ---
 
 ## 2. What Is Actually Complete
+
+### Feature A — Smart Search & Discovery (Verified ✅)
+- [x] **PostgreSQL pg_trgm Extension & Functional GIN Trigram Indexes (`20260926000001_smart_search.sql` & `20260926000002_smart_search_hardening.sql`):**
+  - Enabled `pg_trgm` extension in `extensions` schema.
+  - Implemented functional GIN trigram indexes on `LOWER(products.name)`, `LOWER(products.description)`, `LOWER(categories.name)`, `LOWER(profiles.business_name)`, and `LOWER(profiles.full_name)` enabling bitmap index scan query planning.
+  - Added composite B-Tree index on `products (status, category_id, quantity_available)`.
+- [x] **Authoritative Hardened Search RPC (`search_products`):**
+  - Multi-field weighted scoring (`products.name` > `categories.name` > `profiles.business_name`/`full_name` > `products.description`).
+  - Punctuation-only search guard (e.g. `???`, `!@#$%` return 0 results cleanly, avoiding unintended full-catalog exposure).
+  - Parameter bounds clamping (`p_search` <= 100 chars, `p_limit` in [1, 100], `p_offset` >= 0, `p_category_slug` normalized).
+  - Safe nullable relationship projections: returns SQL `NULL` for category/farmer instead of dummy objects with null properties.
+  - Server-side atomic category and in-stock filtering before pagination (resolving PostgREST in-memory filter truncation bug).
+  - Atomic `total_count` window calculation for pagination.
+  - Public data protection: farmer profile projection strictly excludes `phone` and `address`.
+- [x] **Query & UI Integration:**
+  - Upgraded `getActiveProducts` and added `searchActiveProducts` in `src/lib/supabase/queries/products.ts`.
+  - Added "Most Relevant" (`relevance`) sorting option across marketplace and business browsing views.
+  - Added inline clear search button (`RiCloseCircleLine`) in `ProductFilters` with automatic relevance sort reset to `newest`.
+- [x] **Automated Test Verification:**
+  - 26/26 automated test cases passed via `scripts/verify-smart-search.ts`.
+  - Zero ESLint errors/warnings (`npm run lint`).
+  - Clean Next.js compilation across all 38 routes (`npm run build`).
 
 ### Slice 1 — Platform Foundation (Verified ✅)
 - [x] Clerk Authentication (`@clerk/nextjs` v7) with custom sign-in and sign-up pages

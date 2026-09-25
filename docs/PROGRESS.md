@@ -207,20 +207,20 @@ Executed and verified against the **live remote Supabase database** (`https://od
   - Updated `src/components/dashboard/sidebar.tsx` with color-coded badges (`amber-600` for Farmer pending orders, `emerald-600` for Business ready/delivery orders, `primary` for Cart) that automatically suppress when count = 0.
 - **Live Verification Results (Live Remote Supabase & Multi-User Signed Clerk JWTs):**
 
-| Test Item | Verification Method | Result | Verification Details |
-|---|---|---|---|
-| **Realtime Channel Connect** | Authenticated Clerk JWT → Supabase Realtime | ✅ **PASS** | Subscribed status confirmed for Farmer and Buyer channels |
-| **Business → Farmer Realtime Message** | Buyer Insert → Farmer Realtime Listener | ✅ **PASS** | Farmer received new message in real time without page refresh |
-| **Farmer → Business Realtime Reply** | Farmer Insert → Buyer Realtime Listener | ✅ **PASS** | Buyer received farmer reply in real time without page refresh |
-| **Participant Privacy via Realtime** | Intruder Realtime Listener on shared order | ✅ **PASS** | Unrelated user received 0 events (RLS enforced at Realtime layer) |
-| **Anti-Tamper Message Injection** | Intruder Clerk JWT → `messages` insert | ✅ **PASS** | Blocked: `"new row violates row-level security policy for table messages"` |
-| **Realtime Channel Cleanup** | `removeChannel` on unmount/teardown | ✅ **PASS** | All channels cleanly removed; zero subscription leaks |
-| **Farmer Pending Orders Badge** | Server Component Query → `getFarmerPendingOrderCount` | ✅ **PASS** | Pending orders accurately counted and displayed on "Orders" nav |
-| **Farmer Badge Update on Transition** | `update_order_status` RPC (pending → accepted) | ✅ **PASS** | Badge count decremented accurately from 1 → 0 upon status transition |
-| **Business Active Orders Badge** | Server Component Query → `getBusinessActiveOrderCount` | ✅ **PASS** | Orders in `ready` or `for_delivery` counted and displayed |
-| **Business Badge Completion Update** | Order status transition to `completed` | ✅ **PASS** | Badge count decremented from 1 → 0; disappeared cleanly |
-| **Cross-Tenant Count Isolation** | Intruder query on Buyer1's orders | ✅ **PASS** | RLS returned count = 0; cross-user order counting blocked |
-| **Code Quality & Build** | `npm run lint` & `npm run build` | ✅ **PASS** | 0 errors, 0 warnings, 25 dynamic routes compiled cleanly via Turbopack |
+| Test Item                              | Verification Method                                    | Result     | Verification Details                                                       |
+| ----------------------------------------| --------------------------------------------------------| ------------| ----------------------------------------------------------------------------|
+| **Realtime Channel Connect**           | Authenticated Clerk JWT → Supabase Realtime            | ✅ **PASS** | Subscribed status confirmed for Farmer and Buyer channels                  |
+| **Business → Farmer Realtime Message** | Buyer Insert → Farmer Realtime Listener                | ✅ **PASS** | Farmer received new message in real time without page refresh              |
+| **Farmer → Business Realtime Reply**   | Farmer Insert → Buyer Realtime Listener                | ✅ **PASS** | Buyer received farmer reply in real time without page refresh              |
+| **Participant Privacy via Realtime**   | Intruder Realtime Listener on shared order             | ✅ **PASS** | Unrelated user received 0 events (RLS enforced at Realtime layer)          |
+| **Anti-Tamper Message Injection**      | Intruder Clerk JWT → `messages` insert                 | ✅ **PASS** | Blocked: `"new row violates row-level security policy for table messages"` |
+| **Realtime Channel Cleanup**           | `removeChannel` on unmount/teardown                    | ✅ **PASS** | All channels cleanly removed; zero subscription leaks                      |
+| **Farmer Pending Orders Badge**        | Server Component Query → `getFarmerPendingOrderCount`  | ✅ **PASS** | Pending orders accurately counted and displayed on "Orders" nav            |
+| **Farmer Badge Update on Transition**  | `update_order_status` RPC (pending → accepted)         | ✅ **PASS** | Badge count decremented accurately from 1 → 0 upon status transition       |
+| **Business Active Orders Badge**       | Server Component Query → `getBusinessActiveOrderCount` | ✅ **PASS** | Orders in `ready` or `for_delivery` counted and displayed                  |
+| **Business Badge Completion Update**   | Order status transition to `completed`                 | ✅ **PASS** | Badge count decremented from 1 → 0; disappeared cleanly                    |
+| **Cross-Tenant Count Isolation**       | Intruder query on Buyer1's orders                      | ✅ **PASS** | RLS returned count = 0; cross-user order counting blocked                  |
+| **Code Quality & Build**               | `npm run lint` & `npm run build`                       | ✅ **PASS** | 0 errors, 0 warnings, 25 dynamic routes compiled cleanly via Turbopack     |
 
 ### Checkpoint 4.4: Mobile Navigation & Production Hardening (Verified ✅)
 - **Mobile Navigation Drawer (`src/components/dashboard/mobile-nav.tsx`):**
@@ -668,6 +668,45 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+### Feature A — Smart Search & Discovery (`feat/smart-search`) (Complete & Hardened ✅)
+- **1. Database Schema & Functional GIN Trigram Indexes (`20260926000001_smart_search.sql` & `20260926000002_smart_search_hardening.sql`):**
+  - Enabled `pg_trgm` extension in `extensions` schema.
+  - Implemented functional GIN trigram indexes on `LOWER(name)`, `LOWER(description)`, `LOWER(categories.name)`, `LOWER(profiles.business_name)`, and `LOWER(profiles.full_name)` enabling bitmap index scan query planning.
+  - Added composite index on `products(status, category_id, quantity_available)`.
+- **2. Authoritative Hardened PostgreSQL RPC (`search_products`):**
+  - Implemented `search_products(p_search, p_category_slug, p_in_stock_only, p_sort, p_limit, p_offset)` with `SECURITY DEFINER` and fixed `search_path = public, extensions, pg_temp;`.
+  - Multi-field weighted scoring (`products.name` > `categories.name` > `profiles.business_name`/`full_name` > `products.description`).
+  - Punctuation-only search guard (e.g. `???`, `!@#$%` return 0 results cleanly, avoiding unintended full-catalog exposure).
+  - Parameter bounds clamping (`p_search` <= 100 chars, `p_limit` in [1, 100], `p_offset` >= 0, `p_category_slug` normalized).
+  - Safe nullable relationship projections: returns SQL `NULL` for category/farmer instead of dummy objects with null properties.
+  - Server-side atomic category and in-stock filtering before pagination (resolving PostgREST in-memory filter truncation bug).
+  - Accurate windowed `total_count` and relevance ranking `search_rank` in a single round-trip.
+  - Farmer profile projection strictly excludes private fields (`phone`, `address`).
+- **3. Application & Query Layer Integration:**
+  - Upgraded `getActiveProducts` and added `searchActiveProducts` in `src/lib/supabase/queries/products.ts`.
+  - Added "Most Relevant" (`relevance`) sorting option across marketplace and business browsing views.
+  - Added inline clear search button (`RiCloseCircleLine`) in `ProductFilters` with automatic relevance sort reset to `newest`.
+  - Updated `/products` and `/business/products` to default to `relevance` sort when a search query is active.
+- **4. Automated Test Verification:**
+  - Created 26-case test suite (`scripts/verify-smart-search.ts`) covering typo tolerance ("Tomatp" -> "Tomatoes", "petchay", "talongg", "camot"), multi-word queries, farmer discovery, category matching, combined filtering/sorting, SQL injection safety, draft exclusion, privacy, punctuation-only handling, cross-category isolation, 500-char input resilience, RPC parameter clamping, and null relationship payloads.
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Production Build** | `npm run build` | ✅ **PASS** | 38 routes compiled cleanly via Turbopack |
+| **Smart Search Suite** | `scripts/verify-smart-search.ts` | ✅ **PASS** | 26/26 test cases passed against remote test DB |
+| **Typo Tolerance** | Trigram word similarity | ✅ **PASS** | "Tomatp" matched "Ampayon Fresh Red Tomatoes" |
+| **Producer Discovery** | Farmer name/business trigram | ✅ **PASS** | "Verdant Ridge" & "Golden Harvest" returned active listings |
+| **Punctuation Guard** | Alphanumeric validation | ✅ **PASS** | "???" and "!@#$%" return 0 results cleanly |
+| **Cross-Category Isolation** | Database query assertion | ✅ **PASS** | "bangus" in "vegetables" returns 0 rows |
+| **Long Query Resilience** | Bounded trigram execution | ✅ **PASS** | 525-character query safely executes in 126ms |
+| **RPC Bounds Clamping** | Parameter normalization | ✅ **PASS** | Limit clamped <= 100; negative offset clamped; empty slug normalized |
+| **Null Relationship JSON** | Conditional JSON aggregation | ✅ **PASS** | Category/farmer return strict null when absent |
+| **Security & Privacy** | DB query assertion | ✅ **PASS** | Drafts excluded; farmer phone/address omitted from payload |
+| **SQL Injection Resilience** | Parameterized string test | ✅ **PASS** | Safe literal escaping; 0 false matches |
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
@@ -684,3 +723,4 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Visual Correction — Device Mockups & Hardware Presentation:** ✅ Complete & Verified (2 large landscape iPad Pro tablets, 1 thick 3D titanium smartphone, real UMA UI, unclipped soft shadows, unified settling animations, 0 lint errors, and 36 compiled routes)
 - **Product Media Gallery (`feat/product-media-gallery`):** ✅ Complete & Verified (`product_images` table, RLS policies, backfill, shadcn Carousel gallery, farmer multi-photo upload/edit up to 5 photos, safe deletion, 0 lint errors, and 35 compiled routes)
 - **Launch Readiness P1 Fixes (`fix/launch-readiness`):** ✅ Complete & Verified (Stock restitution trigger, public farmer privacy, business dashboard navigation consistency, atomic multi-farmer checkout RPC, 0 lint errors, 20 compiled routes)
+- **Feature A (Smart Search & Discovery):** ✅ Complete & Hardened Across All 26 Test Cases (`feat/smart-search`)

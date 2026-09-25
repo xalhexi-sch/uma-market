@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Product, Category } from "@/lib/types";
 
-export type ProductSort = "price_asc" | "price_desc" | "harvest_newest" | "newest" | "name_asc";
+export type ProductSort = "relevance" | "price_asc" | "price_desc" | "harvest_newest" | "newest" | "name_asc";
 
 export interface ProductFilters {
   search?: string;
@@ -13,159 +13,139 @@ export interface ProductFilters {
   limit?: number;
 }
 
+export interface SearchActiveProductsResult {
+  products: Product[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+
+interface SearchProductsRpcRow {
+  id: string;
+  farmer_clerk_id: string;
+  category_id: string | null;
+  name: string;
+  description: string | null;
+  price_per_unit: number;
+  unit: string;
+  quantity_available: number;
+  min_order_quantity: number;
+  image_url: string | null;
+  image_path: string | null;
+  harvest_date: string | null;
+  available_until: string | null;
+  status: Product["status"];
+  created_at: string;
+  updated_at: string;
+  category: Product["category"];
+  farmer: Product["farmer"];
+  images: Product["images"];
+  search_rank: number;
+  total_count: number | string;
+}
+
 /**
- * Fetch active products for marketplace and business browsing.
- * Uses server Supabase client with Clerk JWT when authenticated.
- * For unauthenticated visitors, enriches farmer provenance via the server-only admin client.
+ * Execute smart search and filtered discovery via the authoritative search_products PostgreSQL RPC.
+ * Supports pg_trgm typo tolerance, multi-field weighted ranking, and database-level filtering.
  */
-export async function getActiveProducts({
+export async function searchActiveProducts({
   search,
   categorySlug,
-  sort = "newest",
+  sort = "relevance",
   inStockOnly = true,
   page = 1,
   limit = 24,
-}: ProductFilters = {}): Promise<Product[]> {
+}: ProductFilters = {}): Promise<SearchActiveProductsResult> {
   const supabase = await createClient();
+  const offset = Math.max(0, (page - 1) * limit);
 
-  let query = supabase
-    .from("products")
-    .select(
-      `
-      id, farmer_clerk_id, category_id, name, description,
-      price_per_unit, unit, quantity_available, min_order_quantity,
-      image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
-      farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, is_verified),
-      category:categories(id, name, slug)
-    `
-    )
-    .eq("status", "active");
+  // If there's no search query and sort is 'relevance', default to 'newest'
+  const effectiveSort: ProductSort =
+    !search?.trim() && sort === "relevance" ? "newest" : sort;
 
-  if (inStockOnly) {
-    query = query.gt("quantity_available", 0);
-  }
+  const rpcParams = {
+    p_search: search?.trim() || null,
+    p_category_slug: categorySlug?.trim() || null,
+    p_in_stock_only: inStockOnly,
+    p_sort: effectiveSort,
+    p_limit: limit,
+    p_offset: offset,
+  };
 
-  if (search) {
-    query = query.ilike("name", `%${search}%`);
-  }
+  let { data, error } = await supabase.rpc("search_products", rpcParams);
 
-  switch (sort) {
-    case "price_asc":
-      query = query.order("price_per_unit", { ascending: true });
-      break;
-    case "price_desc":
-      query = query.order("price_per_unit", { ascending: false });
-      break;
-    case "harvest_newest":
-      query = query.order("harvest_date", { ascending: false, nullsFirst: false });
-      break;
-    case "name_asc":
-      query = query.order("name", { ascending: true });
-      break;
-    case "newest":
-    default:
-      query = query.order("created_at", { ascending: false });
-      break;
-  }
-
-  query = query.range((page - 1) * limit, page * limit - 1);
-
-  let { data, error } = await query;
   if (error) {
     try {
       const admin = createAdminClient();
-      let fallbackQuery = admin
-        .from("products")
-        .select(
-          `
-          id, farmer_clerk_id, category_id, name, description,
-          price_per_unit, unit, quantity_available, min_order_quantity,
-          image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
-          farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, is_verified),
-          category:categories(id, name, slug)
-        `
-        )
-        .eq("status", "active");
-
-      if (inStockOnly) {
-        fallbackQuery = fallbackQuery.gt("quantity_available", 0);
-      }
-      if (search) {
-        fallbackQuery = fallbackQuery.ilike("name", `%${search}%`);
-      }
-      switch (sort) {
-        case "price_asc":
-          fallbackQuery = fallbackQuery.order("price_per_unit", { ascending: true });
-          break;
-        case "price_desc":
-          fallbackQuery = fallbackQuery.order("price_per_unit", { ascending: false });
-          break;
-        case "harvest_newest":
-          fallbackQuery = fallbackQuery.order("harvest_date", { ascending: false, nullsFirst: false });
-          break;
-        case "name_asc":
-          fallbackQuery = fallbackQuery.order("name", { ascending: true });
-          break;
-        case "newest":
-        default:
-          fallbackQuery = fallbackQuery.order("created_at", { ascending: false });
-          break;
-      }
-      fallbackQuery = fallbackQuery.range((page - 1) * limit, page * limit - 1);
-      const fallbackRes = await fallbackQuery;
+      const fallbackRes = await admin.rpc("search_products", rpcParams);
       if (!fallbackRes.error && fallbackRes.data) {
-        data = fallbackRes.data as unknown as typeof data;
+        data = fallbackRes.data;
         error = null;
       }
     } catch {
-      // fallback attempt failed
+      // Fallback failed
     }
   }
+
   if (error) throw error;
 
-  // Filter by category slug after join (PostgREST can't filter on joined cols without RPC)
-  let products = (data ?? []) as unknown as Product[];
-  if (categorySlug) {
-    products = products.filter((p) => p.category?.slug === categorySlug);
-  }
+  const rawRows = (data ?? []) as unknown as SearchProductsRpcRow[];
+  const totalCount = rawRows.length > 0 ? Number(rawRows[0].total_count) : 0;
+  const totalPages = limit > 0 ? Math.ceil(totalCount / limit) : 1;
 
-  // If unauthenticated or farmer viewer, RLS hides farmer profile from PostgREST join.
-  // Enrich public farmer provenance on the server so visitors can see farm source.
-  const missingFarmerIds = [
-    ...new Set(
-      products
-        .filter((p) => !p.farmer)
-        .map((p) => p.farmer_clerk_id)
-        .filter(Boolean)
-    ),
-  ];
-
-  if (missingFarmerIds.length > 0) {
-    try {
-      const admin = createAdminClient();
-      const { data: farmerProfiles } = await admin
-        .from("profiles")
-        .select("clerk_id, full_name, business_name, city, avatar_url, bio, is_verified")
-        .in("clerk_id", missingFarmerIds);
-
-      if (farmerProfiles && farmerProfiles.length > 0) {
-        const profileMap = new Map(farmerProfiles.map((f) => [f.clerk_id, f]));
-        products = products.map((p) => {
-          if (!p.farmer && profileMap.has(p.farmer_clerk_id)) {
-            return {
-              ...p,
-              farmer: profileMap.get(p.farmer_clerk_id) as Product["farmer"],
-            };
-          }
-          return p;
-        });
-      }
-    } catch {
-      // Graceful fallback: return products as retrieved
+  const products: Product[] = rawRows.map((row) => {
+    let images = row.images ?? [];
+    if (images.length > 0) {
+      images = [...images].sort((a, b) => a.sort_order - b.sort_order);
+    } else if (row.image_path || row.image_url) {
+      images = [
+        {
+          id: "primary",
+          product_id: row.id,
+          image_path: row.image_path || row.image_url || "",
+          sort_order: 0,
+        },
+      ];
     }
-  }
 
-  return products;
+    return {
+      id: row.id,
+      farmer_clerk_id: row.farmer_clerk_id,
+      category_id: row.category_id,
+      name: row.name,
+      description: row.description,
+      price_per_unit: Number(row.price_per_unit),
+      unit: row.unit,
+      quantity_available: Number(row.quantity_available),
+      min_order_quantity: Number(row.min_order_quantity),
+      image_url: row.image_url,
+      image_path: row.image_path,
+      harvest_date: row.harvest_date,
+      available_until: row.available_until,
+      status: row.status,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      category: row.category && (row.category as { id?: string }).id ? row.category : undefined,
+      farmer: row.farmer && (row.farmer as { clerk_id?: string }).clerk_id ? row.farmer : undefined,
+      images,
+    };
+  });
+
+  return {
+    products,
+    totalCount,
+    page,
+    totalPages,
+  };
+}
+
+/**
+ * Fetch active products for marketplace and business browsing.
+ * Backwards-compatible wrapper around searchActiveProducts.
+ */
+export async function getActiveProducts(filters: ProductFilters = {}): Promise<Product[]> {
+  const result = await searchActiveProducts(filters);
+  return result.products;
 }
 
 /**

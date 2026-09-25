@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const VALID_SORTS: ProductSort[] = [
+  "relevance",
   "newest",
   "harvest_newest",
   "price_asc",
@@ -259,10 +260,13 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
   const { q, category, sort, in_stock } = await searchParams;
   const categories = await getCategories();
 
-  const isFiltering = !!q || !!category || in_stock === "false" || (!!sort && sort !== "newest");
+  const isFiltering =
+    !!q || !!category || in_stock === "false" || (!!sort && sort !== "newest" && sort !== "relevance");
   const inStockOnly = in_stock !== "false";
   const activeSort: ProductSort = VALID_SORTS.includes(sort as ProductSort)
     ? (sort as ProductSort)
+    : q
+    ? "relevance"
     : "newest";
 
   const selectedCategory = categories.find((c) => c.slug === category);
@@ -270,7 +274,7 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
   const buildCategoryHref = (catSlug?: string) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
-    if (sort && sort !== "newest") params.set("sort", sort);
+    if (sort && sort !== "newest" && (sort !== "relevance" || !q)) params.set("sort", sort);
     if (in_stock === "false") params.set("in_stock", "false");
     if (catSlug) params.set("category", catSlug);
     const str = params.toString();
