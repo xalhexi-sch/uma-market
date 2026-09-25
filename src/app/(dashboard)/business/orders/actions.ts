@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
 
 /**
  * Cancel a pending order as a business buyer.
@@ -18,6 +19,11 @@ export async function cancelOrder(orderId: string) {
 
   if (!userId || sessionClaims?.user_role !== "business") {
     return { success: false, error: "Unauthorized" };
+  }
+
+  const { active, error: activeError } = await assertActiveProfile(userId);
+  if (!active) {
+    return { success: false, error: activeError ?? "Account is not active." };
   }
 
   const supabase = await createClient();

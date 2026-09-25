@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
 
 /**
  * Update the status of an order via the update_order_status RPC.
@@ -21,6 +22,11 @@ export async function updateOrderStatus(
 
   if (!userId || sessionClaims?.user_role !== "farmer") {
     return { success: false, error: "Unauthorized" };
+  }
+
+  const { active, error: activeError } = await assertActiveProfile(userId);
+  if (!active) {
+    return { success: false, error: activeError ?? "Account is not active." };
   }
 
   const supabase = await createClient();

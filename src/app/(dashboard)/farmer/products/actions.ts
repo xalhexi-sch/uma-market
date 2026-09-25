@@ -4,10 +4,15 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { PRODUCT_IMAGES_BUCKET } from "@/lib/supabase/storage";
+import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
 
-function assertFarmer(sessionClaims: Record<string, unknown> | null | undefined, userId: string | null) {
+async function assertFarmer(sessionClaims: Record<string, unknown> | null | undefined, userId: string | null) {
   if (!userId || sessionClaims?.user_role !== "farmer") {
     throw new Error("Unauthorized");
+  }
+  const { active } = await assertActiveProfile(userId);
+  if (!active) {
+    throw new Error("Account is not active.");
   }
 }
 
@@ -39,9 +44,10 @@ export interface ProductFormData {
 export async function createProduct(data: ProductFormData) {
   const { userId, sessionClaims } = await auth();
   try {
-    assertFarmer(sessionClaims, userId);
-  } catch {
-    return { success: false, error: "Unauthorized" };
+    await assertFarmer(sessionClaims, userId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unauthorized";
+    return { success: false, error: msg };
   }
 
   if (!data.name.trim()) return { success: false, error: "Product name is required." };
@@ -127,9 +133,10 @@ export async function createProduct(data: ProductFormData) {
 export async function updateProduct(productId: string, data: Partial<ProductFormData>) {
   const { userId, sessionClaims } = await auth();
   try {
-    assertFarmer(sessionClaims, userId);
-  } catch {
-    return { success: false, error: "Unauthorized" };
+    await assertFarmer(sessionClaims, userId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unauthorized";
+    return { success: false, error: msg };
   }
 
   // Validate image paths belong to this farmer if provided
@@ -266,9 +273,10 @@ export async function updateProduct(productId: string, data: Partial<ProductForm
 export async function archiveProduct(productId: string) {
   const { userId, sessionClaims } = await auth();
   try {
-    assertFarmer(sessionClaims, userId);
-  } catch {
-    return { success: false, error: "Unauthorized" };
+    await assertFarmer(sessionClaims, userId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unauthorized";
+    return { success: false, error: msg };
   }
 
   const supabase = await createClient();

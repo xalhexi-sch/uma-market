@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { RiTruckLine, RiStore2Line, RiShoppingBagLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -144,9 +145,19 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
       </div>
 
       {error && (
-        <p className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
-        </p>
+        <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive flex flex-col gap-2">
+          <p className="font-medium">{error}</p>
+          {(error.includes("cart") || error.includes("another window")) && (
+            <div>
+              <Link
+                href="/business/cart"
+                className="inline-flex items-center text-xs font-semibold underline hover:text-destructive/80"
+              >
+                Return to Cart →
+              </Link>
+            </div>
+          )}
+        </div>
       )}
 
       <Button type="submit" size="lg" disabled={isPending} className="w-full sm:w-auto">

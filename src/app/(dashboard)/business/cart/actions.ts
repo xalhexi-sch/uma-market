@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
 
 /**
  * Add a product to the business user's cart.
@@ -12,6 +13,11 @@ export async function addToCart(productId: string, quantity: number) {
   const { userId, sessionClaims } = await auth();
   if (!userId || sessionClaims?.user_role !== "business") {
     return { success: false, error: "Unauthorized" };
+  }
+
+  const { active, error: activeError } = await assertActiveProfile(userId);
+  if (!active) {
+    return { success: false, error: activeError ?? "Account is not active." };
   }
 
   if (quantity <= 0) {
@@ -72,6 +78,11 @@ export async function updateCartItemQuantity(cartItemId: string, quantity: numbe
     return { success: false, error: "Unauthorized" };
   }
 
+  const { active, error: activeError } = await assertActiveProfile(userId);
+  if (!active) {
+    return { success: false, error: activeError ?? "Account is not active." };
+  }
+
   if (quantity <= 0) {
     return removeFromCart(cartItemId);
   }
@@ -99,6 +110,11 @@ export async function removeFromCart(cartItemId: string) {
   const { userId, sessionClaims } = await auth();
   if (!userId || sessionClaims?.user_role !== "business") {
     return { success: false, error: "Unauthorized" };
+  }
+
+  const { active, error: activeError } = await assertActiveProfile(userId);
+  if (!active) {
+    return { success: false, error: activeError ?? "Account is not active." };
   }
 
   const supabase = await createClient();

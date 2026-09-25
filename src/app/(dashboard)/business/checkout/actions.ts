@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@/lib/supabase/server";
+import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
 
 export interface PlaceOrderInput {
   farmerClerkId: string;
@@ -21,11 +22,22 @@ export interface CheckoutOrderGroup {
   items: Array<{ product_id: string; quantity: number }>;
 }
 
+function mapCheckoutError(rawMessage: string): string {
+  if (
+    rawMessage.includes("was not found or has already been checked out") ||
+    rawMessage.includes("was already checked out") ||
+    rawMessage.includes("exceeds quantity in cart")
+  ) {
+    return "Your cart was modified or already checked out in another window. Please review your cart before placing an order.";
+  }
+  return rawMessage;
+}
+
 /**
  * Place a multi-farmer (or single-farmer) checkout in a single atomic transaction.
  * Uses the place_checkout_orders RPC to guarantee all-or-nothing execution:
- * if any order group fails validation (stock, MOQ, farmer status), all orders
- * roll back, preventing partial completion and duplicate retry risks.
+ * if any order group fails validation (stock, MOQ, farmer status, cart presence),
+ * all orders roll back, preventing partial completion and duplicate retry risks.
  */
 export async function placeMultiFarmerCheckout(orders: CheckoutOrderGroup[]): Promise<{
   success: boolean;
@@ -36,6 +48,11 @@ export async function placeMultiFarmerCheckout(orders: CheckoutOrderGroup[]): Pr
 
   if (!userId || sessionClaims?.user_role !== "business") {
     return { success: false, error: "Unauthorized" };
+  }
+
+  const { active, error: activeError } = await assertActiveProfile(userId);
+  if (!active) {
+    return { success: false, error: activeError ?? "Account is not active." };
   }
 
   if (!orders || orders.length === 0) {
@@ -59,7 +76,7 @@ export async function placeMultiFarmerCheckout(orders: CheckoutOrderGroup[]): Pr
 
   if (error) {
     console.error("[checkout] place_checkout_orders RPC error:", error.message);
-    return { success: false, error: error.message };
+    return { success: false, error: mapCheckoutError(error.message) };
   }
 
   const orderIds = (data as { order_ids: string[] }).order_ids;
@@ -83,6 +100,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<{
     return { success: false, error: "Unauthorized" };
   }
 
+  const { active, error: activeError } = await assertActiveProfile(userId);
+  if (!active) {
+    return { success: false, error: activeError ?? "Account is not active." };
+  }
+
   if (input.items.length === 0) {
     return { success: false, error: "Cart is empty." };
   }
@@ -100,8 +122,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<{
 
   if (error) {
     console.error("[checkout] place_order RPC error:", error.message);
-    // Surface the DB validation message (written to be user-readable)
-    return { success: false, error: error.message };
+    // Surface the DB validation message (mapped if cart error)
+    return { success: false, error: mapCheckoutError(error.message) };
   }
 
   const orderId = (data as { order_id: string }).order_id;

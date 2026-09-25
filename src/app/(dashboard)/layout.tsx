@@ -52,6 +52,9 @@ export default async function DashboardLayout({
       getBusinessActiveOrderCount(userId),
       getProfileByClerkId(userId),
     ]);
+    if (profile?.status && profile.status !== "active") {
+      redirect("/sign-in?revoked=true");
+    }
     cartCount = cCount;
     businessActiveOrderCount = oCount;
     profileMissing = !profile;
@@ -60,7 +63,16 @@ export default async function DashboardLayout({
       getFarmerPendingOrderCount(userId),
       getProfileByClerkId(userId),
     ]);
+    if (profile?.status && profile.status !== "active") {
+      redirect("/sign-in?revoked=true");
+    }
     farmerPendingCount = fCount;
+    profileMissing = !profile;
+  } else if (role === "admin") {
+    const profile = await getProfileByClerkId(userId);
+    if (profile?.status && profile.status !== "active") {
+      redirect("/sign-in?revoked=true");
+    }
     profileMissing = !profile;
   }
 
