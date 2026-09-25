@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 // Re-render on every request so search params work
 export const dynamic = "force-dynamic";
 
-const VALID_SORTS: ProductSort[] = ["newest", "harvest_newest", "price_asc", "price_desc", "name_asc"];
+const VALID_SORTS: ProductSort[] = ["relevance", "newest", "harvest_newest", "price_asc", "price_desc", "name_asc"];
 
 interface PageProps {
   searchParams: Promise<{ q?: string; category?: string; sort?: string; in_stock?: string }>;
@@ -97,12 +97,14 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
   const inStockOnly = in_stock !== "false";
   const activeSort: ProductSort = VALID_SORTS.includes(sort as ProductSort)
     ? (sort as ProductSort)
+    : q
+    ? "relevance"
     : "newest";
 
   const buildCategoryHref = (catSlug?: string) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
-    if (sort && sort !== "newest") params.set("sort", sort);
+    if (sort && sort !== "newest" && (sort !== "relevance" || !q)) params.set("sort", sort);
     if (in_stock === "false") params.set("in_stock", "false");
     if (catSlug) params.set("category", catSlug);
     const str = params.toString();

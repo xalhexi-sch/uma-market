@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { RiSearchLine, RiFilter3Line } from "@remixicon/react";
+import { RiSearchLine, RiFilter3Line, RiCloseCircleLine } from "@remixicon/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,7 @@ interface ProductFiltersProps {
 }
 
 const SORT_LABELS: Record<ProductSort, string> = {
+  relevance: "Most Relevant",
   newest: "Newest Added",
   harvest_newest: "Freshest Harvest",
   price_asc: "Price: Low to High",
@@ -158,11 +159,24 @@ export function ProductFilters({
                 : "Search products or farmers…"
             }
             className={cn(
-              "pl-10 bg-background text-sm shadow-xs",
+              "pl-10 pr-9 bg-background text-sm shadow-xs",
               variant === "marketplace" ? "h-11" : "h-9"
             )}
             aria-label="Search produce"
           />
+          {draftSearch && (
+            <button
+              type="button"
+              onClick={() => {
+                setDraftSearch("");
+                handleApply({ search: "" });
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-0.5 rounded-sm"
+              aria-label="Clear search text"
+            >
+              <RiCloseCircleLine className="size-4" />
+            </button>
+          )}
         </div>
 
         <div
@@ -196,6 +210,9 @@ export function ProductFilters({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
+              {draftSearch.trim() && (
+                <SelectItem value="relevance">Most Relevant</SelectItem>
+              )}
               <SelectItem value="newest">Newest Added</SelectItem>
               <SelectItem value="harvest_newest">Freshest Harvest</SelectItem>
               <SelectItem value="price_asc">Price: Low to High</SelectItem>
@@ -268,9 +285,22 @@ export function ProductFilters({
                 ? "Search produce…"
                 : "Search products…"
             }
-            className="pl-9 h-10 bg-background text-sm shadow-xs w-full"
+            className="pl-9 pr-8 h-10 bg-background text-sm shadow-xs w-full"
             aria-label="Search produce"
           />
+          {draftSearch && (
+            <button
+              type="button"
+              onClick={() => {
+                setDraftSearch("");
+                handleApply({ search: "" });
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-0.5 rounded-sm"
+              aria-label="Clear search text"
+            >
+              <RiCloseCircleLine className="size-4" />
+            </button>
+          )}
         </div>
 
         {/* Compact Filter Trigger button */}
@@ -344,6 +374,9 @@ export function ProductFilters({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="z-[60]">
+                  {draftSearch.trim() && (
+                    <SelectItem value="relevance">Most Relevant</SelectItem>
+                  )}
                   <SelectItem value="newest">Newest Added</SelectItem>
                   <SelectItem value="harvest_newest">Freshest Harvest</SelectItem>
                   <SelectItem value="price_asc">Price: Low to High</SelectItem>

@@ -668,6 +668,38 @@ Executed and verified against the **live remote Supabase database** (`https://od
 
 ---
 
+### Feature A — Smart Search & Discovery (`feat/smart-search`) (Complete & Verified ✅)
+- **1. Database Schema & Specialized GIN Trigram Indexes (`20260926000001_smart_search.sql`):**
+  - Enabled `pg_trgm` extension in `extensions` schema.
+  - Added GIN trigram indexes on `products.name`, `products.description`, `categories.name`, `profiles.business_name` (farmer only), and `profiles.full_name` (farmer only).
+  - Added composite index on `products(status, category_id, quantity_available)`.
+- **2. Authoritative PostgreSQL RPC (`search_products`):**
+  - Implemented `search_products(p_search, p_category_slug, p_in_stock_only, p_sort, p_limit, p_offset)` with `SECURITY DEFINER` and fixed `search_path = public, extensions, pg_temp;`.
+  - Multi-field weighted scoring (`products.name` > `categories.name` > `profiles.business_name`/`full_name` > `products.description`).
+  - Noise threshold cutoff prevents random matches on gibberish or special characters.
+  - Server-side atomic category and in-stock filtering before pagination (resolving PostgREST in-memory filter truncation bug).
+  - Accurate windowed `total_count` and relevance ranking `search_rank` in a single round-trip.
+  - Farmer profile projection strictly excludes private fields (`phone`, `address`).
+- **3. Application & Query Layer Integration:**
+  - Upgraded `getActiveProducts` and added `searchActiveProducts` in `src/lib/supabase/queries/products.ts`.
+  - Added "Most Relevant" (`relevance`) sorting option across marketplace and business browsing views.
+  - Added inline clear search button (`RiCloseCircleLine`) in `ProductFilters`.
+  - Updated `/products` and `/business/products` to default to `relevance` sort when a search query is active.
+- **4. Automated Test Verification:**
+  - Created 20-case test suite (`scripts/verify-smart-search.ts`) covering typo tolerance ("Tomatp" -> "Tomatoes", "petchay", "talongg", "camot"), multi-word queries, farmer discovery, category matching, combined filtering/sorting, SQL injection safety, draft exclusion, privacy, and pagination.
+
+| Test Item | Verification Method | Result | Verification Details |
+|---|---|---|---|
+| **ESLint Quality Pass** | `npm run lint` | ✅ **PASS** | 0 errors, 0 warnings across all files |
+| **Production Build** | `npm run build` | ✅ **PASS** | 38 routes compiled cleanly via Turbopack |
+| **Smart Search Suite** | `scripts/verify-smart-search.ts` | ✅ **PASS** | 20/20 test cases passed against remote test DB |
+| **Typo Tolerance** | Trigram word similarity | ✅ **PASS** | "Tomatp" matched "Ampayon Fresh Red Tomatoes" |
+| **Producer Discovery** | Farmer name/business trigram | ✅ **PASS** | "Verdant Ridge" & "Golden Harvest" returned active listings |
+| **Security & Privacy** | DB query assertion | ✅ **PASS** | Drafts excluded; farmer phone/address omitted from payload |
+| **SQL Injection Resilience** | Parameterized string test | ✅ **PASS** | Safe literal escaping; 0 false matches |
+
+---
+
 ## Milestone Summary
 - **Slice 1:** ✅ Complete & Verified
 - **Slice 2:** ✅ Complete & Verified Across All Requirements
@@ -684,3 +716,5 @@ Executed and verified against the **live remote Supabase database** (`https://od
 - **Visual Correction — Device Mockups & Hardware Presentation:** ✅ Complete & Verified (2 large landscape iPad Pro tablets, 1 thick 3D titanium smartphone, real UMA UI, unclipped soft shadows, unified settling animations, 0 lint errors, and 36 compiled routes)
 - **Product Media Gallery (`feat/product-media-gallery`):** ✅ Complete & Verified (`product_images` table, RLS policies, backfill, shadcn Carousel gallery, farmer multi-photo upload/edit up to 5 photos, safe deletion, 0 lint errors, and 35 compiled routes)
 - **Launch Readiness P1 Fixes (`fix/launch-readiness`):** ✅ Complete & Verified (Stock restitution trigger, public farmer privacy, business dashboard navigation consistency, atomic multi-farmer checkout RPC, 0 lint errors, 20 compiled routes)
+- **Feature A (Smart Search & Discovery):** ✅ Complete & Verified Across All 20 Test Cases (`feat/smart-search`)
+
