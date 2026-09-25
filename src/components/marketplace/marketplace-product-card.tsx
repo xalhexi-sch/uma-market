@@ -6,16 +6,26 @@ import { getProductImageUrl } from "@/lib/supabase/storage";
 import { ProductImage } from "@/components/ui/product-image";
 import type { Product } from "@/lib/types";
 
-interface MarketplaceProductCardProps {
+export interface MarketplaceProductCardProps {
   product: Product;
   href?: string;
+  variant?: "public" | "business";
 }
 
 function AvailabilityBadge({ qty, unit }: { qty: number; unit: string }) {
-  if (qty <= 0) return <Badge variant="secondary">Out of stock</Badge>;
+  if (qty <= 0) {
+    return (
+      <Badge variant="secondary" className="text-xs px-2 py-0.5">
+        Out of stock
+      </Badge>
+    );
+  }
   if (qty <= 10) {
     return (
-      <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400">
+      <Badge
+        variant="outline"
+        className="text-xs font-medium text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400 px-2 py-0.5"
+      >
         Only {qty} {unit} left
       </Badge>
     );
@@ -27,27 +37,31 @@ function AvailabilityBadge({ qty, unit }: { qty: number; unit: string }) {
   );
 }
 
-export function MarketplaceProductCard({ product, href }: MarketplaceProductCardProps) {
+export function MarketplaceProductCard({
+  product,
+  href,
+  variant = "public",
+}: MarketplaceProductCardProps) {
   const farmerName =
     product.farmer?.business_name ||
     product.farmer?.full_name ||
     "Local Farm";
 
   const imageUrl = getProductImageUrl(product.image_path, product.image_url);
-  const targetHref = href || `/products/${product.id}`;
+  const targetHref = href || (variant === "business" ? `/business/products/${product.id}` : `/products/${product.id}`);
 
   return (
     <Link
       href={targetHref}
       className="group flex flex-col rounded-xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-sm transition-all duration-200"
     >
-      {/* Produce Image */}
+      {/* Produce Image (Locked to 4:3 Ratio) */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         <ProductImage
           src={imageUrl}
           alt={product.name}
           loading="lazy"
-          className="h-full w-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+          className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
         />
         {product.category && (
           <span className="absolute top-2 left-2 rounded-md bg-background/90 backdrop-blur-xs px-2 py-0.5 text-[11px] font-medium text-foreground shadow-xs">
@@ -73,13 +87,23 @@ export function MarketplaceProductCard({ product, href }: MarketplaceProductCard
           </p>
         </div>
 
-        <div>
+        {/* Availability & Wholesale Minimum Order Quantity (MOQ) */}
+        <div className="flex items-center justify-between gap-2">
           <AvailabilityBadge qty={product.quantity_available} unit={product.unit} />
+          {product.min_order_quantity != null && product.min_order_quantity > 0 && (
+            <span
+              title={`Minimum wholesale order: ${product.min_order_quantity} ${product.unit}`}
+              className="inline-flex items-center text-[11px] font-medium text-muted-foreground/90 bg-muted/60 dark:bg-muted/40 rounded px-1.5 py-0.5 border border-border/50 shrink-0 tabular-nums"
+            >
+              MOQ: {product.min_order_quantity} {product.unit}
+            </span>
+          )}
         </div>
 
-        <div className="mt-auto flex items-center gap-1.5 pt-2 border-t border-border/60 text-xs text-foreground/80">
+        {/* Producer Provenance & Location */}
+        <div className="mt-auto flex items-center gap-1.5 pt-2.5 border-t border-border/60 text-xs text-foreground/80">
           <RiPlantLine className="size-3.5 text-primary shrink-0" />
-          <span className="truncate font-medium">
+          <span className="truncate font-medium flex-1">
             <span className="text-muted-foreground font-normal">From </span>
             <span className="text-foreground font-semibold">{farmerName}</span>
             {product.farmer?.city ? (
@@ -98,3 +122,6 @@ export function MarketplaceProductCard({ product, href }: MarketplaceProductCard
     </Link>
   );
 }
+
+// Canonical alias
+export { MarketplaceProductCard as ProductCard };
