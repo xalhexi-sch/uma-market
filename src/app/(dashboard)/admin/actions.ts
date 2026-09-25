@@ -74,3 +74,33 @@ export async function toggleProfileVerification(
   return { success: true };
 }
 
+/**
+ * Updates a user's account status (e.g., active, suspended, revoked).
+ * Server action restricted exclusively to admins.
+ */
+export async function updateProfileAccountStatus(
+  targetClerkId: string,
+  status: "active" | "suspended" | "revoked"
+) {
+  const { sessionClaims } = await auth();
+
+  if (sessionClaims?.user_role !== "admin") {
+    return { success: false, error: "Unauthorized. Admin role required." };
+  }
+
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("clerk_id", targetClerkId);
+
+  if (error) {
+    console.error("[admin] updateProfileAccountStatus error:", error.message);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin");
+  return { success: true };
+}
+

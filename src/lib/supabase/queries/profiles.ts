@@ -20,3 +20,19 @@ export async function getProfileByClerkId(clerkId: string): Promise<Profile | nu
 
   return data as Profile | null;
 }
+
+/**
+ * Check whether a user profile is active.
+ * Used by Server Actions and route handlers to block mutations from suspended/revoked accounts.
+ */
+export async function assertActiveProfile(clerkId: string): Promise<{ active: boolean; error?: string; profile?: Profile }> {
+  const profile = await getProfileByClerkId(clerkId);
+  if (profile && profile.status && profile.status !== "active") {
+    return {
+      active: false,
+      error: `Account is ${profile.status}. Access denied.`,
+      profile,
+    };
+  }
+  return { active: true, profile: profile ?? undefined };
+}

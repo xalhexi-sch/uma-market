@@ -90,12 +90,36 @@ export async function POST(req: NextRequest) {
           }
         }
       }
+
+      const isBannedOrLocked = Boolean(
+        (evt.data as { banned?: boolean; locked?: boolean }).banned ||
+        (evt.data as { banned?: boolean; locked?: boolean }).locked
+      );
+      if (isBannedOrLocked) {
+        await supabase
+          .from("profiles")
+          .update({ status: "suspended" })
+          .eq("clerk_id", id);
+        console.log(`[webhooks/clerk] user.updated: set profile status to suspended for ${id}`);
+      }
       break;
     }
 
     case "user.deleted": {
       const { id } = evt.data;
       if (id) {
+        // Mark profile as revoked immediately so any remaining JWT is blocked
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ status: "revoked" })
+          .eq("clerk_id", id);
+
+        if (profileError) {
+          console.error("[webhooks/clerk] user.deleted error updating profile status:", profileError.message);
+        } else {
+          console.log(`[webhooks/clerk] user.deleted: profile status set to revoked for user ${id}.`);
+        }
+
         // Archive all products owned by that farmer so they are no longer discoverable.
         // We leave the profile row intact to protect past order history and receipts.
         const { error } = await supabase
@@ -107,6 +131,26 @@ export async function POST(req: NextRequest) {
           console.error("[webhooks/clerk] user.deleted error archiving products:", error.message);
         } else {
           console.log(`[webhooks/clerk] user.deleted: archived products for farmer ${id}.`);
+        }
+      }
+      break;
+    }
+
+    // Explicit Session Revocation / Termination events (SEC-AUTH-001)
+    case "session.revoked":
+    case "session.ended":
+    case "session.removed": {
+      const userId = (evt.data as { user_id?: string }).user_id;
+      if (userId) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ status: "revoked" })
+          .eq("clerk_id", userId);
+
+        if (error) {
+          console.error(`[webhooks/clerk] ${evt.type} error updating profile status:`, error.message);
+        } else {
+          console.log(`[webhooks/clerk] ${evt.type}: set profile status to revoked for user ${userId}.`);
         }
       }
       break;
