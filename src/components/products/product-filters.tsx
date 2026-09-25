@@ -175,11 +175,7 @@ export function ProductFilters({
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                if (searchContext) {
-                  searchContext.commitSearch(draftSearch);
-                } else {
-                  handleApply({ search: draftSearch });
-                }
+                handleApply({ search: draftSearch });
               }
             }}
             placeholder={
@@ -288,13 +284,7 @@ export function ProductFilters({
 
           <button
             type="button"
-            onClick={() => {
-              if (searchContext) {
-                searchContext.commitSearch(draftSearch);
-              } else {
-                handleApply();
-              }
-            }}
+            onClick={() => handleApply()}
             className={cn(
               "cursor-pointer transition-colors shadow-xs rounded-md font-semibold",
               variant === "marketplace"
@@ -328,11 +318,7 @@ export function ProductFilters({
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                if (searchContext) {
-                  searchContext.commitSearch(draftSearch);
-                } else {
-                  handleApply({ search: draftSearch });
-                }
+                handleApply({ search: draftSearch });
               }
             }}
             placeholder={

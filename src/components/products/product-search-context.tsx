@@ -63,17 +63,31 @@ export function ProductSearchProvider({
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastRequestIdRef = useRef<number>(0);
 
-  // Adjust state during render when initialSearch prop changes externally (e.g. navigation)
-  const [prevInitialSearch, setPrevInitialSearch] = useState(initialSearch);
-  if (prevInitialSearch !== initialSearch) {
-    setPrevInitialSearch(initialSearch);
+  // Adjust state during render when props change externally (e.g. navigation, pill click, apply)
+  const [prevProps, setPrevProps] = useState({
+    initialSearch,
+    initialCategory,
+    initialSort,
+    initialInStockOnly,
+  });
+
+  if (
+    prevProps.initialSearch !== initialSearch ||
+    prevProps.initialCategory !== initialCategory ||
+    prevProps.initialSort !== initialSort ||
+    prevProps.initialInStockOnly !== initialInStockOnly
+  ) {
+    setPrevProps({
+      initialSearch,
+      initialCategory,
+      initialSort,
+      initialInStockOnly,
+    });
     setSearchQueryState(initialSearch);
-    if (!initialSearch.trim()) {
-      setLiveProducts(null);
-      setLiveTotalCount(null);
-      setHasSearched(false);
-      setIsSearching(false);
-    }
+    setLiveProducts(null);
+    setLiveTotalCount(null);
+    setHasSearched(false);
+    setIsSearching(false);
   }
 
   // Clean up timers & abort controller on unmount
@@ -236,11 +250,14 @@ export function ProductSearchProvider({
         params.delete("q");
         if (params.get("sort") === "relevance") params.delete("sort");
       }
+      if (initialCategory && !params.has("category")) {
+        params.set("category", initialCategory);
+      }
       params.delete("page");
       const qs = params.toString();
       router.push(`${basePath}${qs ? `?${qs}` : ""}`);
     },
-    [basePath, executeSearch, router, searchQuery]
+    [basePath, executeSearch, initialCategory, router, searchQuery]
   );
 
   return (
