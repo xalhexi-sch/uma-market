@@ -69,6 +69,7 @@ export async function completeOnboarding(formData: FormData) {
         null,
       city: "Butuan",
       is_verified: false,
+      avatar_url: clerkUser.hasImage ? clerkUser.imageUrl : null,
     },
     { onConflict: "clerk_id" }
   );
