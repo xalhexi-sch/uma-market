@@ -75,9 +75,8 @@ export async function completeOnboarding(formData: FormData) {
   );
 
   if (error) {
-    // Profile creation failed — still redirect so the user can retry
-    // from their dashboard (profile is non-blocking for auth).
     console.error("[onboarding] Failed to create profile:", error.message);
+    throw new Error("Could not create your profile. Please try again.");
   }
 
   // 3. Redirect to /onboarding/complete which reloads the session token

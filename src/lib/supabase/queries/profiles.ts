@@ -31,6 +31,13 @@ export const getProfileByClerkId = cache(
  */
 export async function assertActiveProfile(clerkId: string): Promise<{ active: boolean; error?: string; profile?: Profile }> {
   const profile = await getProfileByClerkId(clerkId);
+  if (!profile) {
+    return {
+      active: false,
+      error: "Profile not found. Please complete onboarding.",
+    };
+  }
+
   if (profile && profile.status && profile.status !== "active") {
     return {
       active: false,
