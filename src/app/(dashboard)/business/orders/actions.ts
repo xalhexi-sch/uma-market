@@ -28,7 +28,7 @@ export async function cancelOrder(orderId: string) {
 
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("orders")
     .update({
       status: "cancelled",
@@ -37,11 +37,19 @@ export async function cancelOrder(orderId: string) {
     })
     .eq("id", orderId)
     .eq("business_clerk_id", userId)
-    .eq("status", "pending"); // Only pending orders can be cancelled
+    .eq("status", "pending") // Only pending orders can be cancelled
+    .select("id");
 
   if (error) {
     console.error("[orders] cancelOrder error:", error.message);
     return { success: false, error: "Could not cancel order. It may no longer be pending." };
+  }
+
+  if (!data || data.length === 0) {
+    return {
+      success: false,
+      error: "Order could not be cancelled. It may no longer be pending or has already been processed.",
+    };
   }
 
   revalidatePath("/business/orders");

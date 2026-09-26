@@ -162,10 +162,8 @@ export async function POST(req: NextRequest) {
       break;
     }
 
-    // Explicit Session Revocation / Termination events (SEC-AUTH-001)
-    case "session.revoked":
-    case "session.ended":
-    case "session.removed": {
+    // Explicit Session Revocation event (SEC-AUTH-001)
+    case "session.revoked": {
       const userId = (evt.data as { user_id?: string }).user_id;
       if (userId) {
         const { error } = await supabase
@@ -174,11 +172,20 @@ export async function POST(req: NextRequest) {
           .eq("clerk_id", userId);
 
         if (error) {
-          console.error(`[webhooks/clerk] ${evt.type} error updating profile status:`, error.message);
+          console.error(`[webhooks/clerk] session.revoked error updating profile status:`, error.message);
         } else {
-          console.log(`[webhooks/clerk] ${evt.type}: set profile status to revoked for user ${userId}.`);
+          console.log(`[webhooks/clerk] session.revoked: set profile status to revoked for user ${userId}.`);
         }
       }
+      break;
+    }
+
+    // Normal session lifecycle events (e.g. routine logout, session expiry).
+    // These must NOT revoke the user account. Profile status is preserved.
+    case "session.ended":
+    case "session.removed": {
+      const userId = (evt.data as { user_id?: string }).user_id;
+      console.log(`[webhooks/clerk] ${evt.type}: session concluded for user ${userId ?? "unknown"} (profile status preserved).`);
       break;
     }
 
