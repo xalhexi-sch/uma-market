@@ -134,8 +134,8 @@ async function CuratedDiscovery({
           </div>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {availableNow.map((p) => (
-              <MarketplaceProductCard key={p.id} product={p} />
+            {availableNow.map((p, idx) => (
+              <MarketplaceProductCard key={p.id} product={p} priority={idx < 2} />
             ))}
           </div>
         </section>
@@ -165,8 +165,12 @@ async function CuratedDiscovery({
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {allProducts.map((p) => (
-              <MarketplaceProductCard key={p.id} product={p} />
+            {allProducts.map((p, idx) => (
+              <MarketplaceProductCard
+                key={p.id}
+                product={p}
+                priority={availableNow.length === 0 && idx < 2}
+              />
             ))}
           </div>
         )}

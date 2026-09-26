@@ -78,6 +78,8 @@ export function ProductGallery({
           <ProductImage
             src={DEFAULT_PRODUCT_PLACEHOLDER}
             alt={productName}
+            priority
+            sizes="(max-width: 1024px) 100vw, 460px"
             className="h-full w-full object-cover"
           />
           {categoryName && (
@@ -98,6 +100,8 @@ export function ProductGallery({
           <ProductImage
             src={galleryItems[0].url}
             alt={productName}
+            priority
+            sizes="(max-width: 1024px) 100vw, 460px"
             className="h-full w-full object-cover"
           />
           {categoryName && (
@@ -130,6 +134,8 @@ export function ProductGallery({
                   <ProductImage
                     src={item.url}
                     alt={`${productName} — Photo ${index + 1}`}
+                    priority={index === 0}
+                    sizes="(max-width: 1024px) 100vw, 460px"
                     className="absolute inset-0 h-full w-full object-cover object-center select-none"
                   />
                 </div>
@@ -189,6 +195,7 @@ export function ProductGallery({
               <ProductImage
                 src={item.url}
                 alt={`${productName} thumbnail ${index + 1}`}
+                sizes="80px"
                 className="h-full w-full object-cover"
               />
             </button>
