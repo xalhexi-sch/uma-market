@@ -5,8 +5,7 @@ import type { Metadata } from "next";
 import { RiArrowLeftLine, RiBuildingLine, RiTruckLine, RiStore2Line } from "@remixicon/react";
 import { getFarmerOrderById } from "@/lib/supabase/queries/orders";
 import { getOrderMessages } from "@/lib/supabase/queries/messages";
-import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
-import { OrderStatusActions } from "@/components/dashboard/order-status-actions";
+import { FarmerOrderStatusSection } from "@/components/dashboard/farmer-order-status-sync";
 import { OrderChat } from "@/components/dashboard/order-chat";
 import { CURRENCY, FULFILLMENT_LABELS } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
@@ -36,7 +35,6 @@ export default async function FarmerOrderDetailPage({ params }: PageProps) {
   const bizName = order.business?.business_name || order.business?.full_name || "Business";
   const isDelivery = order.fulfillment_type === "seller_delivery";
 
-
   return (
     <div className="flex flex-col gap-0 min-h-full">
       <div className="border-b border-border px-6 py-3 lg:px-8">
@@ -50,25 +48,14 @@ export default async function FarmerOrderDetailPage({ params }: PageProps) {
       </div>
 
       <div className="flex flex-col gap-8 p-6 lg:p-8 max-w-3xl">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground font-mono">
-              #{order.id.slice(0, 8).toUpperCase()}
-            </p>
-            <h1 className="mt-0.5 text-xl font-semibold text-foreground">Order from {bizName}</h1>
-            <p className="text-sm text-muted-foreground">
-              Placed{" "}
-              {new Date(order.created_at).toLocaleDateString("en-PH", {
-                dateStyle: "long",
-              })}
-            </p>
-          </div>
-          <OrderStatusBadge status={order.status} />
-        </div>
-
-        {/* Status Actions */}
-        <OrderStatusActions orderId={order.id} currentStatus={order.status} />
+        {/* Live-synced header + actions */}
+        <FarmerOrderStatusSection
+          orderId={order.id}
+          bizName={bizName}
+          orderCreatedAt={order.created_at}
+          initialStatus={order.status}
+          initialCancellationReason={order.cancellation_reason}
+        />
 
         {/* Business contact */}
         <div className="flex items-center gap-3 rounded-xl border border-border p-4">
@@ -156,4 +143,3 @@ export default async function FarmerOrderDetailPage({ params }: PageProps) {
     </div>
   );
 }
-

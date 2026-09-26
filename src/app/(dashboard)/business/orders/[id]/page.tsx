@@ -5,12 +5,10 @@ import type { Metadata } from "next";
 import { RiArrowLeftLine, RiPlantLine, RiTruckLine, RiStore2Line } from "@remixicon/react";
 import { getBusinessOrderById } from "@/lib/supabase/queries/orders";
 import { getOrderMessages } from "@/lib/supabase/queries/messages";
-import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
-import { OrderStatusTimeline } from "@/components/dashboard/order-status-timeline";
-import { CancelOrderButton } from "@/components/dashboard/cancel-order-button";
+import { BusinessOrderStatusSection } from "@/components/dashboard/business-order-status-sync";
 import { OrderChat } from "@/components/dashboard/order-chat";
 import { CURRENCY, FULFILLMENT_LABELS } from "@/lib/constants";
-import type { UserRole, OrderStatus, FulfillmentType } from "@/lib/constants";
+import type { UserRole } from "@/lib/constants";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -48,33 +46,13 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
       </div>
 
       <div className="flex flex-col gap-8 p-6 lg:p-8 max-w-3xl">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground font-mono">
-              #{order.id.slice(0, 8).toUpperCase()}
-            </p>
-            <h1 className="mt-0.5 text-xl font-semibold text-foreground">Order Details</h1>
-            <p className="text-sm text-muted-foreground">
-              Placed{" "}
-              {new Date(order.created_at).toLocaleDateString("en-PH", {
-                dateStyle: "long",
-              })}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <OrderStatusBadge status={order.status} />
-            {order.status === "pending" && (
-              <CancelOrderButton orderId={order.id} />
-            )}
-          </div>
-        </div>
-
-        {/* Status timeline */}
-        <OrderStatusTimeline
-          status={order.status as OrderStatus}
-          fulfillmentType={order.fulfillment_type as FulfillmentType}
-          cancellationReason={order.cancellation_reason}
+        {/* Live-synced header + timeline */}
+        <BusinessOrderStatusSection
+          orderId={order.id}
+          orderCreatedAt={order.created_at}
+          initialStatus={order.status}
+          fulfillmentType={order.fulfillment_type}
+          initialCancellationReason={order.cancellation_reason}
         />
 
         {/* Farmer */}
@@ -154,4 +132,3 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
     </div>
   );
 }
-
