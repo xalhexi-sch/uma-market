@@ -33,7 +33,6 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
   }
 
   const { q, category, sort, in_stock } = await searchParams;
-  const categories = await getCategories();
   const inStockOnly = in_stock !== "false";
   const activeSort: ProductSort = VALID_SORTS.includes(sort as ProductSort)
     ? (sort as ProductSort)
@@ -41,13 +40,16 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
     ? "relevance"
     : "newest";
 
-  const initialProducts = await getActiveProducts({
-    search: q,
-    categorySlug: category,
-    sort: activeSort,
-    inStockOnly: inStockOnly,
-    limit: 48,
-  });
+  const [categories, initialProducts] = await Promise.all([
+    getCategories(),
+    getActiveProducts({
+      search: q,
+      categorySlug: category,
+      sort: activeSort,
+      inStockOnly: inStockOnly,
+      limit: 48,
+    }),
+  ]);
 
   const selectedCategory = categories.find((c) => c.slug === category);
 

@@ -1,25 +1,29 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
 /**
  * Fetch a profile by Clerk user ID using the authenticated Supabase server client.
+ * Wrapped in React cache() to deduplicate per-request calls (e.g. DashboardLayout + Page).
  */
-export async function getProfileByClerkId(clerkId: string): Promise<Profile | null> {
-  const supabase = await createClient();
+export const getProfileByClerkId = cache(
+  async (clerkId: string): Promise<Profile | null> => {
+    const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("clerk_id", clerkId)
-    .maybeSingle();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("clerk_id", clerkId)
+      .maybeSingle();
 
-  if (error) {
-    console.error("[profiles] getProfileByClerkId error:", error.message);
-    return null;
+    if (error) {
+      console.error("[profiles] getProfileByClerkId error:", error.message);
+      return null;
+    }
+
+    return data as Profile | null;
   }
-
-  return data as Profile | null;
-}
+);
 
 /**
  * Check whether a user profile is active.
