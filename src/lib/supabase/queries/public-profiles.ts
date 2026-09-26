@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Product } from "@/lib/types";
 
@@ -15,25 +16,26 @@ export interface PublicFarmerProfile {
  * Fetch a public farmer profile from the privacy-hardened public_farmer_profiles view.
  * Exposes ONLY approved public provenance columns (name, farm name, city, bio, avatar, verified).
  * Protected against sensitive data leakage (phone, address, credentials omitted at DB engine level).
+ * Wrapped in React cache() to deduplicate render passes (e.g. generateMetadata + Page).
  */
-export async function getPublicFarmerProfile(
-  clerkId: string
-): Promise<PublicFarmerProfile | null> {
-  const supabase = await createClient();
+export const getPublicFarmerProfile = cache(
+  async (clerkId: string): Promise<PublicFarmerProfile | null> => {
+    const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("public_farmer_profiles")
-    .select("clerk_id, full_name, business_name, city, bio, avatar_url, is_verified")
-    .eq("clerk_id", clerkId)
-    .maybeSingle();
+    const { data, error } = await supabase
+      .from("public_farmer_profiles")
+      .select("clerk_id, full_name, business_name, city, bio, avatar_url, is_verified")
+      .eq("clerk_id", clerkId)
+      .maybeSingle();
 
-  if (error) {
-    console.error("[public-profiles] getPublicFarmerProfile error:", error.message);
-    return null;
+    if (error) {
+      console.error("[public-profiles] getPublicFarmerProfile error:", error.message);
+      return null;
+    }
+
+    return (data as PublicFarmerProfile | null) ?? null;
   }
-
-  return (data as PublicFarmerProfile | null) ?? null;
-}
+);
 
 interface RawProductRow {
   id: string;

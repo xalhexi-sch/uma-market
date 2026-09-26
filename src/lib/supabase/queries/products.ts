@@ -1,3 +1,6 @@
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Product, Category } from "@/lib/types";
@@ -150,93 +153,54 @@ export async function getActiveProducts(filters: ProductFilters = {}): Promise<P
 
 /**
  * Fetch a single active product by ID, with farmer + category.
+ * Uses public_farmer_profiles view for the farmer projection to support
+ * public/anonymous access without forbidden joins or service-role fallbacks.
+ * Wrapped in React cache() to deduplicate render passes (e.g. generateMetadata + Page).
  */
-export async function getProductById(id: string): Promise<Product | null> {
-  const supabase = await createClient();
+export const getProductById = cache(
+  async (id: string): Promise<Product | null> => {
+    const supabase = await createClient();
 
-  let { data, error } = await supabase
-    .from("products")
-    .select(
-      `
-      id, farmer_clerk_id, category_id, name, description,
-      price_per_unit, unit, quantity_available, min_order_quantity,
-      image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
-      farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, is_verified),
-      category:categories(id, name, slug),
-      images:product_images(id, product_id, image_path, sort_order)
-    `
-    )
-    .eq("id", id)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (error) {
-    try {
-      const admin = createAdminClient();
-      const fallbackRes = await admin
-        .from("products")
-        .select(
-          `
-          id, farmer_clerk_id, category_id, name, description,
-          price_per_unit, unit, quantity_available, min_order_quantity,
-          image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
-          farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, is_verified),
-          category:categories(id, name, slug),
-          images:product_images(id, product_id, image_path, sort_order)
+    const { data, error } = await supabase
+      .from("products")
+      .select(
         `
-        )
-        .eq("id", id)
-        .eq("status", "active")
-        .maybeSingle();
-      if (!fallbackRes.error && fallbackRes.data) {
-        data = fallbackRes.data as unknown as typeof data;
-        error = null;
-      }
-    } catch {
-      // fallback attempt failed
-    }
-  }
+        id, farmer_clerk_id, category_id, name, description,
+        price_per_unit, unit, quantity_available, min_order_quantity,
+        image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
+        farmer:public_farmer_profiles(clerk_id, full_name, business_name, city, avatar_url, bio, is_verified),
+        category:categories(id, name, slug),
+        images:product_images(id, product_id, image_path, sort_order)
+      `
+      )
+      .eq("id", id)
+      .eq("status", "active")
+      .maybeSingle();
 
-  if (error) throw error;
-  const product = data as unknown as Product | null;
+    if (error) throw error;
+    const product = data as unknown as Product | null;
 
-  if (product) {
-    // Normalize and sort images
-    if (product.images && product.images.length > 0) {
-      product.images.sort((a, b) => a.sort_order - b.sort_order);
-    } else if (product.image_path || product.image_url) {
-      product.images = [
-        {
-          id: "primary",
-          product_id: product.id,
-          image_path: product.image_path || product.image_url || "",
-          sort_order: 0,
-        },
-      ];
-    } else {
-      product.images = [];
-    }
-
-    if (!product.farmer && product.farmer_clerk_id) {
-      try {
-        const admin = createAdminClient();
-        const { data: farmerProfile } = await admin
-          .from("profiles")
-          .select("clerk_id, full_name, business_name, city, avatar_url, bio, is_verified")
-          .eq("clerk_id", product.farmer_clerk_id)
-          .maybeSingle();
-
-        if (farmerProfile) {
-          product.farmer = farmerProfile as Product["farmer"];
-        }
-      } catch {
-        // Graceful fallback
+    if (product) {
+      // Normalize and sort images
+      if (product.images && product.images.length > 0) {
+        product.images.sort((a, b) => a.sort_order - b.sort_order);
+      } else if (product.image_path || product.image_url) {
+        product.images = [
+          {
+            id: "primary",
+            product_id: product.id,
+            image_path: product.image_path || product.image_url || "",
+            sort_order: 0,
+          },
+        ];
+      } else {
+        product.images = [];
       }
     }
-  }
 
-  return product;
-}
+    return product;
+  }
+);
 
 /**
  * Fetch all products owned by a farmer. Returns all statuses.
@@ -308,13 +272,30 @@ export async function getFarmerProductById(
 
 /**
  * Fetch all categories for filter UI.
+ * Cached with Next.js unstable_cache (1 hour TTL) using the anonymous public Supabase client.
  */
-export async function getCategories(): Promise<Category[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, slug, icon, description")
-    .order("name");
-  if (error) throw error;
-  return (data ?? []) as Category[];
-}
+export const getCategories = unstable_cache(
+  async (): Promise<Category[]> => {
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
+    const { data, error } = await supabase
+      .from("categories")
+      .select("id, name, slug, icon, description")
+      .order("name");
+    if (error) throw error;
+    return (data ?? []) as Category[];
+  },
+  ["categories-list"],
+  {
+    revalidate: 3600,
+    tags: ["categories"],
+  }
+);

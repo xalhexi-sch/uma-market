@@ -14,7 +14,7 @@ import { ProductSearchProvider } from "@/components/products/product-search-cont
 import { LiveProductGrid } from "@/components/products/live-product-grid";
 import { getActiveProducts, searchActiveProducts, getCategories } from "@/lib/supabase/queries/products";
 import type { ProductSort } from "@/lib/supabase/queries/products";
-import type { Category, Product } from "@/lib/types";
+import type { Category } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Produce Marketplace",
@@ -93,18 +93,18 @@ async function CuratedDiscovery({
 }: {
   categories: Category[];
 }) {
-  // 1. Available Now: In-stock active products — primary discovery section
-  const availableNow = await getActiveProducts({
-    inStockOnly: true,
-    sort: "newest",
-    limit: 6,
-  });
-
-  // 2. Complete catalog listing
-  const allProducts = await getActiveProducts({
-    sort: "newest",
-    limit: 24,
-  });
+  // Run Available Now (in-stock) and complete catalog queries concurrently
+  const [availableNow, allProducts] = await Promise.all([
+    getActiveProducts({
+      inStockOnly: true,
+      sort: "newest",
+      limit: 6,
+    }),
+    getActiveProducts({
+      sort: "newest",
+      limit: 24,
+    }),
+  ]);
 
   return (
     <div className="flex flex-col gap-14 sm:gap-18">
@@ -177,7 +177,6 @@ async function CuratedDiscovery({
 
 export default async function ProductsMarketplacePage({ searchParams }: PageProps) {
   const { q, category, sort, in_stock, page } = await searchParams;
-  const categories = await getCategories();
 
   const rawPage = parseInt(page || "1", 10);
   const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
@@ -191,28 +190,30 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
     ? "relevance"
     : "newest";
 
-  const selectedCategory = categories.find((c) => c.slug === category);
-
   // Catalog browsing mode is active if filtering OR requesting page > 1
   const isCatalogMode = isFiltering || currentPage > 1;
 
-  let initialProducts: Product[] = [];
-  let totalCount = 0;
-  let totalPages = 1;
+  // Run independent category and catalog queries concurrently
+  const [categories, searchResult] = await Promise.all([
+    getCategories(),
+    (async () => {
+      if (!isCatalogMode) return null;
+      return await searchActiveProducts({
+        search: q,
+        categorySlug: category,
+        sort: activeSort,
+        inStockOnly,
+        page: currentPage,
+        limit: 24,
+      });
+    })(),
+  ]);
 
-  if (isCatalogMode) {
-    const result = await searchActiveProducts({
-      search: q,
-      categorySlug: category,
-      sort: activeSort,
-      inStockOnly,
-      page: currentPage,
-      limit: 24,
-    });
-    initialProducts = result.products;
-    totalCount = result.totalCount;
-    totalPages = result.totalPages;
-  }
+  const initialProducts = searchResult?.products ?? [];
+  const totalCount = searchResult?.totalCount ?? 0;
+  const totalPages = searchResult?.totalPages ?? 1;
+
+  const selectedCategory = categories.find((c) => c.slug === category);
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
