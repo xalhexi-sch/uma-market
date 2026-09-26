@@ -4,6 +4,7 @@ import Link from "next/link";
 import { RiArrowLeftLine, RiBuildingLine, RiMapPinLine, RiPhoneLine } from "@remixicon/react";
 import { getAdminProfiles } from "@/lib/supabase/queries/admin";
 import { AdminVerifyButton } from "@/components/dashboard/admin-verify-button";
+import { AdminAccountStatusButton } from "@/components/dashboard/admin-account-status-button";
 import type { UserRole } from "@/lib/constants";
 
 export const metadata = {
@@ -51,13 +52,14 @@ export default async function AdminBusinessesPage() {
                 <th className="py-3 px-4">Representative</th>
                 <th className="py-3 px-4">Location</th>
                 <th className="py-3 px-4">Phone</th>
-                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Verification</th>
+                <th className="py-3 px-4">Account Status</th>
               </tr>
             </thead>
             <tbody>
               {businesses.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                     No commercial buyers registered yet.
                   </td>
                 </tr>
@@ -88,6 +90,9 @@ export default async function AdminBusinessesPage() {
                     </td>
                     <td className="py-3 px-4">
                       <AdminVerifyButton clerkId={biz.clerk_id} isVerified={biz.is_verified} />
+                    </td>
+                    <td className="py-3 px-4">
+                      <AdminAccountStatusButton clerkId={biz.clerk_id} status={biz.status} />
                     </td>
                   </tr>
                 ))

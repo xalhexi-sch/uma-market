@@ -90,6 +90,19 @@ export async function updateProfileAccountStatus(
 
   const supabase = createAdminClient();
 
+  // Safety guard: permanently revoked accounts cannot be reactivated into active
+  if (status === "active") {
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("status")
+      .eq("clerk_id", targetClerkId)
+      .maybeSingle();
+
+    if (currentProfile?.status === "revoked") {
+      return { success: false, error: "Revoked accounts cannot be reactivated." };
+    }
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({ status, updated_at: new Date().toISOString() })
@@ -101,6 +114,8 @@ export async function updateProfileAccountStatus(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/admin/farmers");
+  revalidatePath("/admin/businesses");
   return { success: true };
 }
 
