@@ -30,8 +30,9 @@ export async function POST(req: NextRequest) {
 
   switch (evt.type) {
     case "user.created": {
-      const { id, public_metadata } = evt.data;
+      const { id, public_metadata, image_url, has_image } = evt.data;
       const role = public_metadata?.role as string | undefined;
+      const avatarUrl = has_image && image_url ? image_url : null;
 
       // Only upsert profile stub if role is known and valid.
       // If role is not yet selected, the user will complete onboarding at /onboarding.
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
               role,
               city: "Butuan",
               is_verified: false,
+              avatar_url: avatarUrl,
             },
             { onConflict: "clerk_id", ignoreDuplicates: true }
           );
@@ -64,8 +66,9 @@ export async function POST(req: NextRequest) {
       // These must never be overwritten from Clerk events.
       // However, if the profile row is missing (e.g. onboarding network hiccup)
       // and public_metadata.role exists, create the stub as fallback.
-      const { id, public_metadata } = evt.data;
+      const { id, public_metadata, image_url, has_image } = evt.data;
       const role = public_metadata?.role as string | undefined;
+      const avatarUrl = has_image && image_url ? image_url : null;
 
       if (role && ["farmer", "business", "admin"].includes(role)) {
         const { data: existing } = await supabase
@@ -82,12 +85,35 @@ export async function POST(req: NextRequest) {
               role,
               city: "Butuan",
               is_verified: false,
+              avatar_url: avatarUrl,
             });
           if (error) {
             console.error("[webhooks/clerk] user.updated fallback insert error:", error.message);
           } else {
             console.log(`[webhooks/clerk] user.updated: restored missing profile row for ${id}.`);
           }
+        } else {
+          // Synchronize avatar_url: supports adding, changing, or removing (null) image
+          const { error: avatarError } = await supabase
+            .from("profiles")
+            .update({ avatar_url: avatarUrl })
+            .eq("clerk_id", id);
+
+          if (avatarError) {
+            console.error("[webhooks/clerk] user.updated avatar_url sync error:", avatarError.message);
+          } else {
+            console.log(`[webhooks/clerk] user.updated: synchronized avatar_url for ${id}`);
+          }
+        }
+      } else {
+        // If profile exists, still sync avatar_url even if public_metadata.role was omitted in event
+        const { error: avatarError } = await supabase
+          .from("profiles")
+          .update({ avatar_url: avatarUrl })
+          .eq("clerk_id", id);
+
+        if (avatarError) {
+          console.error("[webhooks/clerk] user.updated avatar_url sync error:", avatarError.message);
         }
       }
 
