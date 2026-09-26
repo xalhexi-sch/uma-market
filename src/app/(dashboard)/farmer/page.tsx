@@ -12,7 +12,7 @@ import Link from "next/link";
 import type { UserRole } from "@/lib/constants";
 import { CURRENCY } from "@/lib/constants";
 import { getFarmerOrders, getFarmerOrderMetrics } from "@/lib/supabase/queries/orders";
-import { getFarmerProducts } from "@/lib/supabase/queries/products";
+import { getFarmerActiveProductCount } from "@/lib/supabase/queries/products";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 
 export const metadata: Metadata = { title: "Farmer Dashboard" };
@@ -28,13 +28,11 @@ export default async function FarmerDashboardPage() {
     redirect("/onboarding");
   }
 
-  const [metrics, products, recentOrders] = await Promise.all([
+  const [metrics, activeProducts, recentOrders] = await Promise.all([
     getFarmerOrderMetrics(userId),
-    getFarmerProducts(userId),
-    getFarmerOrders(userId).then((o) => o.slice(0, 3)),
+    getFarmerActiveProductCount(userId),
+    getFarmerOrders(userId, 3),
   ]);
-
-  const activeProducts = products.filter((p) => p.status === "active").length;
 
   return (
     <div className="flex flex-col gap-8 p-6 lg:p-8">

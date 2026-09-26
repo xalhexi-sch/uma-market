@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
 
 /**
  * Returns a Supabase browser client wired to the active session.
@@ -15,7 +16,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 export function createClient(
   accessToken?: () => Promise<string | null>
 ) {
-  return createSupabaseClient(
+  return createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {

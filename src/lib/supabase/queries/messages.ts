@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Message, Profile } from "@/lib/types";
+import type { Message } from "@/lib/types";
 
 export interface Conversation {
   orderId: string;
@@ -26,7 +26,12 @@ export async function getOrderMessages(orderId: string): Promise<Message[]> {
 
   const { data: messages, error } = await supabase
     .from("messages")
-    .select("id, order_id, sender_clerk_id, body, created_at")
+    .select(
+      `
+      id, order_id, sender_clerk_id, body, created_at,
+      sender:profiles!messages_sender_clerk_id_fkey(clerk_id, full_name, avatar_url, business_name)
+    `
+    )
     .eq("order_id", orderId)
     .order("created_at", { ascending: true });
 
@@ -35,25 +40,13 @@ export async function getOrderMessages(orderId: string): Promise<Message[]> {
     return [];
   }
 
-  if (!messages || messages.length === 0) {
-    return [];
-  }
-
-  // Fetch sender profile details for all unique senders
-  const senderIds = Array.from(new Set(messages.map((m) => m.sender_clerk_id)));
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("clerk_id, full_name, avatar_url, business_name")
-    .in("clerk_id", senderIds);
-
-  const profileMap = new Map<string, Pick<Profile, "clerk_id" | "full_name" | "avatar_url" | "business_name">>();
-  profiles?.forEach((p) => {
-    profileMap.set(p.clerk_id, p);
-  });
-
-  return messages.map((m) => ({
-    ...m,
-    sender: profileMap.get(m.sender_clerk_id),
+  return (messages ?? []).map((m) => ({
+    id: m.id,
+    order_id: m.order_id,
+    sender_clerk_id: m.sender_clerk_id,
+    body: m.body,
+    created_at: m.created_at,
+    sender: m.sender ?? undefined,
   }));
 }
 

@@ -37,27 +37,6 @@ export const getPublicFarmerProfile = cache(
   }
 );
 
-interface RawProductRow {
-  id: string;
-  farmer_clerk_id: string;
-  category_id: string | null;
-  name: string;
-  description: string | null;
-  price_per_unit: number;
-  unit: string;
-  quantity_available: number;
-  min_order_quantity: number;
-  image_url: string | null;
-  image_path: string | null;
-  harvest_date: string | null;
-  available_until: string | null;
-  status: Product["status"];
-  created_at: string;
-  updated_at: string;
-  category: Product["category"];
-  images: { id: string; product_id: string; image_path: string; sort_order: number }[] | null;
-}
-
 /**
  * Fetch active produce listings owned by a farmer.
  * Strictly filters by status = 'active' to ensure draft or archived products are never exposed.
@@ -89,9 +68,9 @@ export async function getActiveProductsByFarmer(
     return [];
   }
 
-  const rawRows = (data ?? []) as unknown as RawProductRow[];
+  const rawRows = data ?? [];
 
-  return rawRows.map((row) => {
+  return rawRows.map((row): Product => {
     let images = row.images ?? [];
     if (images.length > 0) {
       images = [...images].sort((a, b) => a.sort_order - b.sort_order);
