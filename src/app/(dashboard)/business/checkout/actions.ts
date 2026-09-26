@@ -114,9 +114,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<{
   const { data, error } = await supabase.rpc("place_order", {
     p_farmer_clerk_id: input.farmerClerkId,
     p_fulfillment_type: input.fulfillmentType,
-    p_delivery_address: input.deliveryAddress ?? null,
-    p_notes: input.notes ?? null,
-    p_pickup_date: input.pickupDate ?? null,
+    p_delivery_address: input.deliveryAddress || undefined,
+    p_notes: input.notes || undefined,
+    p_pickup_date: input.pickupDate || undefined,
     p_items: input.items,
   });
 

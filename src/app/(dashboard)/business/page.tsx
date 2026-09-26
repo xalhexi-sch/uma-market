@@ -32,7 +32,7 @@ export default async function BusinessDashboardPage() {
 
   const [metrics, recentOrders, featuredProducts] = await Promise.all([
     getBusinessOrderMetrics(userId),
-    getBusinessOrders(userId).then((o) => o.slice(0, 3)),
+    getBusinessOrders(userId, 3),
     getActiveProducts({ limit: 3 }),
   ]);
 

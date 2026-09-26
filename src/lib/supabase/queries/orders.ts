@@ -1,28 +1,131 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Order } from "@/lib/types";
 
+function mapOrderRow(row: {
+  id: string;
+  business_clerk_id: string;
+  farmer_clerk_id: string;
+  status: string;
+  fulfillment_type: string;
+  total_amount: number | null;
+  notes: string | null;
+  delivery_address: string | null;
+  pickup_date: string | null;
+  created_at: string;
+  updated_at: string;
+  accepted_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  business?: {
+    clerk_id: string;
+    full_name: string | null;
+    business_name: string | null;
+    city: string;
+    phone?: string | null;
+    address?: string | null;
+  } | null;
+  farmer?: {
+    clerk_id: string;
+    full_name: string | null;
+    business_name: string | null;
+    city: string;
+    phone?: string | null;
+  } | null;
+  items?: Array<{
+    id: string;
+    order_id?: string;
+    product_id: string;
+    product_name: string | null;
+    unit: string | null;
+    quantity: number;
+    unit_price: number;
+    subtotal: number | null;
+    created_at: string;
+  }> | null;
+}): Order {
+  return {
+    id: row.id,
+    business_clerk_id: row.business_clerk_id,
+    farmer_clerk_id: row.farmer_clerk_id,
+    status: row.status as Order["status"],
+    fulfillment_type: row.fulfillment_type as Order["fulfillment_type"],
+    total_amount: row.total_amount ? Number(row.total_amount) : null,
+    notes: row.notes,
+    delivery_address: row.delivery_address,
+    pickup_date: row.pickup_date,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    accepted_at: row.accepted_at,
+    completed_at: row.completed_at,
+    cancelled_at: row.cancelled_at,
+    cancellation_reason: row.cancellation_reason,
+    business: row.business
+      ? {
+          clerk_id: row.business.clerk_id,
+          full_name: row.business.full_name,
+          business_name: row.business.business_name,
+          city: row.business.city,
+          phone: row.business.phone ?? null,
+          address: row.business.address ?? null,
+        }
+      : undefined,
+    farmer: row.farmer
+      ? {
+          clerk_id: row.farmer.clerk_id,
+          full_name: row.farmer.full_name,
+          business_name: row.farmer.business_name,
+          city: row.farmer.city,
+          phone: row.farmer.phone ?? null,
+        }
+      : undefined,
+    items: row.items
+      ? row.items.map((i) => ({
+          id: i.id,
+          order_id: i.order_id ?? row.id,
+          product_id: i.product_id,
+          product_name: i.product_name,
+          unit: i.unit,
+          quantity: Number(i.quantity),
+          unit_price: Number(i.unit_price),
+          subtotal: Number(i.subtotal ?? Number(i.quantity) * Number(i.unit_price)),
+          created_at: i.created_at,
+        }))
+      : undefined,
+  };
+}
+
 /**
  * Fetch all orders for a business buyer, newest first.
  */
-export async function getBusinessOrders(businessClerkId: string): Promise<Order[]> {
+export async function getBusinessOrders(
+  businessClerkId: string,
+  limit?: number
+): Promise<Order[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("orders")
     .select(
       `
       id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
       total_amount, notes, delivery_address, pickup_date,
       created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
-      farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city),
-      items:order_items(id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
+      farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
+      items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
     `
     )
     .eq("business_clerk_id", businessClerkId)
     .order("created_at", { ascending: false });
 
+  if (limit !== undefined && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
+
   if (error) throw error;
-  return (data ?? []) as unknown as Order[];
+  return (data ?? []).map(mapOrderRow);
 }
 
 /**
@@ -42,8 +145,8 @@ export async function getBusinessOrderById(
       total_amount, notes, delivery_address, pickup_date,
       created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
       farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
-      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city),
-      items:order_items(id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
+      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone, address),
+      items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
     `
     )
     .eq("id", orderId)
@@ -51,7 +154,8 @@ export async function getBusinessOrderById(
     .maybeSingle();
 
   if (error) throw error;
-  return data as unknown as Order | null;
+  if (!data) return null;
+  return mapOrderRow(data);
 }
 
 /**
@@ -72,8 +176,8 @@ export async function getBusinessOrdersByIds(
       total_amount, notes, delivery_address, pickup_date,
       created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
       farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
-      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city),
-      items:order_items(id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
+      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone, address),
+      items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
     `
     )
     .in("id", orderIds)
@@ -81,31 +185,40 @@ export async function getBusinessOrdersByIds(
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return (data ?? []) as unknown as Order[];
+  return (data ?? []).map(mapOrderRow);
 }
 
 /**
  * Fetch all orders directed to a farmer, newest first.
  */
-export async function getFarmerOrders(farmerClerkId: string): Promise<Order[]> {
+export async function getFarmerOrders(
+  farmerClerkId: string,
+  limit?: number
+): Promise<Order[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("orders")
     .select(
       `
       id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
       total_amount, notes, delivery_address, pickup_date,
       created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
-      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
-      items:order_items(id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
+      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone, address),
+      items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
     `
     )
     .eq("farmer_clerk_id", farmerClerkId)
     .order("created_at", { ascending: false });
 
+  if (limit !== undefined && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
+
   if (error) throw error;
-  return (data ?? []) as unknown as Order[];
+  return (data ?? []).map(mapOrderRow);
 }
 
 /**
@@ -125,7 +238,7 @@ export async function getFarmerOrderById(
       total_amount, notes, delivery_address, pickup_date,
       created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
       business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone, address),
-      items:order_items(id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
+      items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
     `
     )
     .eq("id", orderId)
@@ -133,7 +246,8 @@ export async function getFarmerOrderById(
     .maybeSingle();
 
   if (error) throw error;
-  return data as unknown as Order | null;
+  if (!data) return null;
+  return mapOrderRow(data);
 }
 
 /**

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { PRODUCT_IMAGES_BUCKET } from "@/lib/supabase/storage";
 import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
+import type { Database } from "@/lib/database.types";
 
 async function assertFarmer(sessionClaims: Record<string, unknown> | null | undefined, userId: string | null) {
   if (!userId || sessionClaims?.user_role !== "farmer") {
@@ -161,7 +162,7 @@ export async function updateProduct(productId: string, data: Partial<ProductForm
     primaryImagePath = data.image_path || null;
   }
 
-  const updates: Record<string, unknown> = {};
+  const updates: Database["public"]["Tables"]["products"]["Update"] = {};
   if (data.name !== undefined) {
     if (!data.name.trim()) return { success: false, error: "Product name is required." };
     updates.name = data.name.trim();

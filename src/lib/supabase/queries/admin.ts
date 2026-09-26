@@ -46,8 +46,8 @@ export async function getAdminProducts(): Promise<Product[]> {
     .select(`
       id, farmer_clerk_id, category_id, name, description,
       price_per_unit, unit, quantity_available, min_order_quantity,
-      image_url, harvest_date, available_until, status, created_at, updated_at,
-      farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city),
+      image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
+      farmer:profiles!products_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, avatar_url, bio, is_verified),
       category:categories(id, name, slug)
     `)
     .order("created_at", { ascending: false });
@@ -57,7 +57,26 @@ export async function getAdminProducts(): Promise<Product[]> {
     return [];
   }
 
-  return (data ?? []) as unknown as Product[];
+  return (data ?? []).map((row): Product => ({
+    id: row.id,
+    farmer_clerk_id: row.farmer_clerk_id,
+    category_id: row.category_id,
+    name: row.name,
+    description: row.description,
+    price_per_unit: Number(row.price_per_unit),
+    unit: row.unit,
+    quantity_available: Number(row.quantity_available),
+    min_order_quantity: Number(row.min_order_quantity),
+    image_url: row.image_url,
+    image_path: row.image_path,
+    harvest_date: row.harvest_date,
+    available_until: row.available_until,
+    status: row.status as Product["status"],
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    farmer: row.farmer ?? undefined,
+    category: row.category ?? undefined,
+  }));
 }
 
 /**
@@ -72,9 +91,9 @@ export async function getAdminOrders(): Promise<Order[]> {
       id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
       total_amount, notes, delivery_address, pickup_date,
       created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
-      farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city),
-      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city),
-      items:order_items(id, product_id, product_name, unit, quantity, unit_price, subtotal)
+      farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
+      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone, address),
+      items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
     `)
     .order("created_at", { ascending: false });
 
@@ -83,7 +102,20 @@ export async function getAdminOrders(): Promise<Order[]> {
     return [];
   }
 
-  return (data ?? []) as unknown as Order[];
+  return (data ?? []).map((row): Order => ({
+    ...row,
+    status: row.status as Order["status"],
+    fulfillment_type: row.fulfillment_type as Order["fulfillment_type"],
+    total_amount: row.total_amount ? Number(row.total_amount) : null,
+    farmer: row.farmer ?? undefined,
+    business: row.business ?? undefined,
+    items: (row.items ?? []).map((i) => ({
+      ...i,
+      quantity: Number(i.quantity),
+      unit_price: Number(i.unit_price),
+      subtotal: Number(i.subtotal ?? Number(i.quantity) * Number(i.unit_price)),
+    })),
+  }));
 }
 
 /**
@@ -128,14 +160,17 @@ export async function getAdminOrderById(orderId: string): Promise<{
         total_amount, notes, delivery_address, pickup_date,
         created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
         farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
-        business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
-        items:order_items(id, product_id, product_name, unit, quantity, unit_price, subtotal)
+        business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone, address),
+        items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
       `)
       .eq("id", orderId)
       .maybeSingle(),
     supabase
       .from("messages")
-      .select("id, order_id, sender_clerk_id, body, created_at")
+      .select(`
+        id, order_id, sender_clerk_id, body, created_at,
+        sender:profiles!messages_sender_clerk_id_fkey(clerk_id, full_name, avatar_url, business_name)
+      `)
       .eq("order_id", orderId)
       .order("created_at", { ascending: true }),
   ]);
@@ -147,30 +182,34 @@ export async function getAdminOrderById(orderId: string): Promise<{
     return { order: null, messages: [] };
   }
 
-  const rawMessages = messagesRes.data ?? [];
-  let messagesWithSenders: Message[] = [];
+  const rawOrder = orderRes.data;
+  const order: Order = {
+    ...rawOrder,
+    status: rawOrder.status as Order["status"],
+    fulfillment_type: rawOrder.fulfillment_type as Order["fulfillment_type"],
+    total_amount: rawOrder.total_amount ? Number(rawOrder.total_amount) : null,
+    farmer: rawOrder.farmer ?? undefined,
+    business: rawOrder.business ?? undefined,
+    items: (rawOrder.items ?? []).map((i) => ({
+      ...i,
+      quantity: Number(i.quantity),
+      unit_price: Number(i.unit_price),
+      subtotal: Number(i.subtotal ?? Number(i.quantity) * Number(i.unit_price)),
+    })),
+  };
 
-  if (rawMessages.length > 0) {
-    const senderIds = Array.from(new Set(rawMessages.map((m) => m.sender_clerk_id)));
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("clerk_id, full_name, avatar_url, business_name")
-      .in("clerk_id", senderIds);
-
-    const profileMap = new Map<string, Pick<Profile, "clerk_id" | "full_name" | "avatar_url" | "business_name">>();
-    profiles?.forEach((p) => {
-      profileMap.set(p.clerk_id, p);
-    });
-
-    messagesWithSenders = rawMessages.map((m) => ({
-      ...m,
-      sender: profileMap.get(m.sender_clerk_id),
-    }));
-  }
+  const messages: Message[] = (messagesRes.data ?? []).map((m) => ({
+    id: m.id,
+    order_id: m.order_id,
+    sender_clerk_id: m.sender_clerk_id,
+    body: m.body,
+    created_at: m.created_at,
+    sender: m.sender ?? undefined,
+  }));
 
   return {
-    order: orderRes.data as unknown as Order,
-    messages: messagesWithSenders,
+    order,
+    messages,
   };
 }
 

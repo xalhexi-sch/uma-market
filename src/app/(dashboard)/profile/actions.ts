@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
+import type { Database } from "@/lib/database.types";
 
 export interface ProfileUpdateData {
   full_name?: string;
@@ -31,7 +32,7 @@ export async function updateProfile(data: ProfileUpdateData) {
 
   const supabase = await createClient();
 
-  const updates: Record<string, unknown> = {};
+  const updates: Database["public"]["Tables"]["profiles"]["Update"] = {};
   if (data.full_name !== undefined) updates.full_name = data.full_name.trim() || null;
   if (data.business_name !== undefined) updates.business_name = data.business_name.trim() || null;
   if (data.phone !== undefined) updates.phone = data.phone.trim() || null;
