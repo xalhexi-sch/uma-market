@@ -56,6 +56,7 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
     product.farmer?.full_name ||
     "Local Producer";
 
+  const farmerClerkId = product.farmer?.clerk_id || product.farmer_clerk_id;
   const isAvailable = product.quantity_available > 0;
 
   return (
@@ -129,25 +130,64 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                 </div>
 
                 <div className="mt-4 flex flex-col gap-2">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <RiStore2Line className="size-5" />
+                  {farmerClerkId ? (
+                    <Link
+                      href={`/farmers/${farmerClerkId}`}
+                      className="group/farmer block"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover/farmer:bg-primary group-hover/farmer:text-primary-foreground transition-colors">
+                          <RiStore2Line className="size-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold text-foreground group-hover/farmer:text-primary transition-colors">
+                              {farmerName}
+                            </p>
+                            <RiArrowRightLine className="size-3 text-muted-foreground opacity-0 -translate-x-1 group-hover/farmer:opacity-100 group-hover/farmer:translate-x-0 transition-all shrink-0" />
+                          </div>
+                          {product.farmer?.city && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <RiMapPinLine className="size-3" />
+                              {product.farmer.city}, Philippines
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <RiStore2Line className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{farmerName}</p>
+                        {product.farmer?.city && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <RiMapPinLine className="size-3" />
+                            {product.farmer.city}, Philippines
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{farmerName}</p>
-                      {product.farmer?.city && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <RiMapPinLine className="size-3" />
-                          {product.farmer.city}, Philippines
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  )}
 
                   {product.farmer?.bio && (
                     <p className="mt-2 text-xs text-muted-foreground leading-relaxed pl-12">
                       &ldquo;{product.farmer.bio}&rdquo;
                     </p>
+                  )}
+
+                  {farmerClerkId && (
+                    <div className="mt-2 pt-2 border-t border-border/40 pl-12">
+                      <Link
+                        href={`/farmers/${farmerClerkId}`}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      >
+                        <span>View producer profile & listings</span>
+                        <RiArrowRightLine className="size-3" />
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>
