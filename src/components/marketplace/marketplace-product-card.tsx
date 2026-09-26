@@ -10,6 +10,7 @@ export interface MarketplaceProductCardProps {
   product: Product;
   href?: string;
   variant?: "public" | "business";
+  priority?: boolean;
 }
 
 function AvailabilityBadge({ qty, unit }: { qty: number; unit: string }) {
@@ -41,6 +42,7 @@ export function MarketplaceProductCard({
   product,
   href,
   variant = "public",
+  priority = false,
 }: MarketplaceProductCardProps) {
   const farmerName =
     product.farmer?.business_name ||
@@ -60,7 +62,8 @@ export function MarketplaceProductCard({
           <ProductImage
             src={imageUrl}
             alt={product.name}
-            loading="lazy"
+            priority={priority}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 288px"
             className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
           />
           {product.category && (
