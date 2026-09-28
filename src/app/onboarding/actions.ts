@@ -22,44 +22,96 @@ export async function completeOnboarding(formData: FormData) {
   const { userId, sessionClaims } = await auth();
   if (!userId) redirect("/sign-in");
 
-  // Prevent role re-assignment if user already has an assigned role
-  const existingClaimRole = sessionClaims?.user_role as string | undefined;
-  if (existingClaimRole) {
-    if (existingClaimRole === "farmer") redirect("/farmer");
-    if (existingClaimRole === "business") redirect("/business");
-    if (existingClaimRole === "admin") redirect("/admin");
-    throw new Error("User already has an assigned role.");
-  }
-
-  // Also check authoritative Clerk user record in case session claims haven't updated yet
   const clerk = await clerkClient();
   const currentUser = await clerk.users.getUser(userId);
+  const existingClaimRole = sessionClaims?.user_role as string | undefined;
   const existingClerkRole = currentUser.publicMetadata?.role as string | undefined;
-  if (existingClerkRole) {
-    if (existingClerkRole === "farmer") redirect("/farmer");
-    if (existingClerkRole === "business") redirect("/business");
-    if (existingClerkRole === "admin") redirect("/admin");
-    throw new Error("User already has an assigned role.");
-  }
 
-  const role = formData.get("role") as string;
-  // Strict allowlist: only farmer and business are permitted via public onboarding.
-  // The 'admin' role must NEVER be assignable through public onboarding.
   const ALLOWED_ONBOARDING_ROLES: string[] = [ROLES.FARMER, ROLES.BUSINESS];
-  if (!ALLOWED_ONBOARDING_ROLES.includes(role)) {
-    throw new Error(
-      "Invalid role selection. Only farmer and business accounts can be created through onboarding."
-    );
+  if (existingClaimRole && existingClerkRole && existingClaimRole !== existingClerkRole) {
+    return {
+      success: false as const,
+      error: "Your account role could not be verified. Refresh your session and try again.",
+    };
   }
 
-  // 1. Set role in Clerk publicMetadata
-  const clerkUser = await clerk.users.updateUser(userId, {
-    publicMetadata: { role },
-  });
-
-  // 2. Upsert profile row in Supabase
-  //    Use the service-role client because the session token hasn't refreshed yet.
+  const existingRole = existingClerkRole || existingClaimRole;
+  let role: string;
+  let clerkUser = currentUser;
   const supabase = createAdminClient();
+
+  if (existingRole) {
+    if (existingRole === ROLES.ADMIN) redirect("/admin");
+    if (!ALLOWED_ONBOARDING_ROLES.includes(existingRole)) {
+      return {
+        success: false as const,
+        error: "This account already has a role that cannot use public onboarding.",
+      };
+    }
+
+    // Recovery uses only the existing Clerk role; submitted form data cannot change it.
+    role = existingRole;
+    const { data: profile, error: lookupError } = await supabase
+      .from("profiles")
+      .select("clerk_id, role")
+      .eq("clerk_id", userId)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("[onboarding] Failed to check profile:", lookupError.message);
+      return {
+        success: false as const,
+        error: "We couldn't check your profile. Please try again.",
+      };
+    }
+
+    if (profile) {
+      if (profile.role !== role) {
+        return {
+          success: false as const,
+          error: "Your account role and profile do not match. Please contact support.",
+        };
+      }
+      redirect(`/${role}`);
+    }
+  } else {
+    const { data: existingProfile, error: lookupError } = await supabase
+      .from("profiles")
+      .select("clerk_id")
+      .eq("clerk_id", userId)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("[onboarding] Failed to check profile:", lookupError.message);
+      return {
+        success: false as const,
+        error: "We couldn't check your profile. Please try again.",
+      };
+    }
+    if (existingProfile) {
+      return {
+        success: false as const,
+        error: "A profile already exists for your account. Refresh your session or contact support.",
+      };
+    }
+
+    const submittedRole = formData.get("role");
+    if (typeof submittedRole !== "string" || !ALLOWED_ONBOARDING_ROLES.includes(submittedRole)) {
+      return {
+        success: false as const,
+        error: "Choose a valid farmer or business role to continue.",
+      };
+    }
+
+    role = submittedRole;
+    // A new account can choose a role once. Recovery never changes Clerk metadata.
+    clerkUser = await clerk.users.updateUser(userId, {
+      publicMetadata: { role },
+    });
+  }
+
+  // Profile identity always comes from authenticated Clerk auth(), never form data.
+  // The service-role client is needed before a new role is present in the session JWT.
   const { error } = await supabase.from("profiles").upsert(
     {
       clerk_id: userId,
@@ -76,7 +128,11 @@ export async function completeOnboarding(formData: FormData) {
 
   if (error) {
     console.error("[onboarding] Failed to create profile:", error.message);
-    throw new Error("Could not create your profile. Please try again.");
+    return {
+      success: false as const,
+      error: `Your ${role} role is saved, but profile setup failed. Please retry to finish setup.`,
+      recoveryRole: role as "farmer" | "business",
+    };
   }
 
   // 3. Redirect to /onboarding/complete which reloads the session token
