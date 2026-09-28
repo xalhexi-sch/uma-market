@@ -39,14 +39,20 @@ export async function updateProfile(data: ProfileUpdateData) {
   if (data.city !== undefined) updates.city = data.city.trim() || "Butuan City";
   if (data.bio !== undefined) updates.bio = data.bio.trim() || null;
 
-  const { error } = await supabase
+  const { data: updatedProfile, error } = await supabase
     .from("profiles")
     .update(updates)
-    .eq("clerk_id", userId);
+    .eq("clerk_id", userId)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("[profile] updateProfile error:", error.message);
     return { success: false, error: "Could not update profile. Please try again." };
+  }
+  if (!updatedProfile) {
+    console.error("[profile] updateProfile error: no profile row matched authenticated user");
+    return { success: false, error: "Profile not found. Please complete onboarding." };
   }
 
   revalidatePath("/business/profile");

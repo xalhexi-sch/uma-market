@@ -5,8 +5,13 @@ import { RiPlantLine, RiBuildingLine } from "@remixicon/react";
 import { completeOnboarding } from "./actions";
 import { Spinner } from "@/components/ui/spinner";
 
-export function OnboardingForm() {
-  const [selectedRole, setSelectedRole] = useState<"farmer" | "business" | null>(null);
+export function OnboardingForm({
+  existingRole,
+}: {
+  existingRole?: "farmer" | "business";
+}) {
+  const [selectedRole, setSelectedRole] = useState<"farmer" | "business" | null>(existingRole ?? null);
+  const [lockedRole, setLockedRole] = useState<"farmer" | "business" | undefined>(existingRole);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +26,15 @@ export function OnboardingForm() {
     formData.append("role", selectedRole);
 
     try {
-      await completeOnboarding(formData);
+      const result = await completeOnboarding(formData);
+      if (result && !result.success) {
+        if (result.recoveryRole) {
+          setSelectedRole(result.recoveryRole);
+          setLockedRole(result.recoveryRole);
+        }
+        setIsSubmitting(false);
+        setError(result.error);
+      }
     } catch (err: unknown) {
       // In Next.js, redirect() throws an error containing NEXT_REDIRECT.
       // We must not treat it as an error or reset isSubmitting, since navigation is in progress.
@@ -49,6 +62,7 @@ export function OnboardingForm() {
             name="role"
             value="farmer"
             checked={selectedRole === "farmer"}
+            disabled={Boolean(lockedRole && lockedRole !== "farmer")}
             onChange={() => setSelectedRole("farmer")}
             className="sr-only"
           />
@@ -86,6 +100,7 @@ export function OnboardingForm() {
             name="role"
             value="business"
             checked={selectedRole === "business"}
+            disabled={Boolean(lockedRole && lockedRole !== "business")}
             onChange={() => setSelectedRole("business")}
             className="sr-only"
           />
@@ -129,7 +144,7 @@ export function OnboardingForm() {
             <span>Setting up your account…</span>
           </>
         ) : (
-          "Continue"
+          lockedRole ? "Retry profile setup" : "Continue"
         )}
       </button>
     </form>
