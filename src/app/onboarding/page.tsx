@@ -1,7 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { APP_NAME } from "@/lib/constants";
+import { getProfileByClerkId } from "@/lib/supabase/queries/profiles";
 import { OnboardingForm } from "./onboarding-form";
 
 export const metadata: Metadata = {
@@ -14,11 +15,19 @@ export default async function OnboardingPage() {
 
   if (!userId) redirect("/sign-in");
 
-  // If the user already has a role (e.g. refreshed), send them to their dashboard
-  const existingRole = sessionClaims?.user_role as string | undefined;
-  if (existingRole === "farmer") redirect("/farmer");
-  if (existingRole === "business") redirect("/business");
+  const clerk = await clerkClient();
+  const currentUser = await clerk.users.getUser(userId);
+  const existingRole =
+    (currentUser.publicMetadata?.role as string | undefined) ||
+    (sessionClaims?.user_role as string | undefined);
   if (existingRole === "admin") redirect("/admin");
+
+  let recoveryRole: "farmer" | "business" | undefined;
+  if (existingRole === "farmer" || existingRole === "business") {
+    const profile = await getProfileByClerkId(userId);
+    if (profile?.role === existingRole) redirect(`/${existingRole}`);
+    recoveryRole = existingRole;
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
@@ -28,17 +37,21 @@ export default async function OnboardingPage() {
           {APP_NAME}
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          How will you use UMA?
+          {recoveryRole ? "Finish setting up your account" : "How will you use UMA?"}
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Choose your role. You can only have one.
+          {recoveryRole
+            ? `Your ${recoveryRole} role is already set. Complete profile setup to continue.`
+            : "Choose your role. You can only have one."}
         </p>
       </div>
 
-      <OnboardingForm />
+      <OnboardingForm existingRole={recoveryRole} />
 
       <p className="mt-6 text-xs text-muted-foreground">
-        Your role cannot be changed after setup. Contact support if you need help.
+        {recoveryRole
+          ? "Your role is locked during profile recovery."
+          : "Your role cannot be changed after setup. Contact support if you need help."}
       </p>
     </div>
   );
