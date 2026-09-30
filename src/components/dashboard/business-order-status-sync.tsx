@@ -8,17 +8,22 @@ import type { OrderStatus, FulfillmentType } from "@/lib/constants";
 
 interface BusinessOrderStatusSectionProps {
   orderId: string;
+  farmerName: string;
   orderCreatedAt: string;
+  placedDate?: string;
   initialStatus: OrderStatus;
   fulfillmentType: FulfillmentType;
   initialCancellationReason: string | null;
+  mainContent: React.ReactNode;
+  asideContent: React.ReactNode;
 }
 
 /**
  * Client component that subscribes to Supabase Realtime UPDATE events for
  * a single `orders` row and re-renders both:
  *  - the header row (with live status badge + cancel button)
- *  - the full order progress timeline (below the header)
+ *  - the full order progress timeline
+ *  - the two-column workspace layout
  * without a page reload.
  *
  * SSR initial state is preserved as props; Realtime updates layer on top
@@ -26,16 +31,26 @@ interface BusinessOrderStatusSectionProps {
  */
 export function BusinessOrderStatusSection({
   orderId,
+  farmerName,
   orderCreatedAt,
+  placedDate,
   initialStatus,
   fulfillmentType,
   initialCancellationReason,
+  mainContent,
+  asideContent,
 }: BusinessOrderStatusSectionProps) {
   const { status, cancellationReason } = useOrderStatusSync(
     orderId,
     initialStatus,
     initialCancellationReason
   );
+
+  const displayDate =
+    placedDate ??
+    new Date(orderCreatedAt).toLocaleDateString("en-PH", {
+      dateStyle: "long",
+    });
 
   return (
     <>
@@ -45,27 +60,39 @@ export function BusinessOrderStatusSection({
           <p className="text-xs text-muted-foreground font-mono">
             #{orderId.slice(0, 8).toUpperCase()}
           </p>
-          <h1 className="mt-0.5 text-xl font-semibold text-foreground">Order Details</h1>
+          <h1 className="mt-0.5 text-xl font-semibold text-foreground">
+            Order from {farmerName}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Placed{" "}
-            {new Date(orderCreatedAt).toLocaleDateString("en-PH", {
-              dateStyle: "long",
-            })}
+            Placed {displayDate}
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3 flex-wrap">
           <OrderStatusBadge status={status} />
           {status === "pending" && <CancelOrderButton orderId={orderId} />}
         </div>
       </div>
 
-      {/* Order progress timeline */}
-      <OrderStatusTimeline
-        status={status}
-        fulfillmentType={fulfillmentType}
-        cancellationReason={cancellationReason}
-      />
+      {/* Two-column grid: main content first (mobile sees items before actions) */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        {/* Left / main */}
+        <div className="flex flex-col gap-6">
+          {mainContent}
+        </div>
+
+        {/* Right / aside */}
+        <div className="flex flex-col gap-6">
+          {/* Order progress timeline — driven by live status */}
+          <OrderStatusTimeline
+            status={status}
+            fulfillmentType={fulfillmentType}
+            cancellationReason={cancellationReason}
+          />
+
+          {asideContent}
+        </div>
+      </div>
     </>
   );
 }
