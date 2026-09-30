@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -13,7 +14,7 @@ import type { UserRole } from "@/lib/constants";
 import { CURRENCY } from "@/lib/constants";
 import { getFarmerOrders, getFarmerOrderMetrics } from "@/lib/supabase/queries/orders";
 import { getFarmerActiveProductCount } from "@/lib/supabase/queries/products";
-import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
+import { RecentOrderList } from "@/components/dashboard/recent-order-list";
 
 export const metadata: Metadata = { title: "Farmer Dashboard" };
 export const dynamic = "force-dynamic";
@@ -36,12 +37,54 @@ export default async function FarmerDashboardPage() {
 
   return (
     <div className="flex flex-col gap-8 p-6 lg:p-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Welcome back</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Here&apos;s what&apos;s happening with your farm today.
-        </p>
+      {/* Agricultural Visual Banner */}
+      <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-stretch">
+          {/* Visual Accent (stacks naturally on mobile, right pane on desktop) */}
+          <div className="order-1 sm:order-2 relative h-32 sm:h-auto sm:w-[38%] lg:w-[35%] shrink-0 overflow-hidden">
+            <Image
+              src="/hero-farmer-sunrise.jpg"
+              alt="Local farmer harvesting fresh produce in Butuan"
+              fill
+              priority
+              sizes="(max-width: 640px) 100vw, 420px"
+              className="object-cover object-[center_35%]"
+            />
+            {/* Seamless desktop edge blend */}
+            <div className="hidden sm:block absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-card to-transparent pointer-events-none" />
+            {/* Seamless mobile bottom edge blend */}
+            <div className="sm:hidden absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+          </div>
+
+          {/* Banner Content */}
+          <div className="order-2 sm:order-1 flex flex-1 flex-col justify-center p-5 sm:p-6 lg:p-7 min-w-0">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
+              <span className="size-1.5 rounded-full bg-primary" />
+              Grower Operations Desk
+            </div>
+            <h1 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Direct farm trade for Butuan producers
+            </h1>
+            <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-lg">
+              Manage your harvest inventory, respond to wholesale buyers, and fulfill orders at farm-gate pricing.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2.5">
+              <Link
+                href="/farmer/products/new"
+                className="group inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90 active:bg-primary/95"
+              >
+                Add produce
+                <RiArrowRightLine className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <Link
+                href="/farmer/orders"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50"
+              >
+                View orders
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Metric cards */}
@@ -96,48 +139,14 @@ export default async function FarmerDashboardPage() {
             View all
           </Link>
         </div>
-        {recentOrders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 px-6 py-10 text-center">
-            <RiShoppingBagLine className="size-8 text-muted-foreground/50" />
-            <p className="mt-3 text-sm font-medium text-foreground">No orders yet.</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Once businesses place orders, they&apos;ll appear here.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[380px] text-sm">
-              <tbody className="divide-y divide-border">
-                {recentOrders.map((order) => {
-                  const bizName =
-                    order.business?.business_name || order.business?.full_name || "—";
-                  return (
-                    <tr key={order.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <Link
-                          href={`/farmer/orders/${order.id}`}
-                          className="font-mono text-xs font-medium text-foreground hover:text-primary"
-                        >
-                          #{order.id.slice(0, 8).toUpperCase()}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{bizName}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-foreground tabular-nums whitespace-nowrap">
-                        {CURRENCY}
-                        {(order.total_amount ?? 0).toLocaleString("en-PH", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <OrderStatusBadge status={order.status} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <RecentOrderList
+          orders={recentOrders}
+          role="farmer"
+          emptyTitle="No orders yet."
+          emptyDescription="When commercial businesses place wholesale orders for your produce, they'll appear here."
+          actionHref="/farmer/products"
+          actionLabel="Manage Produce"
+        />
       </section>
     </div>
   );

@@ -7,14 +7,13 @@ import {
   RiTimeLine,
   RiCoinLine,
   RiArrowRightLine,
-  RiStoreLine,
 } from "@remixicon/react";
 import Link from "next/link";
 import type { UserRole } from "@/lib/constants";
 import { CURRENCY } from "@/lib/constants";
 import { getBusinessOrders, getBusinessOrderMetrics } from "@/lib/supabase/queries/orders";
 import { getActiveProducts } from "@/lib/supabase/queries/products";
-import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
+import { RecentOrderList } from "@/components/dashboard/recent-order-list";
 import { ProductCard } from "@/components/dashboard/product-card";
 
 export const metadata: Metadata = { title: "Business Dashboard" };
@@ -112,55 +111,14 @@ export default async function BusinessDashboardPage() {
             View all
           </Link>
         </div>
-        {recentOrders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 px-6 py-10 text-center">
-            <RiStoreLine className="size-8 text-muted-foreground/50" />
-            <p className="mt-3 text-sm font-medium text-foreground">No orders placed yet.</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Browse products and place your first order.
-            </p>
-            <Link
-              href="/business/products"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              Browse Products
-              <RiArrowRightLine className="size-3" />
-            </Link>
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[380px] text-sm">
-              <tbody className="divide-y divide-border">
-                {recentOrders.map((order) => {
-                  const farmerName =
-                    order.farmer?.business_name || order.farmer?.full_name || "—";
-                  return (
-                    <tr key={order.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <Link
-                          href={`/business/orders/${order.id}`}
-                          className="font-mono text-xs font-medium text-foreground hover:text-primary"
-                        >
-                          #{order.id.slice(0, 8).toUpperCase()}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{farmerName}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-foreground tabular-nums whitespace-nowrap">
-                        {CURRENCY}
-                        {(order.total_amount ?? 0).toLocaleString("en-PH", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <OrderStatusBadge status={order.status} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <RecentOrderList
+          orders={recentOrders}
+          role="business"
+          emptyTitle="No orders placed yet."
+          emptyDescription="Browse available produce from local farmers and place your first wholesale order."
+          actionHref="/business/products"
+          actionLabel="Browse Products"
+        />
       </section>
 
       {/* Featured Products */}

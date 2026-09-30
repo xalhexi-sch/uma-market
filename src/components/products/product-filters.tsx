@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { RiSearchLine, RiFilter3Line, RiCloseCircleLine, RiLoader4Line } from "@remixicon/react";
-import { Input } from "@/components/ui/input";
+import { RiSearchLine, RiFilter3Line } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -23,6 +22,7 @@ import type { ProductSort } from "@/lib/supabase/queries/products";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useProductSearchOptional } from "@/components/products/product-search-context";
+import { SearchAutocomplete } from "@/components/products/search-autocomplete";
 
 interface ProductFiltersProps {
   basePath: "/products" | "/business/products";
@@ -157,58 +157,32 @@ export function ProductFilters({
     <div className="w-full">
       {/* ─── Desktop & Tablet Layout (>= sm) ─── */}
       <div className="hidden sm:flex items-center gap-3 w-full">
-        <div className={cn("relative flex-1", variant === "business" && "max-w-sm")}>
-          {searchContext?.isSearching ? (
-            <RiLoader4Line className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin pointer-events-none" />
-          ) : (
-            <RiSearchLine className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          )}
-          <Input
-            value={draftSearch}
-            onChange={(e) => {
-              const val = e.target.value;
-              setDraftSearch(val);
-              if (searchContext) {
-                searchContext.setSearchQuery(val);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleApply({ search: draftSearch });
-              }
-            }}
-            placeholder={
-              variant === "marketplace"
-                ? "Search produce, varieties, or farm names…"
-                : "Search products or farmers…"
+        <SearchAutocomplete
+          value={draftSearch}
+          onChange={(val) => {
+            setDraftSearch(val);
+            if (searchContext) {
+              searchContext.setSearchQuery(val);
             }
-            className={cn(
-              "pl-10 pr-9 bg-background text-sm shadow-xs",
-              variant === "marketplace" ? "h-11" : "h-9"
-            )}
-            aria-label="Search produce"
-          />
-          {draftSearch && (
-            <button
-              type="button"
-              onClick={() => {
-                setDraftSearch("");
-                const nextSort = draftSort === "relevance" ? "newest" : draftSort;
-                if (draftSort === "relevance") setDraftSort("newest");
-                if (searchContext) {
-                  searchContext.clearSearch();
-                } else {
-                  handleApply({ search: "", sort: nextSort });
-                }
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-0.5 rounded-sm"
-              aria-label="Clear search text"
-            >
-              <RiCloseCircleLine className="size-4" />
-            </button>
-          )}
-        </div>
+          }}
+          onSubmit={(val) => {
+            handleApply({ search: val });
+          }}
+          onClear={() => {
+            setDraftSearch("");
+            const nextSort = draftSort === "relevance" ? "newest" : draftSort;
+            if (draftSort === "relevance") setDraftSort("newest");
+            if (searchContext) {
+              searchContext.clearSearch();
+            } else {
+              handleApply({ search: "", sort: nextSort });
+            }
+          }}
+          basePath={basePath}
+          variant={variant}
+          isSearchingContext={searchContext?.isSearching}
+          className={cn("flex-1", variant === "business" && "max-w-sm")}
+        />
 
         <div
           className={cn(
@@ -216,11 +190,15 @@ export function ProductFilters({
             variant === "business" && "gap-2"
           )}
         >
-          {/* shadcn Select for Sort */}
+          {/* shadcn Select for Sort — Auto-applies on change */}
           <Select
             value={draftSort}
             onValueChange={(val) => {
-              if (val) setDraftSort(val as ProductSort);
+              if (val) {
+                const sort = val as ProductSort;
+                setDraftSort(sort);
+                handleApply({ sort });
+              }
             }}
           >
             <SelectTrigger
@@ -252,11 +230,14 @@ export function ProductFilters({
             </SelectContent>
           </Select>
 
-          {/* shadcn Select for Availability */}
+          {/* shadcn Select for Availability — Auto-applies on change */}
           <Select
             value={draftInStock}
             onValueChange={(val) => {
-              if (val) setDraftInStock(val);
+              if (val) {
+                setDraftInStock(val);
+                handleApply({ inStock: val });
+              }
             }}
           >
             <SelectTrigger
@@ -282,73 +263,56 @@ export function ProductFilters({
             </SelectContent>
           </Select>
 
+          {/* Search submit button — replaces generic "Apply" since dropdowns now auto-apply */}
           <button
             type="button"
-            onClick={() => handleApply()}
+            onClick={() => handleApply({ search: draftSearch })}
             className={cn(
-              "cursor-pointer transition-colors shadow-xs rounded-md font-semibold",
+              "cursor-pointer transition-colors shadow-xs rounded-md font-semibold inline-flex items-center justify-center gap-1.5",
               variant === "marketplace"
-                ? "h-11 px-5 bg-primary text-sm text-primary-foreground hover:bg-primary/90"
+                ? "h-11 px-4 bg-primary text-sm text-primary-foreground hover:bg-primary/90"
                 : "h-9 px-3 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
             )}
+            aria-label="Search"
           >
-            Apply
+            <RiSearchLine className="size-4" />
+            <span className="hidden lg:inline">Search</span>
           </button>
         </div>
       </div>
 
       {/* ─── Small Mobile Layout (< sm) ─── */}
       <div className="flex sm:hidden items-center gap-2 w-full">
-        {/* Immediately visible Search input */}
-        <div className="relative flex-1 min-w-0">
-          {searchContext?.isSearching ? (
-            <RiLoader4Line className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin pointer-events-none" />
-          ) : (
-            <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          )}
-          <Input
-            value={draftSearch}
-            onChange={(e) => {
-              const val = e.target.value;
-              setDraftSearch(val);
-              if (searchContext) {
-                searchContext.setSearchQuery(val);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleApply({ search: draftSearch });
-              }
-            }}
-            placeholder={
-              variant === "marketplace"
-                ? "Search produce…"
-                : "Search products…"
+        {/* Immediately visible Search input with live autocomplete */}
+        <SearchAutocomplete
+          value={draftSearch}
+          onChange={(val) => {
+            setDraftSearch(val);
+            if (searchContext) {
+              searchContext.setSearchQuery(val);
             }
-            className="pl-9 pr-8 h-10 bg-background text-sm shadow-xs w-full"
-            aria-label="Search produce"
-          />
-          {draftSearch && (
-            <button
-              type="button"
-              onClick={() => {
-                setDraftSearch("");
-                const nextSort = draftSort === "relevance" ? "newest" : draftSort;
-                if (draftSort === "relevance") setDraftSort("newest");
-                if (searchContext) {
-                  searchContext.clearSearch();
-                } else {
-                  handleApply({ search: "", sort: nextSort });
-                }
-              }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-0.5 rounded-sm"
-              aria-label="Clear search text"
-            >
-              <RiCloseCircleLine className="size-4" />
-            </button>
-          )}
-        </div>
+          }}
+          onSubmit={(val) => {
+            handleApply({ search: val });
+          }}
+          onClear={() => {
+            setDraftSearch("");
+            const nextSort = draftSort === "relevance" ? "newest" : draftSort;
+            if (draftSort === "relevance") setDraftSort("newest");
+            if (searchContext) {
+              searchContext.clearSearch();
+            } else {
+              handleApply({ search: "", sort: nextSort });
+            }
+          }}
+          basePath={basePath}
+          variant={variant}
+          placeholder={
+            variant === "marketplace" ? "Search produce…" : "Search products…"
+          }
+          isSearchingContext={searchContext?.isSearching}
+          className="min-w-0"
+        />
 
         {/* Compact Filter Trigger button */}
         <button

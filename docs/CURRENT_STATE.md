@@ -11,8 +11,8 @@
   - **Feature A: Smart Search & Discovery (`feat/smart-search`)** is ✅ **COMPLETE & LIVE IN PRODUCTION**
   - **Farmer Fulfillment Desk (PR #36, `feat/farmer-fulfillment-desk`)** is ✅ **COMPLETE & MERGED TO MAIN**
   - **Business Procurement Desk (PR #37, `feat/business-procurement-desk`)** is ✅ **COMPLETE & MERGED TO MAIN**
-- **Next Roadmap Feature:** **Feature B: Marketplace / Visual Polish**
-- **Current Checkpoint:** Feature A Merged (`be74155`) ✅ | Farmer Fulfillment Desk Merged (`7bdbfa5`) ✅ | Business Procurement Desk Merged (`24b3449`) ✅ | Main Working Tree Clean ✅ | 38 Routes Passing Build & Lint ✅
+  - **Feature B: Marketplace / Visual Polish (`feat/marketplace-visual-polish`)** is ✅ **COMPLETE & VERIFIED**
+- **Current Checkpoint:** Feature A Merged (`be74155`) ✅ | Farmer Fulfillment Desk Merged (`7bdbfa5`) ✅ | Business Procurement Desk Merged (`24b3449`) ✅ | Feature B Implemented & Verified ✅ | 39 Routes Passing Build & Lint ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
@@ -24,7 +24,7 @@
 - **Feature A Status:** ✅ **Complete & Live in Production**
 - **Farmer Fulfillment Desk (PR 1):** ✅ **Complete & Merged to Main (PR #36)**
 - **Business Procurement Desk (PR 2):** ✅ **Complete & Merged to Main (PR #37)**
-- **Feature B Status:** ⏳ **Next on Roadmap**
+- **Feature B Status:** ✅ **Complete & Fully Verified**
 
 ---
 
@@ -321,14 +321,44 @@
 - [x] **Symmetrical Loading Skeletons (`business/orders/loading.tsx` & `farmer/orders/loading.tsx`):**
   - Tab bar placeholder, 5-col desktop grid, and 2-row mobile cards for seamless hydration.
 
+### Feature B — Marketplace / Visual Polish (Complete & Verified ✅)
+- [x] **Canonical Product Card Consolidation:**
+  - Standardized on `MarketplaceProductCard` with re-export from `components/dashboard/product-card.tsx` as single source of truth.
+  - Wholesale MOQ metadata surfaced unconditionally beneath price.
+  - Farmer business name + city provenance displayed with verified producer checkmark badge.
+  - Low-stock amber badge hardened for dark-mode contrast compliance (`dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400`).
+- [x] **Search Suggestions Route Handler (`/api/search/suggestions`):**
+  - Lightweight debounced endpoint returning top 5 produce matches + up to 2 category quick-jump chips.
+  - Input sanitization (strip control characters, clamp to 50 chars, minimum 2-char guard).
+  - Strict privacy boundary: only public produce fields exposed; farmer phone/address/email strictly omitted.
+  - HTTP cache header: `Cache-Control: public, s-maxage=30, stale-while-revalidate=60`.
+- [x] **Accessible Live Search Autocomplete (`SearchAutocomplete`):**
+  - Debounced at 280ms with AbortController cancellation on rapid keystrokes.
+  - Keyboard navigation (`ArrowDown`/`ArrowUp` cycles matches, `Enter` navigates to produce or category, `Escape` dismisses).
+  - ARIA combobox 1.2 compliant (`role="combobox"`, `role="listbox"`, `role="option"`, `aria-activedescendant`).
+  - Mobile touch-friendly item heights and full-width container alignment.
+  - Replaced generic desktop "Apply" button with dedicated search submit button.
+- [x] **Reactive Filter Auto-Apply:**
+  - Sort and Availability Select dropdowns immediately update the URL and trigger grid re-render upon selection without requiring a manual "Apply" click.
+  - Mobile filter `<Sheet>` retains batch "Apply filters" button for multi-criteria adjustments.
+- [x] **Category Pill Parity & Semantic Icons:**
+  - Standardized `rounded-full` scrollable pill ribbon with semantic `CategoryIcon` SVG icons across both public and business catalogs.
+- [x] **Catalog & Business Pagination:**
+  - Connected Feature A database pagination to accessible `ProductPagination` on both `/products` and `/business/products`.
+  - Preserves active search query, category, sort, and stock parameters across pages.
+  - Mobile compact variant (`Previous`, `Page X of Y`, `Next`) and desktop multi-page list with ellipsis.
+- [x] **Dashboard Component Polish:**
+  - Extracted shared `RecentOrderList` with responsive 5-col desktop table and 2-row mobile cards.
+  - Redesigned grower operations banner and commercial procurement welcome card.
+
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- **Farmer Fulfillment Desk (PR 1, #36):** Merged to `main` (`7bdbfa5`).
-- **Business Procurement Desk (PR 2, #37):** Merged to `main` (`24b3449`).
-- **Next Roadmap Target:** **Feature B — Marketplace / Visual Polish** (catalog visual polish, card layout refinements, visual hierarchy, and buyer experience polish).
-- Current branch: `main` (clean working tree, up to date with `origin/main`).
+- **Feature B (Marketplace / Visual Polish):** Ready for PR and merge into `main`.
+- Current branch: `feat/marketplace-visual-polish`
+- Build status: Clean Next.js compilation across all 39 routes (`npm run build`).
+- Lint status: 0 errors, 0 warnings (`npm run lint`).
 
 ---
 

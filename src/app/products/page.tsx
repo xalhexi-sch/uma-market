@@ -12,6 +12,7 @@ import { ProductFilters } from "@/components/products/product-filters";
 import { CategoryPills } from "@/components/products/category-pills";
 import { ProductSearchProvider } from "@/components/products/product-search-context";
 import { LiveProductGrid } from "@/components/products/live-product-grid";
+import { CategoryIcon } from "@/components/marketplace/category-icon";
 import { getActiveProducts, searchActiveProducts, getCategories } from "@/lib/supabase/queries/products";
 import type { ProductSort } from "@/lib/supabase/queries/products";
 import type { Category } from "@/lib/types";
@@ -67,7 +68,7 @@ function CategoryDiscoverySection({ categories }: { categories: Category[] }) {
           >
             <div>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary mb-3 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <RiPlantLine className="size-5" />
+                <CategoryIcon slug={cat.slug} className="size-5" />
               </div>
               <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
                 {cat.name}

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { RiPlantLine } from "@remixicon/react";
+import { CategoryIcon } from "@/components/marketplace/category-icon";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +20,7 @@ interface CategoryPillsProps {
 /**
  * Shared CategoryPills component adhering to UMA Market design system:
  * - Rounded-full capsule pills with horizontal ribbon scrolling
+ * - Semantic category icon reinforcement
  * - Whitespace-nowrap for multi-word categories
  * - Preserves active search, sort, and stock parameters
  * - Resets pagination back to page 1 upon category change
@@ -59,26 +62,28 @@ export function CategoryPills({
       <Link
         href={buildCategoryHref()}
         className={cn(
-          "rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs",
+          "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs",
           !activeCategory
             ? "bg-primary text-primary-foreground border-primary"
             : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
         )}
       >
-        {allLabel}
+        <RiPlantLine className="size-3.5 shrink-0" />
+        <span>{allLabel}</span>
       </Link>
       {categories.map((cat) => (
         <Link
           key={cat.slug}
           href={buildCategoryHref(cat.slug)}
           className={cn(
-            "rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs",
+            "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs",
             activeCategory === cat.slug
               ? "bg-primary text-primary-foreground border-primary"
               : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
           )}
         >
-          {cat.name}
+          <CategoryIcon slug={cat.slug} className="size-3.5 shrink-0" />
+          <span>{cat.name}</span>
         </Link>
       ))}
     </div>
