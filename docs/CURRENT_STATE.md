@@ -1,15 +1,18 @@
 # UMA Market — Current State
 
 **Source of Truth Document**  
-*Last Updated: 2026-09-26 (Feature A Live in Production, Feature B Next)*
+*Last Updated: 2026-10-01 (Farmer Desk & Business Desk Merged to Main, Feature B Next)*
 
 ---
 
 ## 1. Current Slice & Checkpoint
 
-- **Current Status:** **Feature A: Smart Search & Discovery (`feat/smart-search`)** is ✅ **COMPLETE & LIVE IN PRODUCTION**
+- **Current Status:**
+  - **Feature A: Smart Search & Discovery (`feat/smart-search`)** is ✅ **COMPLETE & LIVE IN PRODUCTION**
+  - **Farmer Fulfillment Desk (PR #36, `feat/farmer-fulfillment-desk`)** is ✅ **COMPLETE & MERGED TO MAIN**
+  - **Business Procurement Desk (PR #37, `feat/business-procurement-desk`)** is ✅ **COMPLETE & MERGED TO MAIN**
 - **Next Roadmap Feature:** **Feature B: Marketplace / Visual Polish**
-- **Current Checkpoint:** Feature A Merged (`be74155`) ✅ | Production Database Migrations Applied & Synchronized (`odnpkqjytrmciwmcehff`) ✅ | Production Incident Resolved ✅ | Live Smoke Tests Passed ✅ | Main Working Tree Clean ✅
+- **Current Checkpoint:** Feature A Merged (`be74155`) ✅ | Farmer Fulfillment Desk Merged (`7bdbfa5`) ✅ | Business Procurement Desk Merged (`24b3449`) ✅ | Main Working Tree Clean ✅ | 38 Routes Passing Build & Lint ✅
 - **Slice 1 Status:** ✅ **Complete & Fully Verified**
 - **Slice 2 Status:** ✅ **Complete & Fully Verified**
 - **Slice 3 Status:** ✅ **Complete & Fully Verified**
@@ -18,7 +21,9 @@
 - **Slice 6 Status:** ✅ **Complete & Fully Verified**
 - **Product Media Gallery Status:** ✅ **Complete & Fully Verified**
 - **Launch Readiness P1 Status:** ✅ **Complete & Fully Verified**
-- **Feature A Status:** ✅ **Complete & Live in Production (26/26 Test Cases, Hardening Remediations, Production Migrations 20260926000001 & 20260926000002 Applied & Verified)**
+- **Feature A Status:** ✅ **Complete & Live in Production**
+- **Farmer Fulfillment Desk (PR 1):** ✅ **Complete & Merged to Main (PR #36)**
+- **Business Procurement Desk (PR 2):** ✅ **Complete & Merged to Main (PR #37)**
 - **Feature B Status:** ⏳ **Next on Roadmap**
 
 ---
@@ -285,11 +290,43 @@
   - If any product fails, the entire batch rolls back atomically: 0 orders created, 0 stock deducted, and cart items remain intact.
   - Prevents partial completion and duplicate order placement on retry.
 
+### Farmer Fulfillment Desk (PR 1 — Complete & Merged to Main ✅)
+- [x] **Segmented Orders Desk (`/farmer/orders`):**
+  - 4-tab interactive segmented view (`Needs response`, `In progress`, `Completed`, `Cancelled`).
+  - Dynamic count badges with amber highlight when orders require producer response.
+  - Oldest-first ordering on actionable tabs to prevent fulfillment delays.
+  - 5-column responsive desktop grid and 2-row compact mobile card layout (1 Link per row, no nested anchors).
+- [x] **Order Fulfillment Workspace (`/farmer/orders/[id]`):**
+  - Two-column workspace layout (`minmax(0,1fr)_380px`).
+  - Real-time status sync via Supabase Realtime WebSocket events (`FarmerOrderStatusSection`).
+  - Action buttons (`OrderStatusActions`): Accept, Decline (with structured reasons modal), Mark preparing/ready/out for delivery.
+  - Progress steps visualization (`OrderProgressSteps`).
+  - Server-rendered items breakdown and business buyer contact dossier.
+  - Embedded real-time order chat (`OrderChat`).
+
+### Business Procurement Desk (PR 2 — Complete & Merged to Main ✅)
+- [x] **Segmented Orders Desk (`/business/orders`):**
+  - 4-tab interactive segmented view matching farmer desk architecture.
+  - Dynamic count badges with amber highlight on pending orders.
+  - Dedicated contextual empty states per tab.
+  - Oldest-first ordering for pending/in-progress; newest-first for completed/cancelled.
+  - 5-column responsive desktop grid and 2-row compact mobile cards.
+- [x] **Order Tracking Workspace (`/business/orders/[id]`):**
+  - Two-column workspace layout matching farmer desk architecture.
+  - Contextual header with producer name and formatted placed date.
+  - Real-time status sync via Supabase Realtime WebSocket events (`BusinessOrderStatusSection`).
+  - Live status badge, cancel button (when pending), and progress timeline.
+  - Server-rendered items breakdown, fulfillment card (pickup/delivery), and producer contact card.
+  - Embedded real-time order chat (`OrderChat`).
+- [x] **Symmetrical Loading Skeletons (`business/orders/loading.tsx` & `farmer/orders/loading.tsx`):**
+  - Tab bar placeholder, 5-col desktop grid, and 2-row mobile cards for seamless hydration.
+
 ---
 
 ## 3. What Is Currently Being Worked On
 
-- **Feature A (Smart Search & Discovery):** Merged to `main` (`be74155`), migrations applied to production Supabase (`odnpkqjytrmciwmcehff`), smoke tests passed, and live in production.
+- **Farmer Fulfillment Desk (PR 1, #36):** Merged to `main` (`7bdbfa5`).
+- **Business Procurement Desk (PR 2, #37):** Merged to `main` (`24b3449`).
 - **Next Roadmap Target:** **Feature B — Marketplace / Visual Polish** (catalog visual polish, card layout refinements, visual hierarchy, and buyer experience polish).
 - Current branch: `main` (clean working tree, up to date with `origin/main`).
 
