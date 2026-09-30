@@ -5,7 +5,7 @@ import { ProductFilters } from "@/components/products/product-filters";
 import { CategoryPills } from "@/components/products/category-pills";
 import { ProductSearchProvider } from "@/components/products/product-search-context";
 import { LiveProductGrid } from "@/components/products/live-product-grid";
-import { getActiveProducts, getCategories } from "@/lib/supabase/queries/products";
+import { searchActiveProducts, getCategories } from "@/lib/supabase/queries/products";
 import type { ProductSort } from "@/lib/supabase/queries/products";
 import type { UserRole } from "@/lib/constants";
 
@@ -20,7 +20,13 @@ export const dynamic = "force-dynamic";
 const VALID_SORTS: ProductSort[] = ["relevance", "newest", "harvest_newest", "price_asc", "price_desc", "name_asc"];
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; category?: string; sort?: string; in_stock?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    sort?: string;
+    in_stock?: string;
+    page?: string;
+  }>;
 }
 
 export default async function BusinessProductsPage({ searchParams }: PageProps) {
@@ -32,7 +38,11 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
     redirect("/onboarding");
   }
 
-  const { q, category, sort, in_stock } = await searchParams;
+  const { q, category, sort, in_stock, page } = await searchParams;
+
+  const rawPage = parseInt(page || "1", 10);
+  const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+
   const inStockOnly = in_stock !== "false";
   const activeSort: ProductSort = VALID_SORTS.includes(sort as ProductSort)
     ? (sort as ProductSort)
@@ -40,16 +50,21 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
     ? "relevance"
     : "newest";
 
-  const [categories, initialProducts] = await Promise.all([
+  const [categories, searchResult] = await Promise.all([
     getCategories(),
-    getActiveProducts({
+    searchActiveProducts({
       search: q,
       categorySlug: category,
       sort: activeSort,
       inStockOnly: inStockOnly,
-      limit: 48,
+      page: currentPage,
+      limit: 24,
     }),
   ]);
+
+  const initialProducts = searchResult.products;
+  const totalCount = searchResult.totalCount;
+  const totalPages = searchResult.totalPages;
 
   const selectedCategory = categories.find((c) => c.slug === category);
 
@@ -101,6 +116,10 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
           initialCategory={category}
           categoryName={selectedCategory?.name}
           inStockOnly={inStockOnly}
+          totalPages={totalPages}
+          currentPage={currentPage}
+          totalCount={totalCount}
+          searchParams={{ q, category, sort, in_stock }}
         />
       </div>
     </ProductSearchProvider>
