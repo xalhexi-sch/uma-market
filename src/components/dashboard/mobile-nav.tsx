@@ -27,6 +27,7 @@ import {
 import { NAV_ITEMS, ROLE_LABELS } from "@/components/dashboard/sidebar";
 import { APP_NAME, type UserRole } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const BOTTOM_NAV_ITEMS: Record<
   UserRole,
@@ -111,7 +112,9 @@ export function DashboardMobileNav({
       </div>
 
       {/* Right: Quick actions & User Profile */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
+        <ThemeToggle />
+
         {role === "business" && (
           <Link
             href="/business/cart"
@@ -228,16 +231,19 @@ export function DashboardMobileNav({
           </nav>
 
           {/* Drawer Footer */}
-          <div className="border-t border-border px-4 py-3">
-            <UserButton
-              appearance={{
-                elements: {
-                  userButtonBox: "flex items-center gap-2",
-                  userButtonOuterIdentifier: "text-sm text-sidebar-foreground",
-                },
-              }}
-              showName
-            />
+          <div className="border-t border-border px-4 py-3 flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonBox: "flex items-center gap-2",
+                    userButtonOuterIdentifier: "text-sm text-sidebar-foreground truncate max-w-[140px]",
+                  },
+                }}
+                showName
+              />
+            </div>
+            <ThemeToggle />
           </div>
         </SheetContent>
       </Sheet>

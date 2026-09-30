@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useTheme } from "next-themes";
 import { RiMoonLine, RiSunLine } from "@remixicon/react";
+import { cn } from "@/lib/utils";
 
 interface ThemeToggleProps {
   /** If the navbar is currently over the dark photo hero before scroll */
@@ -62,7 +63,10 @@ export function ThemeToggle({ isOverHero = false, className = "" }: ThemeToggleP
         type="button"
         disabled
         aria-label="Toggle theme"
-        className={`size-8.5 rounded-lg flex items-center justify-center opacity-0 pointer-events-none ${className}`}
+        className={cn(
+          "min-h-[40px] min-w-[40px] sm:min-h-[34px] sm:min-w-[34px] size-10 sm:size-8.5 rounded-lg flex items-center justify-center opacity-0 pointer-events-none",
+          className
+        )}
       >
         <span className="size-4" />
       </button>
@@ -77,19 +81,22 @@ export function ThemeToggle({ isOverHero = false, className = "" }: ThemeToggleP
       onClick={toggleTheme}
       title={isDark ? "Switch to light mode (D)" : "Switch to dark mode (D)"}
       aria-label={isDark ? "Switch to light mode (shortcut: D)" : "Switch to dark mode (shortcut: D)"}
-      className={`group relative inline-flex size-8.5 items-center justify-center rounded-lg border transition-colors ${
+      className={cn(
+        "group relative inline-flex min-h-[40px] min-w-[40px] sm:min-h-[34px] sm:min-w-[34px] size-10 sm:size-8.5 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isOverHero
           ? "border-white/20 bg-white/10 text-white hover:bg-white/20 hover:border-white/30"
-          : "border-border/70 bg-card text-foreground hover:bg-muted hover:border-border"
-      } ${className}`}
+          : "border-border/70 bg-card text-foreground hover:bg-muted hover:border-border",
+        className
+      )}
     >
       {isDark ? (
         <RiSunLine className="size-4 text-amber-400 transition-transform group-hover:rotate-45" />
       ) : (
         <RiMoonLine
-          className={`size-4 transition-transform group-hover:-rotate-12 ${
+          className={cn(
+            "size-4 transition-transform group-hover:-rotate-12",
             isOverHero ? "text-white" : "text-foreground"
-          }`}
+          )}
         />
       )}
       <span className="sr-only">Toggle theme</span>
