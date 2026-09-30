@@ -13,32 +13,86 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { updateOrderStatus } from "@/app/(dashboard)/farmer/orders/actions";
-import type { OrderStatus } from "@/lib/constants";
+import type { OrderStatus, FulfillmentType } from "@/lib/constants";
 
-interface OrderStatusActionsProps {
-  orderId: string;
-  currentStatus: OrderStatus;
+// ── Action definitions ─────────────────────────────
+
+interface ActionItem {
+  label: string;
+  status: string;
+  variant?: "default" | "outline" | "destructive";
 }
 
-const NEXT_ACTIONS: Partial<Record<OrderStatus, Array<{ label: string; status: string; variant?: "default" | "outline" | "destructive" }>>> = {
-  pending: [
-    { label: "Accept Order", status: "accepted", variant: "default" },
-    { label: "Decline", status: "cancelled", variant: "destructive" },
-  ],
-  accepted: [
-    { label: "Mark as Preparing", status: "preparing", variant: "default" },
-  ],
-  preparing: [
-    { label: "Mark as Ready", status: "ready", variant: "default" },
-  ],
-  ready: [
-    { label: "Out for Delivery", status: "for_delivery", variant: "default" },
-    { label: "Mark Completed (Pickup)", status: "completed", variant: "outline" },
-  ],
-  for_delivery: [
-    { label: "Mark as Delivered", status: "completed", variant: "default" },
-  ],
-};
+interface ActionSet {
+  hint: string;
+  actions: ActionItem[];
+}
+
+function getActionSet(
+  status: OrderStatus,
+  fulfillmentType: FulfillmentType
+): ActionSet | null {
+  switch (status) {
+    case "pending":
+      return {
+        hint: "Review and respond to this order request.",
+        actions: [
+          { label: "Accept Order", status: "accepted", variant: "default" },
+          { label: "Decline", status: "cancelled", variant: "outline" },
+        ],
+      };
+    case "accepted":
+      return {
+        hint: "Begin preparing the items for this order.",
+        actions: [
+          { label: "Mark as Preparing", status: "preparing", variant: "default" },
+        ],
+      };
+    case "preparing":
+      return {
+        hint: "Mark the order as ready once all items are packed.",
+        actions: [
+          { label: "Mark as Ready", status: "ready", variant: "default" },
+        ],
+      };
+    case "ready":
+      if (fulfillmentType === "seller_delivery") {
+        return {
+          hint: "Dispatch the order for delivery to the buyer.",
+          actions: [
+            { label: "Out for Delivery", status: "for_delivery", variant: "default" },
+          ],
+        };
+      }
+      // pickup — skip for_delivery, go straight to completed
+      return {
+        hint: "Confirm the buyer has picked up their order.",
+        actions: [
+          { label: "Mark as Picked Up", status: "completed", variant: "default" },
+        ],
+      };
+    case "for_delivery":
+      if (fulfillmentType === "seller_delivery") {
+        return {
+          hint: "Confirm the order has been delivered.",
+          actions: [
+            { label: "Mark as Delivered", status: "completed", variant: "default" },
+          ],
+        };
+      }
+      // Legacy: pickup order somehow in for_delivery
+      return {
+        hint: "Confirm the order is complete.",
+        actions: [
+          { label: "Mark as Completed", status: "completed", variant: "default" },
+        ],
+      };
+    default:
+      return null;
+  }
+}
+
+// ── Decline presets ────────────────────────────────
 
 const PRESET_REASONS = [
   "Harvest shortfall / out of stock",
@@ -48,8 +102,20 @@ const PRESET_REASONS = [
   "Other reason",
 ];
 
-export function OrderStatusActions({ orderId, currentStatus }: OrderStatusActionsProps) {
-  const actions = NEXT_ACTIONS[currentStatus];
+// ── Component ──────────────────────────────────────
+
+interface OrderStatusActionsProps {
+  orderId: string;
+  currentStatus: OrderStatus;
+  fulfillmentType: FulfillmentType;
+}
+
+export function OrderStatusActions({
+  orderId,
+  currentStatus,
+  fulfillmentType,
+}: OrderStatusActionsProps) {
+  const actionSet = getActionSet(currentStatus, fulfillmentType);
   const [error, setError] = useState<string | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState(PRESET_REASONS[0]);
@@ -57,7 +123,10 @@ export function OrderStatusActions({ orderId, currentStatus }: OrderStatusAction
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  if (!actions || actions.length === 0) return null;
+  if (!actionSet) return null;
+
+  const panelTitle =
+    currentStatus === "pending" ? "Needs your response" : "Next step";
 
   function handleAction(newStatus: string, reason?: string) {
     setError(null);
@@ -94,13 +163,21 @@ export function OrderStatusActions({ orderId, currentStatus }: OrderStatusAction
   return (
     <>
       <div className="flex flex-col gap-3 rounded-xl border border-border p-4">
-        <p className="text-sm font-medium text-foreground">Update Status</p>
+        <div>
+          <p className="text-sm font-medium text-foreground">{panelTitle}</p>
+          <p className="text-xs text-muted-foreground">{actionSet.hint}</p>
+        </div>
         <div className="flex flex-wrap gap-3">
-          {actions.map((action) => (
+          {actionSet.actions.map((action) => (
             <Button
               key={action.status}
-              variant={action.variant === "destructive" ? "destructive" : action.variant ?? "default"}
+              variant={action.variant ?? "default"}
               size="sm"
+              className={
+                action.status === "cancelled"
+                  ? "text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                  : undefined
+              }
               disabled={isPending}
               onClick={() => handleButtonClick(action.status)}
             >
