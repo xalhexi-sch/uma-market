@@ -98,7 +98,7 @@ export default async function DashboardLayout({
       </div>
 
       {/* Main Content Area */}
-      <main className="flex flex-1 flex-col overflow-y-auto min-w-0">
+      <main className="flex flex-1 flex-col overflow-y-auto min-w-0 pb-20 md:pb-0">
         {profileMissing && (
           <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-2">

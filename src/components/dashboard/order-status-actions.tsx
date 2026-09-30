@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { updateOrderStatus } from "@/app/(dashboard)/farmer/orders/actions";
 import type { OrderStatus, FulfillmentType } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 // ── Action definitions ─────────────────────────────
 
@@ -167,17 +168,17 @@ export function OrderStatusActions({
           <p className="text-sm font-medium text-foreground">{panelTitle}</p>
           <p className="text-xs text-muted-foreground">{actionSet.hint}</p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2.5 sm:gap-3">
           {actionSet.actions.map((action) => (
             <Button
               key={action.status}
               variant={action.variant ?? "default"}
-              size="sm"
-              className={
-                action.status === "cancelled"
-                  ? "text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
-                  : undefined
-              }
+              size="default"
+              className={cn(
+                "min-h-[44px] sm:min-h-[38px] px-4 text-sm font-medium",
+                action.status === "cancelled" &&
+                  "text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+              )}
               disabled={isPending}
               onClick={() => handleButtonClick(action.status)}
             >
@@ -208,11 +209,12 @@ export function OrderStatusActions({
               {PRESET_REASONS.map((reason) => (
                 <label
                   key={reason}
-                  className={`flex items-center gap-2.5 rounded-lg border p-2.5 text-sm cursor-pointer transition-colors ${
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-lg border p-3 min-h-[44px] text-sm cursor-pointer transition-colors",
                     selectedReason === reason
                       ? "border-primary bg-primary/5 text-foreground font-medium"
                       : "border-border text-muted-foreground hover:bg-muted/50"
-                  }`}
+                  )}
                 >
                   <input
                     type="radio"
@@ -237,7 +239,7 @@ export function OrderStatusActions({
                   onChange={(e) => setCustomNote(e.target.value)}
                   placeholder="Provide additional context for the commercial buyer…"
                   rows={2}
-                  className="w-full rounded-md border border-input bg-background p-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+                  className="w-full rounded-md border border-input bg-background p-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                 />
               </div>
             )}
@@ -247,6 +249,8 @@ export function OrderStatusActions({
             <Button
               type="button"
               variant="outline"
+              size="default"
+              className="min-h-[44px] sm:min-h-[38px]"
               onClick={() => setIsCancelDialogOpen(false)}
               disabled={isPending}
             >
@@ -255,6 +259,8 @@ export function OrderStatusActions({
             <Button
               type="button"
               variant="destructive"
+              size="default"
+              className="min-h-[44px] sm:min-h-[38px]"
               onClick={handleConfirmDecline}
               disabled={isPending || (selectedReason === "Other reason" && !customNote.trim())}
             >
