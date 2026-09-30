@@ -100,11 +100,11 @@ async function CuratedDiscovery({
       inStockOnly: true,
       sort: "newest",
       limit: 6,
-    }),
+    }).catch(() => []),
     getActiveProducts({
       sort: "newest",
       limit: 24,
-    }),
+    }).catch(() => []),
   ]);
 
   return (
@@ -200,7 +200,7 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
 
   // Run independent category and catalog queries concurrently
   const [categories, searchResult] = await Promise.all([
-    getCategories(),
+    getCategories().catch(() => []),
     (async () => {
       if (!isCatalogMode) return null;
       return await searchActiveProducts({
@@ -210,7 +210,7 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
         inStockOnly,
         page: currentPage,
         limit: 24,
-      });
+      }).catch(() => null);
     })(),
   ]);
 
