@@ -17,6 +17,7 @@ import {
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { APP_NAME, type UserRole } from "@/lib/constants";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export interface NavItem {
   label: string;
@@ -157,16 +158,19 @@ export function DashboardSidebar({
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-border px-4 py-3">
-        <UserButton
-          appearance={{
-            elements: {
-              userButtonBox: "flex items-center gap-2",
-              userButtonOuterIdentifier: "text-sm text-sidebar-foreground",
-            },
-          }}
-          showName
-        />
+      <div className="border-t border-border px-3.5 py-3 flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <UserButton
+            appearance={{
+              elements: {
+                userButtonBox: "flex items-center gap-2",
+                userButtonOuterIdentifier: "text-sm text-sidebar-foreground truncate max-w-[130px]",
+              },
+            }}
+            showName
+          />
+        </div>
+        <ThemeToggle />
       </div>
     </aside>
   );
