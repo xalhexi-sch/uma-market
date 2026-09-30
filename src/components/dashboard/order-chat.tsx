@@ -229,9 +229,9 @@ export function OrderChat({
           onChange={(e) => setText(e.target.value)}
           placeholder="Type a message or delivery update..."
           disabled={sending}
-          className="flex-1 text-sm h-10"
+          className="flex-1 text-sm h-11 sm:h-10"
         />
-        <Button type="submit" size="sm" disabled={!text.trim() || sending} className="h-10 px-4">
+        <Button type="submit" size="default" disabled={!text.trim() || sending} className="min-h-[44px] sm:min-h-[40px] px-4 shrink-0">
           <RiSendPlane2Line className="size-4" />
           <span className="sr-only">Send</span>
         </Button>

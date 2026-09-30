@@ -2,7 +2,12 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { RiShoppingBagLine } from "@remixicon/react";
+import {
+  RiShoppingBagLine,
+  RiTruckLine,
+  RiStore2Line,
+  RiArrowRightSLine,
+} from "@remixicon/react";
 import { getFarmerOrders } from "@/lib/supabase/queries/orders";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -127,7 +132,7 @@ export default async function FarmerOrdersPage({ searchParams }: PageProps) {
       ) : (
         <div className="flex flex-col gap-4">
           {/* Link-based Tabs */}
-          <div className="flex items-center gap-1 border-b border-border overflow-x-auto">
+          <div className="flex items-center gap-1 border-b border-border overflow-x-auto scrollbar-none pb-0.5 -mx-4 px-4 sm:mx-0 sm:px-0">
             {TAB_CONFIG.map((tab) => {
               const isActive = activeView === tab.id;
               const count = tabGroups[tab.id].length;
@@ -138,7 +143,7 @@ export default async function FarmerOrdersPage({ searchParams }: PageProps) {
                   key={tab.id}
                   href={`/farmer/orders?view=${tab.id}`}
                   className={cn(
-                    "inline-flex items-center gap-2 border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors whitespace-nowrap -mb-px",
+                    "inline-flex items-center gap-2 border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors whitespace-nowrap -mb-px min-h-[44px]",
                     isActive
                       ? "border-primary text-foreground"
                       : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
@@ -177,7 +182,7 @@ export default async function FarmerOrdersPage({ searchParams }: PageProps) {
               </p>
             </div>
           ) : (
-            <div className="rounded-xl border border-border divide-y divide-border overflow-hidden bg-card">
+            <div className="rounded-xl border border-border divide-y divide-border overflow-hidden bg-card shadow-xs">
               {/* Header on sm+ */}
               <div className="hidden sm:grid sm:grid-cols-[minmax(180px,1.2fr)_minmax(180px,1.5fr)_minmax(110px,0.8fr)_minmax(100px,0.8fr)_auto] items-center gap-4 px-4 py-2.5 text-xs font-medium text-muted-foreground bg-muted/40">
                 <div>Business</div>
@@ -198,12 +203,16 @@ export default async function FarmerOrdersPage({ searchParams }: PageProps) {
                 const formattedTotal = `${CURRENCY}${(order.total_amount ?? 0).toLocaleString("en-PH", {
                   minimumFractionDigits: 2,
                 })}`;
+                const isNeedsAction = activeView === "needs" && order.status === "pending";
 
                 return (
                   <Link
                     key={order.id}
                     href={`/farmer/orders/${order.id}`}
-                    className="block px-4 py-3 hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className={cn(
+                      "block px-4 py-3.5 hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:bg-muted/40",
+                      isNeedsAction && "bg-amber-500/[0.03] border-l-2 border-l-amber-500"
+                    )}
                   >
                     {/* Desktop / Tablet layout (sm+) */}
                     <div className="hidden sm:grid sm:grid-cols-[minmax(180px,1.2fr)_minmax(180px,1.5fr)_minmax(110px,0.8fr)_minmax(100px,0.8fr)_auto] items-center gap-4">
@@ -244,29 +253,54 @@ export default async function FarmerOrdersPage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Mobile layout (< sm): 2-row compact */}
-                    <div className="sm:hidden flex flex-col gap-1.5">
-                      {/* Row 1: Name + Badge (sub-line has #REF · age · fulfillment) */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground truncate">
-                            {buyerName}
-                          </p>
-                          <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                            #{ref} · {age} · {fulfillmentLabel}
-                          </p>
+                    {/* Mobile layout (< sm): Recomposed Operational Card */}
+                    <div className="sm:hidden flex flex-col gap-2 py-0.5">
+                      {/* Top: Buyer Name, Ref, Status */}
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-foreground text-sm truncate">
+                              {buyerName}
+                            </span>
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-medium bg-muted text-muted-foreground">
+                              #{ref}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                            <span>{age}</span>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1">
+                              {order.fulfillment_type === "seller_delivery" ? (
+                                <RiTruckLine className="size-3.5 text-primary shrink-0" />
+                              ) : (
+                                <RiStore2Line className="size-3.5 text-primary shrink-0" />
+                              )}
+                              <span>{fulfillmentLabel}</span>
+                            </span>
+                          </div>
                         </div>
-                        <OrderStatusBadge status={order.status} />
+                        <div className="shrink-0 pt-0.5">
+                          <OrderStatusBadge status={order.status} />
+                        </div>
                       </div>
 
-                      {/* Row 2: Items + Total */}
-                      <div className="flex items-center justify-between gap-3 text-sm pt-0.5">
-                        <p className="text-xs text-muted-foreground truncate flex-1">
-                          {itemsSummary}
-                        </p>
-                        <p className="font-semibold text-foreground tabular-nums shrink-0">
-                          {formattedTotal}
-                        </p>
+                      {/* Middle: Items summary */}
+                      <div className="rounded-md bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
+                        <p className="truncate font-medium text-foreground/80">{itemsSummary}</p>
+                      </div>
+
+                      {/* Bottom: Total + Action Affordance */}
+                      <div className="flex items-center justify-between pt-0.5 text-xs">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-muted-foreground">Total:</span>
+                          <span className="text-sm font-bold text-foreground tabular-nums">
+                            {formattedTotal}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-0.5 text-xs font-medium text-primary">
+                          <span>View Order</span>
+                          <RiArrowRightSLine className="size-4 shrink-0" />
+                        </div>
                       </div>
                     </div>
                   </Link>

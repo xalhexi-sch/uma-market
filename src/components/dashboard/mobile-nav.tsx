@@ -9,6 +9,13 @@ import {
   RiShieldLine,
   RiShoppingCart2Line,
   RiHomeLine,
+  RiDashboardLine,
+  RiPlantLine,
+  RiShoppingBagLine,
+  RiMessage2Line,
+  RiUserLine,
+  RiStoreLine,
+  RiBuildingLine,
 } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +27,38 @@ import {
 import { NAV_ITEMS, ROLE_LABELS } from "@/components/dashboard/sidebar";
 import { APP_NAME, type UserRole } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+
+const BOTTOM_NAV_ITEMS: Record<
+  UserRole,
+  Array<{
+    label: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badgeKey?: "cart" | "farmerOrders" | "businessOrders";
+  }>
+> = {
+  farmer: [
+    { label: "Home", href: "/farmer", icon: RiDashboardLine },
+    { label: "Products", href: "/farmer/products", icon: RiPlantLine },
+    { label: "Orders", href: "/farmer/orders", icon: RiShoppingBagLine, badgeKey: "farmerOrders" },
+    { label: "Messages", href: "/farmer/messages", icon: RiMessage2Line },
+    { label: "Profile", href: "/farmer/profile", icon: RiUserLine },
+  ],
+  business: [
+    { label: "Home", href: "/business", icon: RiDashboardLine },
+    { label: "Products", href: "/business/products", icon: RiStoreLine },
+    { label: "Orders", href: "/business/orders", icon: RiShoppingBagLine, badgeKey: "businessOrders" },
+    { label: "Messages", href: "/business/messages", icon: RiMessage2Line },
+    { label: "Profile", href: "/business/profile", icon: RiUserLine },
+  ],
+  admin: [
+    { label: "Home", href: "/admin", icon: RiDashboardLine },
+    { label: "Farmers", href: "/admin/farmers", icon: RiPlantLine },
+    { label: "Businesses", href: "/admin/businesses", icon: RiBuildingLine },
+    { label: "Products", href: "/admin/products", icon: RiStoreLine },
+    { label: "Orders", href: "/admin/orders", icon: RiShoppingBagLine },
+  ],
+};
 
 interface DashboardMobileNavProps {
   role: UserRole;
@@ -37,9 +76,11 @@ export function DashboardMobileNav({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const navItems = NAV_ITEMS[role] ?? [];
+  const bottomNavItems = BOTTOM_NAV_ITEMS[role] ?? [];
 
   return (
-    <header className="flex md:hidden h-14 items-center justify-between border-b border-border bg-sidebar px-4 shrink-0 z-40">
+    <>
+      <header className="flex md:hidden h-14 items-center justify-between border-b border-border bg-sidebar px-4 shrink-0 z-40">
       {/* Left: Hamburger trigger & Brand */}
       <div className="flex items-center gap-2.5">
         <Button
@@ -201,5 +242,62 @@ export function DashboardMobileNav({
         </SheetContent>
       </Sheet>
     </header>
-  );
+
+    {/* Mobile Bottom Navigation Bar (< md) */}
+    <nav
+      aria-label="Mobile bottom navigation"
+      className="fixed bottom-0 inset-x-0 z-40 flex md:hidden h-16 border-t border-border bg-sidebar/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] items-stretch justify-around px-1"
+    >
+      {bottomNavItems.map((item) => {
+        const isActive =
+          item.href === `/${role}`
+            ? pathname === item.href
+            : pathname.startsWith(item.href);
+
+        let badge: number | null = null;
+        let badgeVariant: "primary" | "amber" | "emerald" = "primary";
+
+        if (item.badgeKey === "farmerOrders" && farmerPendingCount > 0) {
+          badge = farmerPendingCount;
+          badgeVariant = "amber";
+        } else if (item.badgeKey === "businessOrders" && businessActiveOrderCount > 0) {
+          badge = businessActiveOrderCount;
+          badgeVariant = "emerald";
+        }
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex flex-1 flex-col items-center justify-center min-h-[48px] py-1 px-1 transition-colors relative select-none",
+              isActive
+                ? "text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground active:text-foreground"
+            )}
+          >
+            <div className="relative">
+              <item.icon className="size-5 shrink-0" />
+              {badge !== null && (
+                <span
+                  className={cn(
+                    "absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",
+                    badgeVariant === "primary" && "bg-primary text-primary-foreground",
+                    badgeVariant === "amber" && "bg-amber-600",
+                    badgeVariant === "emerald" && "bg-emerald-600"
+                  )}
+                >
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] tracking-tight mt-1 leading-none">
+              {item.label}
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
+  </>
+);
 }

@@ -46,7 +46,7 @@ export function CancelOrderButton({ orderId }: CancelOrderButtonProps) {
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
+            className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5 hover:text-destructive min-h-[44px] sm:min-h-[36px] px-3 text-xs sm:text-sm"
           />
         }
       >
@@ -61,12 +61,14 @@ export function CancelOrderButton({ orderId }: CancelOrderButtonProps) {
             This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Keep Order</AlertDialogCancel>
+        <AlertDialogFooter className="gap-2 sm:gap-0">
+          <AlertDialogCancel className="min-h-[44px] sm:min-h-[38px]">
+            Keep Order
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleCancel}
             disabled={isPending}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-[44px] sm:min-h-[38px]"
           >
             {isPending ? "Cancelling…" : "Yes, Cancel Order"}
           </AlertDialogAction>

@@ -42,89 +42,78 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
     dateStyle: "long",
   });
 
-  // ── Server-rendered main content (items + fulfillment + chat) ───
-  const mainContent = (
-    <>
-      {/* Items */}
-      <div className="rounded-xl border border-border overflow-hidden">
-        <div className="border-b border-border bg-muted/30 px-4 py-3">
-          <p className="text-sm font-medium text-foreground">Items Ordered</p>
-        </div>
-        <div className="divide-y divide-border px-4">
-          {(order.items ?? []).map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between py-3 text-sm"
-            >
-              <div>
-                <p className="font-medium text-foreground">
-                  {item.product_name ?? "Product"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {item.quantity} {item.unit} × {CURRENCY}
-                  {item.unit_price.toLocaleString("en-PH", {
-                    minimumFractionDigits: 2,
-                  })}{" "}
-                  / {item.unit}
-                </p>
-              </div>
-              <p className="font-semibold text-foreground tabular-nums">
-                {CURRENCY}
-                {item.subtotal.toLocaleString("en-PH", {
+  // ── Server-rendered content sections ───
+  const itemsContent = (
+    <div className="rounded-xl border border-border overflow-hidden bg-card shadow-xs">
+      <div className="border-b border-border bg-muted/30 px-4 py-3">
+        <p className="text-sm font-medium text-foreground">Items Ordered</p>
+      </div>
+      <div className="divide-y divide-border px-4">
+        {(order.items ?? []).map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center justify-between py-3 text-sm"
+          >
+            <div>
+              <p className="font-medium text-foreground">
+                {item.product_name ?? "Product"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {item.quantity} {item.unit} × {CURRENCY}
+                {item.unit_price.toLocaleString("en-PH", {
                   minimumFractionDigits: 2,
-                })}
+                })}{" "}
+                / {item.unit}
               </p>
             </div>
-          ))}
-        </div>
-        <div className="flex items-center justify-between border-t border-border bg-muted/30 px-4 py-3">
-          <p className="font-medium text-foreground">Total</p>
-          <p className="text-lg font-bold text-foreground tabular-nums">
-            {CURRENCY}
-            {(order.total_amount ?? 0).toLocaleString("en-PH", {
-              minimumFractionDigits: 2,
-            })}
-          </p>
-        </div>
-      </div>
-
-      {/* Fulfillment */}
-      <div className="flex items-center gap-3 rounded-xl border border-border p-4">
-        {isDelivery ? (
-          <RiTruckLine className="size-5 text-primary shrink-0" />
-        ) : (
-          <RiStore2Line className="size-5 text-primary shrink-0" />
-        )}
-        <div>
-          <p className="font-medium text-foreground">
-            {FULFILLMENT_LABELS[order.fulfillment_type]}
-          </p>
-          {isDelivery && order.delivery_address && (
-            <p className="text-sm text-muted-foreground">
-              {order.delivery_address}
+            <p className="font-semibold text-foreground tabular-nums">
+              {CURRENCY}
+              {item.subtotal.toLocaleString("en-PH", {
+                minimumFractionDigits: 2,
+              })}
             </p>
-          )}
-          {order.notes && (
-            <p className="text-sm text-muted-foreground mt-1 italic">
-              &ldquo;{order.notes}&rdquo;
-            </p>
-          )}
-        </div>
+          </div>
+        ))}
       </div>
-
-      {/* Order Communications */}
-      <OrderChat
-        orderId={order.id}
-        currentUserId={userId}
-        initialMessages={messages}
-        counterpartyName={farmerName}
-      />
-    </>
+      <div className="flex items-center justify-between border-t border-border bg-muted/30 px-4 py-3">
+        <p className="font-medium text-foreground">Total</p>
+        <p className="text-lg font-bold text-foreground tabular-nums">
+          {CURRENCY}
+          {(order.total_amount ?? 0).toLocaleString("en-PH", {
+            minimumFractionDigits: 2,
+          })}
+        </p>
+      </div>
+    </div>
   );
 
-  // ── Server-rendered aside content (farmer contact card) ───
-  const asideContent = (
-    <div className="flex items-center gap-3 rounded-xl border border-border p-4">
+  const fulfillmentContent = (
+    <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-xs">
+      {isDelivery ? (
+        <RiTruckLine className="size-5 text-primary shrink-0 mt-0.5" />
+      ) : (
+        <RiStore2Line className="size-5 text-primary shrink-0 mt-0.5" />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-foreground">
+          {FULFILLMENT_LABELS[order.fulfillment_type]}
+        </p>
+        {isDelivery && order.delivery_address && (
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Deliver to: {order.delivery_address}
+          </p>
+        )}
+        {order.notes && (
+          <p className="text-sm text-muted-foreground mt-1.5 italic bg-muted/40 p-2.5 rounded-lg border border-border/50">
+            &ldquo;{order.notes}&rdquo;
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
+  const contactContent = (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-xs">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
         <RiPlantLine className="size-5 text-primary" />
       </div>
@@ -145,20 +134,29 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
     </div>
   );
 
+  const chatContent = (
+    <OrderChat
+      orderId={order.id}
+      currentUserId={userId}
+      initialMessages={messages}
+      counterpartyName={farmerName}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-0 min-h-full">
-      <div className="border-b border-border px-6 py-3 lg:px-8">
+      <div className="border-b border-border px-4 sm:px-6 py-3 lg:px-8">
         <Link
           href="/business/orders"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[36px]"
         >
           <RiArrowLeftLine className="size-3.5" />
           Back to Orders
         </Link>
       </div>
 
-      <div className="flex flex-col gap-8 p-4 sm:p-6 lg:p-8 max-w-6xl">
-        {/* Live-synced header + two-column layout */}
+      <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-6xl">
+        {/* Live-synced header + responsive workspace layout */}
         <BusinessOrderStatusSection
           orderId={order.id}
           farmerName={farmerName}
@@ -167,8 +165,11 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
           initialStatus={order.status}
           initialCancellationReason={order.cancellation_reason}
           fulfillmentType={order.fulfillment_type}
-          mainContent={mainContent}
-          asideContent={asideContent}
+          itemsCount={order.items?.length ?? 0}
+          itemsContent={itemsContent}
+          fulfillmentContent={fulfillmentContent}
+          contactContent={contactContent}
+          chatContent={chatContent}
         />
       </div>
     </div>
