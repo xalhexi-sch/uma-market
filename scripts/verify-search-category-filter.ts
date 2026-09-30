@@ -127,6 +127,10 @@ async function run() {
     path.resolve(__dirname, "../src/components/products/product-filters.tsx"),
     "utf-8"
   );
+  const searchAutocompleteFile = fs.readFileSync(
+    path.resolve(__dirname, "../src/components/products/search-autocomplete.tsx"),
+    "utf-8"
+  );
 
   // Case E: ProductSearchProvider prop tracking for category
   const tracksCategory = searchContextFile.includes("prevProps.initialCategory !== initialCategory");
@@ -153,12 +157,19 @@ async function run() {
   );
 
   // Enter key commits search and active filter state
-  const enterKeyCommitsFilters = productFiltersFile.includes("handleApply({ search: draftSearch });");
+  const autocompleteHandlesEnter =
+    /e\.key\s*===\s*["']Enter["']/.test(searchAutocompleteFile) &&
+    searchAutocompleteFile.includes("onSubmit(");
+  const filtersSubmitHandlerPreservesState =
+    productFiltersFile.includes("handleApply({ search:") &&
+    productFiltersFile.includes("overrides?.sort !== undefined ? overrides.sort : draftSort") &&
+    productFiltersFile.includes("overrides?.inStock !== undefined ? overrides.inStock : draftInStock");
+
   assert(
-    enterKeyCommitsFilters,
+    autocompleteHandlesEnter && filtersSubmitHandlerPreservesState,
     "TEST-07",
     "Search input Enter key commits query while preserving draft sort and availability",
-    `enterKeyCommitsFilters: ${enterKeyCommitsFilters}`
+    `autocompleteHandlesEnter: ${autocompleteHandlesEnter}, filtersSubmitHandlerPreservesState: ${filtersSubmitHandlerPreservesState}`
   );
 
   console.log(`\n${BLUE}==============================================================================${RESET}`);
