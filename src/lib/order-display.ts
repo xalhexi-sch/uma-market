@@ -14,6 +14,19 @@ export function getBuyerName(
 }
 
 /**
+ * Extract a display name for the farmer/seller.
+ */
+export function getSellerName(
+  order: { farmer?: { business_name?: string | null; full_name?: string | null } | null }
+): string {
+  return (
+    order.farmer?.business_name ||
+    order.farmer?.full_name ||
+    "Local Farm"
+  );
+}
+
+/**
  * Summarize order items into a compact one-line string.
  * e.g. "Tomatoes · 20 kg +2 more" or "No items"
  */
