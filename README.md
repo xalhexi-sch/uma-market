@@ -101,6 +101,7 @@ The application is currently implemented through **Slice 1 (Foundation)** and **
   - Choice of fulfillment mode: **Pickup** or **Seller Delivery**.
   - Shipping address and delivery notes input.
   - Order review with breakdown of product subtotals and estimated fulfillment costs.
+  - **Pickup Date Scheduling:** Date picker with past-date validation at checkout, displayed across all order and confirmation pages.
 - **Order Confirmation & Tracking:**
   - Automatic generation of formatted order references (e.g., `UMA-20260923-ABCD`).
   - Dedicated order detail views with complete itemization, fulfillment instructions, and a visual order progress timeline.
@@ -122,6 +123,7 @@ The application is currently implemented through **Slice 1 (Foundation)** and **
 - **Custom Role Onboarding:** First-time user onboarding wizard ensuring every account is classified with proper business or farm credentials.
 - **Automated Dashboard Routing:** Role-aware navigation redirecting farmers to `/farmer`, buyers to `/business`, and administrators to `/admin`.
 - **Responsive Theme:** Clean, high-performance UI styled with Tailwind CSS v4, shadcn/ui design tokens, and restrained agricultural color accents.
+- **CI/CD Pipeline:** GitHub Actions workflow for automated linting, type-checking, and build verification on every push and pull request.
 
 ---
 
@@ -249,6 +251,11 @@ graph TB
 | **Database** | Supabase PostgreSQL | Managed relational database, extensions, native JSONB support |
 | **Database Security** | Supabase Row-Level Security | Granular policy enforcement directly on database tables |
 | **Database Tooling** | Supabase CLI & SSR SDK | Declarative SQL migrations, `@supabase/ssr`, `@supabase/supabase-js` |
+| **Error Monitoring** | Sentry (`@sentry/nextjs` v11) | Client, server, and edge error tracking with source maps |
+| **Schema Validation** | Zod (`zod` v4) | Server action input validation and type inference |
+| **Date Utilities** | date-fns | Date formatting and manipulation |
+| **Charts** | Recharts | Data visualization for analytics |
+| **Theming** | next-themes | Dark/light mode support |
 | **Code Quality** | ESLint 9 | Strict Next.js and React linting rules |
 
 ---
@@ -282,6 +289,10 @@ UMA Market implements a **defense-in-depth security model** uniting Clerk authen
 - **Resource-Level Authorization in Code:** Server Actions and Server Components independently verify resource ownership before processing mutations (e.g., verifying that a farmer can only update their own products and orders).
 - **Separation of Concerns in `proxy.ts`:** Route interception in `proxy.ts` only invokes `clerkMiddleware()` for session establishment. It deliberately does **not** contain fragile role-based routing tables or wildcard path matchers.
 - **Credential Protection:** The administrative `SUPABASE_SECRET_KEY` is restricted exclusively to server-only code paths and is never exposed in client bundles.
+- **Rate Limiting:** `src/lib/rate-limit.ts` provides an in-memory rate limiter for server actions, preventing abuse and brute-force attacks.
+- **Schema Validation:** `src/lib/validation.ts` defines Zod schemas for all server action inputs, ensuring data integrity before database operations.
+- **Security Headers:** Configured in `next.config.ts` — CSP, HSTS, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy.
+- **Error Monitoring:** Sentry captures server-side and client-side errors with source maps, enabling rapid diagnosis and resolution.
 
 ---
 
@@ -358,6 +369,7 @@ erDiagram
         text status "pending | confirmed | ready_for_pickup | in_delivery | completed | cancelled"
         numeric total_amount
         text delivery_address
+        date pickup_date "Scheduled pickup (nullable, pickup only)"
         text notes
         timestamp created_at
     }
@@ -418,11 +430,23 @@ uma-market/
 │   │   │   ├── client.ts    # Browser client
 │   │   │   ├── server.ts    # Server client with Clerk session token integration
 │   │   │   ├── admin.ts     # Privileged server-only client (SUPABASE_SECRET_KEY)
-│   │   │   └── queries/     # Encapsulated data-access layer (products, cart, orders)
+│   │   │   ├── storage.ts   # Supabase Storage helpers
+│   │   │   └── queries/     # Encapsulated data-access layer (products, cart, orders, messages, profiles)
+│   │   ├── validation.ts    # Zod schemas for server action inputs
+│   │   ├── rate-limit.ts    # In-memory rate limiter for server actions
+│   │   ├── order-display.ts # Order display formatting helpers
+│   │   ├── constants.ts     # Application constants
+│   │   ├── types.ts         # Shared TypeScript types
 │   │   └── utils.ts         # Utility helpers (cn, currency formatting)
 │   └── proxy.ts             # Lightweight Clerk session middleware
 ├── supabase/
 │   └── migrations/          # Declarative PostgreSQL schema migrations & RLS policies
+├── .github/
+│   └── workflows/ci.yml     # GitHub Actions CI pipeline
+├── sentry.client.config.ts  # Sentry browser-side configuration
+├── sentry.server.config.ts  # Sentry server-side configuration
+├── sentry.edge.config.ts    # Sentry edge runtime configuration
+├── src/instrumentation.ts   # Sentry initialization
 ├── .env.example             # Safe environment variables template
 ├── .gitignore               # Strict exclusion of secrets, builds, and artifacts
 ├── components.json          # shadcn configuration
@@ -473,6 +497,7 @@ Apply the initial schema migrations to your Supabase project:
 - Or execute the SQL migration files directly in your **Supabase Dashboard SQL Editor**:
   1. `supabase/migrations/20260922000001_initial_schema.sql`
   2. `supabase/migrations/20260922000002_slice2_schema.sql`
+  3. `supabase/migrations/20260928000001_pickup_date_validation.sql`
 
 ### 5. Start the Development Server
 ```bash
@@ -498,6 +523,11 @@ The project requires the following environment variables configured in `.env.loc
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project API URL | Public (Browser) | `https://<ref>.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key | Public (Browser) | `sb_publishable_...` |
 | `SUPABASE_SECRET_KEY` | Supabase admin secret key (bypasses RLS) | Server Only | `sb_secret_...` |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN for error tracking | Public (Browser) | `https://...@...sentry.io/...` |
+| `SENTRY_AUTH_TOKEN` | Sentry auth token (scope: project:releases, org:read) | Server Only | `sntrys_...` |
+| `SENTRY_ORG` | Sentry organization slug | Server Only | `your-org-slug` |
+| `SENTRY_PROJECT` | Sentry project name | Server Only | `your-project-name` |
+| `NEXT_PUBLIC_APP_URL` | Production URL for metadata & canonical URLs | Public (Browser) | `https://yourdomain.com` |
 
 > ⚠️ **Security Warning:** Never commit `.env.local` or expose `CLERK_SECRET_KEY` and `SUPABASE_SECRET_KEY` to client-side code or public version control.
 
@@ -511,16 +541,33 @@ UMA Market is an **actively developed MVP** implementing core vertical slices:
 |---|---|---|
 | **Slice 1: Platform Foundation** | Clerk auth, onboarding, role assignment, Supabase integration, RLS policies, 7 core tables, category seeds, dashboard shells | ✅ **Complete & Verified** |
 | **Slice 2: Core Commerce** | Business product catalog, search & filtering, product detail, cart grouping, checkout, order creation, order tracking, farmer produce CRUD, farmer order management | ✅ **Complete & Verified** |
-| **Slice 3: Communications & Operations** | Direct buyer-farmer messaging UI, profile management, advanced admin controls | ⏳ *Planned* |
+| **Slice 3: Communications & Operations** | Direct buyer-farmer messaging UI, profile management, advanced admin controls | ✅ **Complete** |
+| **Slice 4: Platform Hardening** | Sentry monitoring, Zod validation, rate limiting, security headers, CI pipeline, pickup date validation | ✅ **Complete** |
 
 **Verification Metrics:**
-- Production build: `npm run build` passes with zero errors (21 static and dynamic routes).
+- Production build: `npm run build` passes with zero errors.
 - Linter: `npm run lint` passes with zero warnings.
 - Database: All 7 tables secured by active Row-Level Security policies.
+- CI: GitHub Actions workflow runs on every push and PR.
+- Error Monitoring: Sentry captures client, server, and edge errors.
 
 ---
 
-## 17. Roadmap / Future Scope
+## 17. CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration. The workflow (`.github/workflows/ci.yml`) runs on every push and pull request:
+
+```text
+Push/PR → Install Dependencies → Lint → Type-Check → Build → Report
+```
+
+- **Lint:** ESLint 9 with strict Next.js and React rules
+- **Type-Check:** TypeScript compiler with strict mode
+- **Build:** Next.js production build verification
+
+---
+
+## 18. Roadmap / Future Scope
 
 The following features represent future platform iterations and are not currently active in the MVP:
 
