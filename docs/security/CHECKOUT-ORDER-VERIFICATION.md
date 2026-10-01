@@ -140,7 +140,7 @@ To run `scripts/verify-checkout-orders.ts`, the target environment must satisfy:
 To prevent test interference and guarantee clean state, the harness manages fixtures deterministically:
 
 1. **Deterministic Test IDs:**  
-   All fixture records use fixed UUIDs prefixed with `t0000001-`:
+   All fixture records use fixed UUIDs prefixed with `d0000001-`:
    * Farmers: `...0001`, `...0002`
    * Buyers: `...0101`, `...0102`
    * Products: `...0201` (`productA1`), `...0202` (`productA2`), `...0211` (`productB1`), `...0221` (`productLow`), `...0222` (`productMOQ`)

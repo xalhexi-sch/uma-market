@@ -6,7 +6,7 @@
 //   2. ABORTS immediately on production database detected.
 //   3. ABORTS on any unknown project URL.
 //   4. Never prints keys, secrets, or JWTs.
-//   5. All test data uses deterministic UUIDs prefixed "t0000001-".
+//   5. All test data uses deterministic UUIDs prefixed "d0000001-".
 //      Cleaned up in finally{} after every run, even on failure.
 //
 // ============================================================================
@@ -153,15 +153,15 @@ function stub(id: string, name: string, reason: string): void {
 
 const T = {
   vegCategorySlug: "vegetables",
-  farmerA_id: "t0000001-0000-0000-0000-000000000001",
-  farmerB_id: "t0000001-0000-0000-0000-000000000002",
-  buyerA_id:  "t0000001-0000-0000-0000-000000000101",
-  buyerB_id:  "t0000001-0000-0000-0000-000000000102",
-  productA1:  "t0000001-0000-0000-0000-000000000201",
-  productA2:  "t0000001-0000-0000-0000-000000000202",
-  productB1:  "t0000001-0000-0000-0000-000000000211",
-  productLow: "t0000001-0000-0000-0000-000000000221",
-  productMOQ: "t0000001-0000-0000-0000-000000000222",
+  farmerA_id: "d0000001-0000-0000-0000-000000000001",
+  farmerB_id: "d0000001-0000-0000-0000-000000000002",
+  buyerA_id:  "d0000001-0000-0000-0000-000000000101",
+  buyerB_id:  "d0000001-0000-0000-0000-000000000102",
+  productA1:  "d0000001-0000-0000-0000-000000000201",
+  productA2:  "d0000001-0000-0000-0000-000000000202",
+  productB1:  "d0000001-0000-0000-0000-000000000211",
+  productLow: "d0000001-0000-0000-0000-000000000221",
+  productMOQ: "d0000001-0000-0000-0000-000000000222",
 };
 
 async function cleanupFixtures(): Promise<void> {
