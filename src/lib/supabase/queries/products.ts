@@ -2,7 +2,6 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import type { Product, Category, ProductImageItem } from "@/lib/types";
 
 export type ProductSort = "relevance" | "price_asc" | "price_desc" | "harvest_newest" | "newest" | "name_asc";
@@ -89,20 +88,7 @@ export async function searchActiveProducts({
     p_offset: offset,
   };
 
-  let { data, error } = await supabase.rpc("search_products", rpcParams);
-
-  if (error) {
-    try {
-      const admin = createAdminClient();
-      const fallbackRes = await admin.rpc("search_products", rpcParams);
-      if (!fallbackRes.error && fallbackRes.data) {
-        data = fallbackRes.data;
-        error = null;
-      }
-    } catch {
-      // Fallback failed
-    }
-  }
+  const { data, error } = await supabase.rpc("search_products", rpcParams);
 
   if (error) throw error;
 

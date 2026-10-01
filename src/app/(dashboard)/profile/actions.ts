@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
+import { UpdateProfileSchema } from "@/lib/validation";
 import type { Database } from "@/lib/database.types";
 
 export interface ProfileUpdateData {
@@ -28,6 +29,12 @@ export async function updateProfile(data: ProfileUpdateData) {
   const { active, error: activeError } = await assertActiveProfile(userId);
   if (!active) {
     return { success: false, error: activeError ?? "Account is not active." };
+  }
+
+  // Validate input
+  const parsed = UpdateProfileSchema.safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid profile data." };
   }
 
   const supabase = await createClient();

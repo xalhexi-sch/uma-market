@@ -3,6 +3,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  ModerateProductSchema,
+  ToggleVerificationSchema,
+  UpdateAccountStatusSchema,
+} from "@/lib/validation";
 
 /**
  * Moderates a product's active status.
@@ -16,6 +21,12 @@ export async function moderateProductStatus(
 
   if (sessionClaims?.user_role !== "admin") {
     return { success: false, error: "Unauthorized. Admin role required." };
+  }
+
+  // Validate input
+  const parsed = ModerateProductSchema.safeParse({ productId, newStatus });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid moderation data." };
   }
 
   const supabase = createAdminClient();
@@ -52,6 +63,12 @@ export async function toggleProfileVerification(
     return { success: false, error: "Unauthorized. Admin role required." };
   }
 
+  // Validate input
+  const parsed = ToggleVerificationSchema.safeParse({ targetClerkId, isVerified });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid verification data." };
+  }
+
   const supabase = createAdminClient();
 
   const { error } = await supabase
@@ -86,6 +103,12 @@ export async function updateProfileAccountStatus(
 
   if (sessionClaims?.user_role !== "admin") {
     return { success: false, error: "Unauthorized. Admin role required." };
+  }
+
+  // Validate input
+  const parsed = UpdateAccountStatusSchema.safeParse({ targetClerkId, status });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid status data." };
   }
 
   const supabase = createAdminClient();
