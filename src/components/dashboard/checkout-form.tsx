@@ -19,10 +19,18 @@ interface CheckoutFormProps {
 export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>("pickup");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [pickupDate, setPickupDate] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,12 +41,18 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
       return;
     }
 
+    if (fulfillmentType === "pickup" && !pickupDate.trim()) {
+      setError("Please select a pickup date.");
+      return;
+    }
+
     startTransition(async () => {
       const farmerEntries = Object.entries(byFarmer);
       const orders = farmerEntries.map(([farmerClerkId, items]) => ({
         farmerClerkId,
         fulfillmentType,
         deliveryAddress: fulfillmentType === "seller_delivery" ? deliveryAddress : undefined,
+        pickupDate: fulfillmentType === "pickup" ? pickupDate : undefined,
         notes: notes || undefined,
         items: items.map((i) => ({
           product_id: i.product_id,
@@ -126,6 +140,24 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
             placeholder="Street, barangay, city"
             required
           />
+        </div>
+      )}
+
+      {/* Pickup date (conditional) */}
+      {fulfillmentType === "pickup" && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="pickup-date">Pickup Date</Label>
+          <Input
+            id="pickup-date"
+            type="date"
+            min={today}
+            value={pickupDate}
+            onChange={(e) => setPickupDate(e.target.value)}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Choose when you will collect your order from the farm.
+          </p>
         </div>
       )}
 

@@ -9,6 +9,7 @@ import {
   RiTruckLine,
   RiMapPinLine,
   RiChat3Line,
+  RiCalendarLine,
 } from "@remixicon/react";
 import { getAdminOrderById } from "@/lib/supabase/queries/admin";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
@@ -24,6 +25,13 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   return { title: `Audit Order #${id.slice(0, 8).toUpperCase()} — UMA Admin` };
+}
+
+function formatPickupDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  if (!year || !month || !day) return dateStr;
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-PH", { dateStyle: "long" });
 }
 
 export default async function AdminOrderDetailPage({ params }: PageProps) {
@@ -45,6 +53,9 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const farmerName = order.farmer?.business_name || order.farmer?.full_name || "Farm Supplier";
   const isDelivery = order.fulfillment_type === "seller_delivery";
   const ref = `UMA-${order.id.slice(0, 8).toUpperCase()}`;
+  const formattedPickupDate = order.pickup_date
+    ? formatPickupDate(order.pickup_date)
+    : null;
 
   return (
     <div className="flex flex-col gap-0 min-h-full">
@@ -171,6 +182,15 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                 </span>
               </div>
             </div>
+            {!isDelivery && formattedPickupDate && (
+              <div className="flex items-start gap-2">
+                <RiCalendarLine className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-medium text-foreground">Pickup Date: </span>
+                  <span className="text-muted-foreground">{formattedPickupDate}</span>
+                </div>
+              </div>
+            )}
             {order.notes && (
               <p className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg">
                 <span className="font-medium text-foreground">Notes: </span>

@@ -24,6 +24,13 @@ interface PageProps {
   searchParams: Promise<{ order_ids?: string }>;
 }
 
+function formatPickupDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  if (!year || !month || !day) return dateStr;
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-PH", { dateStyle: "long" });
+}
+
 export default async function MultiOrderConfirmationPage({ searchParams }: PageProps) {
   const { userId, sessionClaims } = await auth();
   const role = sessionClaims?.user_role as UserRole | undefined;
@@ -94,6 +101,9 @@ export default async function MultiOrderConfirmationPage({ searchParams }: PageP
             const farmerName =
               order.farmer?.business_name || order.farmer?.full_name || `Farm #${idx + 1}`;
             const isDelivery = order.fulfillment_type === "seller_delivery";
+            const formattedPickupDate = order.pickup_date
+              ? formatPickupDate(order.pickup_date)
+              : null;
 
             return (
               <div
@@ -157,6 +167,11 @@ export default async function MultiOrderConfirmationPage({ searchParams }: PageP
                     {isDelivery && order.delivery_address && (
                       <span className="truncate max-w-[200px] sm:max-w-xs">
                         · {order.delivery_address}
+                      </span>
+                    )}
+                    {!isDelivery && formattedPickupDate && (
+                      <span>
+                        · Scheduled pickup: {formattedPickupDate}
                       </span>
                     )}
                   </div>
