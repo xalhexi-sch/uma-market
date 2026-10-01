@@ -19,6 +19,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `Order #${id.slice(0, 8).toUpperCase()}` };
 }
 
+function formatPickupDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  if (!year || !month || !day) return dateStr;
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-PH", { dateStyle: "long" });
+}
+
 export default async function FarmerOrderDetailPage({ params }: PageProps) {
   const { userId, sessionClaims } = await auth();
   const role = sessionClaims?.user_role as UserRole | undefined;
@@ -37,6 +44,9 @@ export default async function FarmerOrderDetailPage({ params }: PageProps) {
   const placedDate = new Date(order.created_at).toLocaleDateString("en-PH", {
     dateStyle: "long",
   });
+  const formattedPickupDate = order.pickup_date
+    ? formatPickupDate(order.pickup_date)
+    : null;
 
   // ── Server-rendered content sections ───
   const itemsContent = (
@@ -86,9 +96,9 @@ export default async function FarmerOrderDetailPage({ params }: PageProps) {
             Deliver to: {order.delivery_address}
           </p>
         )}
-        {order.business?.address && !isDelivery && (
+        {!isDelivery && formattedPickupDate && (
           <p className="text-sm text-muted-foreground mt-0.5">
-            Business at: {order.business.address}
+            Scheduled pickup: <span className="text-foreground font-medium">{formattedPickupDate}</span>
           </p>
         )}
         {order.notes && (

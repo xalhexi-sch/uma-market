@@ -22,6 +22,13 @@ interface PageProps {
   params: Promise<{ orderId: string }>;
 }
 
+function formatPickupDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  if (!year || !month || !day) return dateStr;
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-PH", { dateStyle: "long" });
+}
+
 export default async function OrderConfirmationPage({ params }: PageProps) {
   const { userId, sessionClaims } = await auth();
   const role = sessionClaims?.user_role as UserRole | undefined;
@@ -34,6 +41,9 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
   const farmerName =
     order.farmer?.business_name || order.farmer?.full_name || "Local Farm";
   const isDelivery = order.fulfillment_type === "seller_delivery";
+  const formattedPickupDate = order.pickup_date
+    ? formatPickupDate(order.pickup_date)
+    : null;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-full px-6 py-12">
@@ -118,6 +128,9 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
               {FULFILLMENT_LABELS[order.fulfillment_type]}
               {isDelivery && order.delivery_address
                 ? ` · ${order.delivery_address}`
+                : ""}
+              {!isDelivery && formattedPickupDate
+                ? ` · Scheduled pickup: ${formattedPickupDate}`
                 : ""}
             </span>
           </div>

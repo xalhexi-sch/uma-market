@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import type { ReactNode } from "react";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"

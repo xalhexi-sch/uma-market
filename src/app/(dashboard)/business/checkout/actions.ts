@@ -1,8 +1,11 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
+import { PlaceOrderSchema } from "@/lib/validation";
+import { checkoutRateLimit } from "@/lib/rate-limit";
 
 export interface PlaceOrderInput {
   farmerClerkId: string;
@@ -20,6 +23,48 @@ export interface CheckoutOrderGroup {
   notes?: string;
   pickupDate?: string;
   items: Array<{ product_id: string; quantity: number }>;
+}
+
+function validatePickupDate(dateStr?: string): { valid: boolean; error?: string } {
+  if (!dateStr || typeof dateStr !== "string" || !dateStr.trim()) {
+    return { valid: false, error: "Please select a pickup date." };
+  }
+
+  const trimmed = dateStr.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) {
+    return { valid: false, error: "Invalid pickup date format. Expected YYYY-MM-DD." };
+  }
+
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
+
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return { valid: false, error: "Invalid calendar pickup date." };
+  }
+
+  const parsed = new Date(year, month - 1, day);
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    return { valid: false, error: "Invalid calendar pickup date." };
+  }
+
+  const todayStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  if (trimmed < todayStr) {
+    return { valid: false, error: "Pickup date cannot be in the past." };
+  }
+
+  return { valid: true };
 }
 
 function mapCheckoutError(rawMessage: string): string {
@@ -55,20 +100,45 @@ export async function placeMultiFarmerCheckout(orders: CheckoutOrderGroup[]): Pr
     return { success: false, error: activeError ?? "Account is not active." };
   }
 
+  // Rate limit: 10 checkout attempts per minute
+  const rateResult = checkoutRateLimit(userId);
+  if (!rateResult.success) {
+    return { success: false, error: "Too many checkout attempts. Please wait a moment and try again." };
+  }
+
+  // Validate input
+  const parsed = PlaceOrderSchema.safeParse({ items: orders.flatMap((o) => o.items) });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid checkout data." };
+  }
+
   if (!orders || orders.length === 0) {
     return { success: false, error: "Checkout is empty." };
   }
 
+  // Validate pickup dates across all order groups
+  for (const o of orders) {
+    if (o.fulfillmentType === "pickup") {
+      const dateValidation = validatePickupDate(o.pickupDate);
+      if (!dateValidation.valid) {
+        return { success: false, error: dateValidation.error };
+      }
+    }
+  }
+
   const supabase = await createClient();
 
-  const formattedOrders = orders.map((o) => ({
-    farmer_clerk_id: o.farmerClerkId,
-    fulfillment_type: o.fulfillmentType,
-    delivery_address: o.deliveryAddress ?? null,
-    notes: o.notes ?? null,
-    pickup_date: o.pickupDate ?? null,
-    items: o.items,
-  }));
+  const formattedOrders = orders.map((o) => {
+    const isPickup = o.fulfillmentType === "pickup";
+    return {
+      farmer_clerk_id: o.farmerClerkId,
+      fulfillment_type: o.fulfillmentType,
+      delivery_address: isPickup ? null : (o.deliveryAddress ?? null),
+      notes: o.notes ?? null,
+      pickup_date: isPickup ? (o.pickupDate?.trim() ?? null) : null,
+      items: o.items,
+    };
+  });
 
   const { data, error } = await supabase.rpc("place_checkout_orders", {
     p_orders: formattedOrders,
@@ -80,6 +150,10 @@ export async function placeMultiFarmerCheckout(orders: CheckoutOrderGroup[]): Pr
   }
 
   const orderIds = (data as { order_ids: string[] }).order_ids;
+
+  revalidatePath("/business/cart");
+  revalidatePath("/business/orders");
+  revalidatePath("/business/products");
   return { success: true, orderIds };
 }
 
@@ -109,14 +183,25 @@ export async function placeOrder(input: PlaceOrderInput): Promise<{
     return { success: false, error: "Cart is empty." };
   }
 
+  if (input.fulfillmentType === "pickup") {
+    const dateValidation = validatePickupDate(input.pickupDate);
+    if (!dateValidation.valid) {
+      return { success: false, error: dateValidation.error };
+    }
+  }
+
+  const isPickup = input.fulfillmentType === "pickup";
+  const finalPickupDate = isPickup ? (input.pickupDate?.trim() || undefined) : undefined;
+  const finalDeliveryAddress = isPickup ? undefined : (input.deliveryAddress || undefined);
+
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("place_order", {
     p_farmer_clerk_id: input.farmerClerkId,
     p_fulfillment_type: input.fulfillmentType,
-    p_delivery_address: input.deliveryAddress || undefined,
+    p_delivery_address: finalDeliveryAddress,
     p_notes: input.notes || undefined,
-    p_pickup_date: input.pickupDate || undefined,
+    p_pickup_date: finalPickupDate,
     p_items: input.items,
   });
 

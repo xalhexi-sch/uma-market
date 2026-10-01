@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { PRODUCT_IMAGES_BUCKET } from "@/lib/supabase/storage";
 import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
+import { ProductFormSchema } from "@/lib/validation";
+import { productCreateRateLimit } from "@/lib/rate-limit";
 import type { Database } from "@/lib/database.types";
 
 async function assertFarmer(sessionClaims: Record<string, unknown> | null | undefined, userId: string | null) {
@@ -51,10 +53,17 @@ export async function createProduct(data: ProductFormData) {
     return { success: false, error: msg };
   }
 
-  if (!data.name.trim()) return { success: false, error: "Product name is required." };
-  if (data.price_per_unit <= 0) return { success: false, error: "Price must be greater than 0." };
-  if (data.quantity_available < 0) return { success: false, error: "Quantity cannot be negative." };
-  if (data.min_order_quantity <= 0) return { success: false, error: "Minimum order must be greater than 0." };
+  // Rate limit: 20 products per 5 minutes
+  const rateResult = productCreateRateLimit(userId!);
+  if (!rateResult.success) {
+    return { success: false, error: "Too many products created. Please wait before adding more." };
+  }
+
+  // Validate input
+  const parsed = ProductFormSchema.safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid product data." };
+  }
 
   // Validate image paths belong to this farmer if provided
   if (data.image_path && !data.image_path.startsWith(`products/${userId}/`)) {
