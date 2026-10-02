@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed:demo": "npx tsx scripts/seed-demo-data.ts",
-    "verify:reviews": "npx tsx scripts/verify-verified-reviews.ts"
+    "verify:reviews": "npx tsx scripts/verify-verified-reviews.ts",
+    "verify:notifications": "npx tsx scripts/verify-notifications.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

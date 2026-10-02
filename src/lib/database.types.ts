@@ -367,6 +367,48 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          action_url: string
+          body: string
+          created_at: string
+          dedupe_key: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          read_at: string | null
+          recipient_clerk_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          action_url: string
+          body: string
+          created_at?: string
+          dedupe_key: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          read_at?: string | null
+          recipient_clerk_id: string
+          title: string
+          type: string
+        }
+        Update: {
+          action_url?: string
+          body?: string
+          created_at?: string
+          dedupe_key?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          read_at?: string | null
+          recipient_clerk_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       product_reviews: {
         Row: {
           comment: string | null
@@ -528,6 +570,19 @@ export type Database = {
       get_seller_review_summary: {
         Args: { p_farmer_clerk_id: string }
         Returns: Json
+      }
+      create_notification: {
+        Args: {
+          p_action_url: string
+          p_body: string
+          p_dedupe_key: string
+          p_entity_id: string
+          p_entity_type: string
+          p_recipient: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
       }
       place_checkout_orders: { Args: { p_orders?: Json }; Returns: Json }
       place_order: {
