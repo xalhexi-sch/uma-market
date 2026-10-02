@@ -9,15 +9,19 @@
 //      dedicated security-test project.
 //   3. ABORTS unless the Supabase CLI is linked to the security-test project,
 //      because the live pg_indexes / pg_constraint checks go through
-//      'supabase db query --linked'.
+//      'supabase db query --linked --output-format json'.
 //   4. Never prints secrets.
 //   5. Every assertion evaluates a real condition. Nothing is hard-coded to
 //      true, no error is swallowed, and any failure exits non-zero.
+//   6. The CLI output contract is explicit: JSON is requested with
+//      --output-format json, the parser validates the documented shape, and a
+//      contract violation throws instead of being coerced into an empty result
+//      set (an empty result would make "index absent" read as a pass).
 // =============================================================================
 
 import { existsSync, readFileSync } from "fs";
 import * as path from "path";
-import { execFileSync, spawnSync } from "child_process";
+import { spawnSync } from "child_process";
 import Module from "node:module";
 import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../src/lib/database.types";
@@ -69,30 +73,135 @@ function assert(id: string, name: string, condition: boolean, details: string) {
 const SUPABASE_CLI_ENTRY = path.join(process.cwd(), "node_modules", "supabase", "dist", "supabase.js");
 
 /**
+ * Spawn environment for every CLI invocation.
+ *
+ * `SUPABASE_TELEMETRY_DISABLED=1` is REQUIRED for correctness, not hygiene: the
+ * installed CLI (2.117.0) flushes `~/.supabase/telemetry.json` with a
+ * read-modify-write-rename. Two CLI processes that overlap on that file crash on
+ * Windows with `EPERM: FileSystem.rename ... telemetry.json.tmp` AFTER the query
+ * was issued, which produces a non-zero exit status and an EMPTY stdout. Without
+ * this flag `liveSql` intermittently throws on a run that never reached the SQL,
+ * which is exactly how the suite dropped from 30/30 to 27/30 and exited 1.
+ *
+ * `SUPABASE_NO_UPDATE_NOTIFIER=1` keeps the version-notice banner off stderr so
+ * captured diagnostics stay about the query.
+ */
+const SUPABASE_CLI_ENV: NodeJS.ProcessEnv = {
+  ...process.env,
+  SUPABASE_TELEMETRY_DISABLED: "1",
+  SUPABASE_NO_UPDATE_NOTIFIER: "1",
+};
+
+/** Shape of a successful `supabase db query --output-format json` payload. */
+interface SupabaseCliQueryResult {
+  rows: Array<Record<string, unknown>>;
+}
+
+function brief(value: string, max = 400): string {
+  const flat = value.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max)}…` : flat;
+}
+
+/**
+ * Parses stdout of `supabase db query --output-format json`.
+ *
+ * The installed CLI emits exactly one JSON document on stdout:
+ *   success -> { "boundary": "...", "rows": [ {...}, ... ], "warning": "..." }
+ *   CLI/transport failure -> { "_tag": "Error", "error": { code, message } }
+ *
+ * Anything else (empty stdout after a crash, a banner, a truncated document) is
+ * a contract violation and throws — it is NEVER coerced into a `rows` array,
+ * because `[]` would silently read "no such index" as a passing assertion.
+ */
+function parseCliQueryOutput(stdout: string, stderr: string, exitCode: number): SupabaseCliQueryResult {
+  const trimmed = stdout.trim();
+  if (trimmed.length === 0) {
+    throw new Error(
+      `supabase db query produced NO stdout (exit=${exitCode}). stderr: ${brief(stderr, 300) || "(empty)"}`,
+    );
+  }
+
+  // Tolerate a leading non-JSON line (a progress banner) but not a missing document.
+  const jsonStart = trimmed.indexOf("{");
+  if (jsonStart === -1) {
+    throw new Error(
+      `supabase db query stdout contains no JSON document (exit=${exitCode}): ${brief(trimmed)}`,
+    );
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed.slice(jsonStart));
+  } catch (err) {
+    throw new Error(
+      `supabase db query stdout is not valid JSON (exit=${exitCode}): ${(err as Error).message} | stdout: ${brief(trimmed)}`,
+    );
+  }
+
+  const payload = parsed as Partial<SupabaseCliQueryResult> & {
+    _tag?: string;
+    error?: { code?: string; message?: string };
+  };
+
+  if (payload._tag === "Error") {
+    throw new Error(
+      `supabase db query failed: ${payload.error?.code ?? "unknown code"} — ${payload.error?.message ?? "no message"}`,
+    );
+  }
+
+  if (!Array.isArray(payload.rows)) {
+    throw new Error(
+      `Unexpected 'supabase db query' payload shape — expected an array at 'rows'. stdout: ${brief(trimmed)}`,
+    );
+  }
+
+  return { rows: payload.rows };
+}
+
+/**
  * Runs a read-only SQL statement against the linked security-test project via the
  * Supabase CLI and returns the parsed rows.
  *
- * Throws on any CLI/transport/parse failure. Callers convert a throw into an
- * explicit FAIL result — the error is never silently dropped.
+ * The CLI is invoked with an EXPLICIT `--output-format json`: relying on the
+ * default output mode is what made the parser/CLI contract ambiguous.
+ *
+ * `spawnSync` (not `execFileSync`) is used on purpose so that a non-zero exit
+ * status still hands us stdout/stderr for diagnosis. A CLI error or a malformed
+ * payload throws; callers convert the throw into an explicit FAIL result — the
+ * error is never silently dropped and never becomes a fabricated pass.
  */
 function liveSql<T = Record<string, unknown>>(sql: string): T[] {
   if (!existsSync(SUPABASE_CLI_ENTRY)) {
     throw new Error(`Supabase CLI not installed at ${SUPABASE_CLI_ENTRY} — run \`npm ci\`.`);
   }
-  const stdout = execFileSync(
+
+  const result = spawnSync(
     process.execPath,
-    [SUPABASE_CLI_ENTRY, "db", "query", "--linked", sql],
+    [SUPABASE_CLI_ENTRY, "db", "query", "--linked", "--output-format", "json", sql],
     {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       maxBuffer: 8 * 1024 * 1024,
+      env: SUPABASE_CLI_ENV,
     },
   );
-  const parsed = JSON.parse(stdout) as { rows?: T[] };
-  if (!Array.isArray(parsed.rows)) {
-    throw new Error(`Unexpected 'supabase db query' payload shape: ${stdout.slice(0, 200)}`);
+
+  const stdout = result.stdout ?? "";
+  const stderr = result.stderr ?? "";
+
+  if (result.error) {
+    throw new Error(`supabase db query could not be spawned: ${result.error.message}`);
   }
-  return parsed.rows;
+
+  // The contract: a complete JSON payload with a `rows` array is authoritative.
+  // A non-zero exit WITHOUT such a payload is a hard failure (surfaced with the
+  // CLI's own diagnostics); a non-zero exit WITH one is the documented Windows
+  // telemetry-flush crash that happens after the result was produced.
+  try {
+    return parseCliQueryOutput(stdout, stderr, result.status ?? -1).rows as T[];
+  } catch (err) {
+    throw new Error(`${(err as Error).message} | stderr: ${brief(stderr, 300) || "(empty)"}`);
+  }
 }
 
 // -----------------------------------------------------------------------------

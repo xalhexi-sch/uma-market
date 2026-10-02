@@ -323,10 +323,11 @@ async function runSchemaConstraintChecks(): Promise<void> {
   }
   // order_items.quantity > 0
   {
-    const { data: dummy } = await adminClient.from("orders").insert({
+    const { data: dummy, error: dummyErr } = await adminClient.from("orders").insert({
       business_clerk_id: T.buyerA_id, farmer_clerk_id: T.farmerA_id,
       fulfillment_type: "pickup", total_amount: 0, status: "pending",
     }).select("id").single();
+
     if (dummy) {
       const { error } = await adminClient.from("order_items").insert({
         order_id: dummy.id, product_id: T.productMOQ, quantity: 0,
@@ -335,6 +336,16 @@ async function runSchemaConstraintChecks(): Promise<void> {
       assert("D-06", "DATABASE", "order_items: CHECK (quantity > 0) enforced",
         error !== null,
         error ? `Constraint: "${error.message.slice(0, 100)}"` : "UNEXPECTED: zero qty accepted");
+    } else {
+      // The prerequisite insert failed, so the CHECK itself was never exercised.
+      // D-06 still runs — as an explicit FAIL carrying the real reason — because
+      // an assertion that silently disappears when a prerequisite is false makes
+      // the suite report fewer checks than it actually attempted.
+      assert("D-06", "DATABASE", "order_items: CHECK (quantity > 0) enforced",
+        false,
+        `CHECK NOT EXERCISED — dummy order insert failed: ${
+          dummyErr ? `${dummyErr.code}: ${dummyErr.message.slice(0, 120)}` : "insert returned no row"
+        }`);
     }
   }
   // min_order_quantity stored correctly (read-only)

@@ -16,6 +16,8 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Browser, BrowserContext } from "@playwright/test";
+import { createHash, randomUUID } from "node:crypto";
+import { Webhook } from "standardwebhooks";
 import {
   loadSecurityTestEnv,
   PROD_SUPABASE_REF,
@@ -47,6 +49,32 @@ if (!clerkSecretKey) {
 }
 
 /**
+ * Signing secret the app under test uses to verify Clerk webhook deliveries.
+ *
+ * Precedence:
+ *   1. `CLERK_WEBHOOK_SIGNING_SECRET` from `.env.security-test.local`, when the
+ *      isolated environment supplies one.
+ *   2. Otherwise a value derived from the isolated Supabase credentials.
+ *
+ * Case 2 exists because the isolated environment intentionally ships no Clerk
+ * webhook secret, and reading the one in `.env.local` is forbidden (it belongs
+ * to production). The derivation is deterministic — the Playwright config
+ * process and every worker process load the same env file, so they agree on the
+ * same secret — while remaining unguessable from outside, since it is a hash of
+ * a value that is never printed. Nothing here writes a secret to disk, and the
+ * dev server can only ever receive it through its own process environment, so a
+ * real Clerk delivery (which we never receive locally) is unaffected.
+ */
+export function clerkWebhookSigningSecret(): string {
+  if (env.clerkWebhookSigningSecret) return env.clerkWebhookSigningSecret;
+  const digest = createHash("sha256")
+    .update(`${env.supabaseUrl}\u0000${env.secretKey}\u0000clerk-webhook-signing-secret`)
+    .digest("base64");
+  // standardwebhooks requires a base64 payload after the "whsec_" prefix.
+  return `whsec_${digest}`;
+}
+
+/**
  * Environment handed to the Next.js dev server under test.
  *
  * Every variable is a real process variable, so it takes precedence over any
@@ -59,6 +87,10 @@ export function resolveAppEnv(): Record<string, string> {
     SUPABASE_SECRET_KEY: env.secretKey,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: env.clerkPublishableKey,
     CLERK_SECRET_KEY: clerkSecretKey,
+    // Set explicitly (overriding any .env.local value) so webhook signature
+    // verification on the dev server uses the isolated test secret that
+    // deliverClerkWebhook() signs with — never a production secret.
+    CLERK_WEBHOOK_SIGNING_SECRET: clerkWebhookSigningSecret(),
     NEXT_PUBLIC_CLERK_SIGN_IN_URL: "/sign-in",
     NEXT_PUBLIC_CLERK_SIGN_UP_URL: "/sign-up",
     NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: "/",
@@ -221,6 +253,65 @@ export async function revokeSession(sessionId: string): Promise<void> {
   if (!response.ok) {
     throw new Error(`Revoking Clerk session ${sessionId} failed: HTTP ${response.status}`);
   }
+}
+
+/** Minimal shape of a Clerk session as returned by the Backend API. */
+export interface ClerkSession {
+  id: string;
+  user_id: string;
+  status: string;
+}
+
+/** Reads a Clerk session object, so a webhook payload can carry its real `user_id`. */
+export async function readClerkSession(sessionId: string): Promise<ClerkSession> {
+  return clerkFetch<ClerkSession>(`/sessions/${sessionId}`);
+}
+
+// -----------------------------------------------------------------------------
+// Clerk webhook delivery — drives the REAL /api/webhooks/clerk endpoint
+// -----------------------------------------------------------------------------
+
+export interface ClerkWebhookDelivery {
+  status: number;
+  body: string;
+}
+
+/**
+ * Signs a payload with the isolated test secret and POSTs it to the running
+ * app's `/api/webhooks/clerk` route over HTTP.
+ *
+ * This exercises the genuine delivery path — svix headers, `verifyWebhook()`,
+ * the route's event switch and its database write — rather than mutating
+ * `profiles.status` directly.
+ *
+ * The signing secret is never included in the returned value or in any log
+ * line; callers should only surface `status` and, on failure, `body`.
+ */
+export async function deliverClerkWebhook(
+  payload: Record<string, unknown>,
+  options: { sign?: boolean } = {},
+): Promise<ClerkWebhookDelivery> {
+  const sign = options.sign ?? true;
+  const body = JSON.stringify(payload);
+  const msgId = `msg_${randomUUID()}`;
+  const now = new Date();
+
+  const signature = sign
+    ? new Webhook(clerkWebhookSigningSecret()).sign(msgId, now, body)
+    : "v1,invalid_signature_forged_by_test";
+
+  const response = await fetch(`${E2E_BASE_URL}/api/webhooks/clerk`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "svix-id": msgId,
+      "svix-timestamp": Math.floor(now.getTime() / 1000).toString(),
+      "svix-signature": signature,
+    },
+    body,
+  });
+
+  return { status: response.status, body: await response.text() };
 }
 
 // -----------------------------------------------------------------------------
@@ -393,4 +484,48 @@ export function manilaTomorrow(): string {
     month: "2-digit",
     day: "2-digit",
   }).format(d);
+}
+
+// -----------------------------------------------------------------------------
+// Teardown — failures are reported, never swallowed
+// -----------------------------------------------------------------------------
+
+export interface CleanupStep {
+  label: string;
+  run: () => Promise<unknown>;
+}
+
+/**
+ * Runs teardown steps, recording EVERY failure.
+ *
+ * The previous pattern (`await step.catch(() => undefined)`) made a broken
+ * teardown invisible: the suite reported green while silently leaving revoked
+ * profile statuses, stray orders and orphaned fixtures behind in the shared
+ * security-test database.
+ *
+ * Behaviour:
+ *   - every step is attempted, so one failure never skips the rest;
+ *   - each failure is logged with its step label (no secrets are included);
+ *   - if anything failed, an error is thrown so Playwright marks the suite
+ *     failed instead of reporting a clean run.
+ */
+export async function runCleanup(steps: CleanupStep[]): Promise<void> {
+  const failures: string[] = [];
+
+  for (const step of steps) {
+    try {
+      await step.run();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      failures.push(`${step.label}: ${message}`);
+      console.error(`[cleanup] FAILED — ${step.label}: ${message}`);
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      `${failures.length} teardown step(s) failed; the run must not be reported as clean:\n` +
+        failures.map((f) => `  - ${f}`).join("\n"),
+    );
+  }
 }

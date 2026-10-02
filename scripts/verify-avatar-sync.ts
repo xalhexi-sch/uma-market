@@ -423,19 +423,58 @@ async function runAvatarSyncVerification() {
     // TEST 9: anon still cannot SELECT public.profiles directly
     // ------------------------------------------------------------------------
     {
+      // Precondition — the target row MUST exist, proven with the admin client.
+      // Without this, "0 rows" is indistinguishable from a missing fixture and
+      // the assertion below would pass even if RLS were completely absent.
+      const { data: fixture, error: fixtureErr } = await adminClient
+        .from("profiles")
+        .select("id, clerk_id")
+        .eq("clerk_id", testFarmer2)
+        .maybeSingle();
+
+      const fixturePresent = !fixtureErr && fixture !== null;
+      assert(
+        "TEST-09a",
+        "TEST-09 precondition: target profile row exists (admin read)",
+        fixturePresent,
+        fixtureErr ? `admin read error: ${fixtureErr.message}` : `fixture: ${JSON.stringify(fixture)}`
+      );
+
       const { data, error } = await publicClient
         .from("profiles")
         .select("id, clerk_id, avatar_url")
         .eq("clerk_id", testFarmer2);
 
-      const blocked = error !== null || (data ?? []).length === 0;
+      // Four mutually exclusive outcomes, reported distinctly instead of being
+      // collapsed into `error !== null || (data ?? []).length === 0`:
+      //   denied   — PostgREST refused the table (expected RLS denial)
+      //   filtered — query succeeded but RLS hid every row, incl. our fixture
+      //   readable — the fixture row was returned to an anonymous client
+      //   db-error — an unrelated failure that proves nothing about RLS
+      let verdict: "denied" | "filtered" | "readable" | "db-error";
+      if (error) {
+        const rlsSignal =
+          error.code === "42501" || /row-level security|permission denied/i.test(error.message);
+        verdict = rlsSignal ? "denied" : "db-error";
+      } else if ((data ?? []).some((row) => row.clerk_id === testFarmer2)) {
+        verdict = "readable";
+      } else {
+        verdict = "filtered";
+      }
+
+      const enforced = verdict === "denied" || verdict === "filtered";
       assert(
         "TEST-09",
         "anon still cannot SELECT public.profiles directly",
-        blocked,
-        blocked
-          ? `RLS active and enforced: direct table access denied (${error?.message || "0 rows returned"})`
-          : "SECURITY FAILURE: Direct profiles table was readable by anonymous client!"
+        fixturePresent && enforced,
+        `verdict=${verdict}; ` +
+          (verdict === "readable"
+            ? "SECURITY FAILURE: the profile row was returned to an anonymous client"
+            : verdict === "db-error"
+              ? `UNRELATED DB ERROR — proves nothing about RLS: ${error?.message}`
+              : verdict === "denied"
+                ? `RLS denial: ${error?.message}`
+                : "RLS filtered every row (0 rows returned for an existing fixture)")
       );
     }
 

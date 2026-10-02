@@ -21,6 +21,15 @@
 //                     mutation: the database refuses place_checkout_orders and no
 //                     order is committed.
 //
+//   REG-SEC-AUTH-001d  The propagation path itself: a real Clerk session
+//                     revocation followed by a properly svix-signed
+//                     session.revoked delivery to POST /api/webhooks/clerk
+//                     results in profiles.status = 'revoked'. An unsigned
+//                     delivery is refused first and must leave the profile
+//                     untouched, so the state change can only come from the
+//                     verified webhook. The final leg checks that the
+//                     webhook-revoked profile is denied the protected route.
+//
 // The fallback documented in REMEDIATION-RESULTS.md §7.1 (Clerk webhook delivery
 // delay, bounded by the ~60s JWT lifetime) is asserted structurally by the
 // full-lifetime-token leg of REG-SEC-AUTH-001a: denial cannot be explained by the
@@ -39,12 +48,15 @@ import {
   countBuyerOrders,
   authenticatedContext,
   createSessionToken,
+  deliverClerkWebhook,
   manilaTomorrow,
   provisionProduct,
+  readClerkSession,
   readProfileStatus,
   resetCart,
   resolvePersona,
   revokeSession,
+  runCleanup,
   serviceClient,
   setProfileStatus,
   upsertTestProfile,
@@ -129,15 +141,27 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await setProfileStatus(admin, farmer.clerkUserId, (originalFarmerStatus ?? "active") as "active").catch(
-    () => undefined,
-  );
-  await setProfileStatus(admin, buyer.clerkUserId, (originalBuyerStatus ?? "active") as "active").catch(
-    () => undefined,
-  );
-  await clearBuyerOrders(admin, buyer.clerkUserId).catch(() => undefined);
-  await resetCart(admin, buyer.clerkUserId).catch(() => undefined);
-  await cleanupProduct(admin, REVOCATION_PRODUCT).catch(() => undefined);
+  if (!admin || !buyer || !farmer) {
+    const reason =
+      "beforeAll did not complete — profile statuses, the buyer order/cart fixtures and the " +
+      "SEC-AUTH-001 product may still be present in the shared security-test database.";
+    console.error(`[cleanup] FAILED — ${reason}`);
+    throw new Error(reason);
+  }
+
+  await runCleanup([
+    {
+      label: `restore farmer profile status (was '${originalFarmerStatus ?? "active"}')`,
+      run: () => setProfileStatus(admin, farmer.clerkUserId, (originalFarmerStatus ?? "active") as "active"),
+    },
+    {
+      label: `restore buyer profile status (was '${originalBuyerStatus ?? "active"}')`,
+      run: () => setProfileStatus(admin, buyer.clerkUserId, (originalBuyerStatus ?? "active") as "active"),
+    },
+    { label: "clear buyer orders", run: () => clearBuyerOrders(admin, buyer.clerkUserId) },
+    { label: "reset buyer cart", run: () => resetCart(admin, buyer.clerkUserId) },
+    { label: "remove SEC-AUTH-001 product fixture", run: () => cleanupProduct(admin, REVOCATION_PRODUCT) },
+  ]);
 });
 
 test("REG-SEC-AUTH-001b: an active profile keeps normal protected-route access across repeated navigations", async ({
@@ -327,4 +351,81 @@ test("REG-SEC-AUTH-001c: a revoked profile cannot execute the protected checkout
   }
 
   expect(await readProfileStatus(admin, buyer.clerkUserId), "buyer profile restored to active").toBe("active");
+});
+
+// -----------------------------------------------------------------------------
+// REG-SEC-AUTH-001d — the propagation path itself.
+//
+// 001a sets profiles.status directly, which proves the status gate but not the
+// chain that is supposed to set that status. This leg drives the real chain:
+//
+//   Clerk session revocation  ->  session.revoked webhook
+//                              ->  POST /api/webhooks/clerk (svix-signed)
+//                              ->  verifyWebhook() accepts it
+//                              ->  profiles.status = 'revoked'
+//                              ->  the protected route denies the profile
+//
+// profiles.status is never written directly here; the only local write is the
+// restore at the end of the test.
+// -----------------------------------------------------------------------------
+test("REG-SEC-AUTH-001d: a signed session.revoked webhook propagates from Clerk to profiles.status", async ({
+  browser,
+}) => {
+  await setProfileStatus(admin, farmer.clerkUserId, "active");
+
+  // 1. The event we deliver must describe a session that genuinely was revoked
+  //    at Clerk, so revoke it there first.
+  const { sessionId } = await createSessionToken(farmer.clerkUserId);
+  await revokeSession(sessionId);
+
+  const session = await readClerkSession(sessionId);
+  expect(session.user_id, "the revoked session must belong to the test farmer").toBe(farmer.clerkUserId);
+  expect(session.status, `the Clerk session must no longer be active (status: ${session.status})`).not.toBe(
+    "active",
+  );
+
+  // 2. Control: revoking at Clerk alone must NOT have touched the local
+  //    profile. Without this, the leg below could pass on a direct status write
+  //    instead of the webhook carrying the state.
+  expect(
+    await readProfileStatus(admin, farmer.clerkUserId),
+    "profile must still be active before the webhook is delivered",
+  ).toBe("active");
+
+  const payload = { type: "session.revoked", data: session };
+
+  // 3. A forged (unsigned) delivery must be refused by verifyWebhook(), and the
+  //    refusal must leave the profile untouched.
+  const forged = await deliverClerkWebhook(payload, { sign: false });
+  expect(forged.status, "an unsigned session.revoked payload must be rejected with 400").toBe(400);
+  expect(
+    await readProfileStatus(admin, farmer.clerkUserId),
+    "a rejected delivery must not change profiles.status",
+  ).toBe("active");
+
+  // 4. The properly signed delivery must be accepted by the real endpoint.
+  const accepted = await deliverClerkWebhook(payload, { sign: true });
+  expect(
+    accepted.status,
+    `the signed session.revoked webhook must be accepted (body: ${accepted.body})`,
+  ).toBe(200);
+
+  // 5. The resulting database state, written by the route handler.
+  expect(
+    await readProfileStatus(admin, farmer.clerkUserId),
+    "profiles.status must be 'revoked' after the signed session.revoked delivery",
+  ).toBe("revoked");
+
+  // 6. Close the chain: the webhook-revoked profile is denied the protected
+  //    route, exactly as in REG-SEC-AUTH-001a.
+  const { context } = await signInContext(browser, farmer);
+  const probe = await probeProtectedRoute(context);
+  expect(
+    probe.location ?? "",
+    "a webhook-revoked profile must be denied the protected route",
+  ).toMatch(/^\/sign-in\?revoked=true/);
+  await context.close();
+
+  await setProfileStatus(admin, farmer.clerkUserId, "active");
+  expect(await readProfileStatus(admin, farmer.clerkUserId), "farmer profile restored to active").toBe("active");
 });

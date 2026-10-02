@@ -34,6 +34,7 @@ import {
   readStock,
   resetCart,
   resolvePersona,
+  runCleanup,
   serviceClient,
   TEST_SUPABASE_URL,
   manilaTomorrow,
@@ -179,10 +180,20 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await clearBuyerOrders(admin, buyer.clerkUserId).catch(() => undefined);
-  await resetCart(admin, buyer.clerkUserId).catch(() => undefined);
-  await cleanupProduct(admin, CHECKOUT_PRODUCTS.a).catch(() => undefined);
-  await cleanupProduct(admin, CHECKOUT_PRODUCTS.b).catch(() => undefined);
+  if (!admin || !buyer) {
+    const reason =
+      "beforeAll did not complete — buyer orders, cart rows and the E2E-005 product fixtures " +
+      "may still be present in the shared security-test database.";
+    console.error(`[cleanup] FAILED — ${reason}`);
+    throw new Error(reason);
+  }
+
+  await runCleanup([
+    { label: "clear buyer orders", run: () => clearBuyerOrders(admin, buyer.clerkUserId) },
+    { label: "reset buyer cart", run: () => resetCart(admin, buyer.clerkUserId) },
+    { label: "remove E2E-005 product A fixture", run: () => cleanupProduct(admin, CHECKOUT_PRODUCTS.a) },
+    { label: "remove E2E-005 product B fixture", run: () => cleanupProduct(admin, CHECKOUT_PRODUCTS.b) },
+  ]);
 });
 
 test("REG-E2E-005a: two simultaneous same-account checkout tabs commit exactly one order and one stock deduction", async ({

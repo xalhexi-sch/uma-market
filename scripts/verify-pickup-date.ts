@@ -811,7 +811,11 @@ async function runTests(): Promise<void> {
   console.log(`\n  TOTAL: ${results.length} | PASSED: ${passed} | FAILED: ${failed}`);
 
   if (failed > 0) {
-    process.exit(1);
+    // NOT process.exit(1): exiting here would kill the process before
+    // main()'s finally{} block could run cleanupFixtures(), leaving fixtures
+    // behind on every failing run. Record the failure instead — main() still
+    // finishes cleanup, and the process then exits 1 via exitCode.
+    process.exitCode = 1;
   }
 }
 
@@ -825,6 +829,9 @@ async function main() {
       console.log("  [Cleanup] Complete — all test data removed");
     } catch (e) {
       console.error("  [Cleanup] Error:", (e as Error).message);
+      // A failed cleanup must not be reported as a green run: surface it in the
+      // exit status as well as on stderr.
+      process.exitCode = 1;
     }
   }
 }

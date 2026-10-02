@@ -228,8 +228,17 @@ disagree, trust the code and **fix this file** as part of the task.
 
 ### 6.10 Verification tooling
 
-- CI (`.github/workflows/ci.yml`) runs exactly three gates on PRs to `main`:
-  `npm run lint`, `npx tsc --noEmit`, `npm run build`.
+- CI (`.github/workflows/ci.yml`) runs four tiers on PRs to `main`:
+  - Tier 1 `npm run verify:guards` (deterministic safety guards)
+  - Tier 2 `npm run lint`, `npm run typecheck` (`tsc --noEmit`), `npm run build`
+  - Tier 3 the isolated-database `verify:*` suites — seeds the isolated catalogue
+    first, then runs `verify:order-tabs`, `verify:checkout-orders`,
+    `verify:pickup-date`, `verify:avatar-sync`, `verify:query-efficiency`
+  - Tier 4 `npm run test:browser` (Playwright), which `needs` Tier 3 so the two
+    tiers never write to the shared isolated database concurrently
+- Tiers 3 and 4 need repository secrets and are **SKIPPED (never reported as
+  passing)** on fork PRs; the `verification-report` job always prints the status
+  of every tier.
 - Behavioural checks are standalone scripts run with `npx tsx`, e.g.
   `npx tsx scripts/verify-smart-search.ts`. Several are wired to npm scripts
   (`verify:reviews`, `verify:notifications`, `seed:demo`).
@@ -275,10 +284,14 @@ tokens, or database passwords. Reference secrets by env var name only.
 
 ## 8. VERIFICATION AND EVIDENCE STANDARD
 
-### 8.1 No test runner — do not claim otherwise
+### 8.1 No unit/integration test runner — do not claim otherwise
 
-This repository has **no unit/integration test runner** and no `*.test.*` /
-`*.spec.*` files. Do not report "tests passed" for a suite that does not exist.
+This repository has **no unit/integration test runner** and no `*.test.*`
+files. The only `*.spec.*` files are the Playwright browser regression suites
+under `tests/browser/`, run with `npm run test:browser` against the isolated
+security-test environment (§7). Do not report "tests passed" for a suite that
+does not exist, and do not present a Playwright run as unit or integration
+coverage.
 
 Verification means, in increasing cost:
 
@@ -286,7 +299,9 @@ Verification means, in increasing cost:
 2. `npx tsc --noEmit`
 3. `npm run build`
 4. The relevant `npx tsx scripts/verify-*.ts` script, when one covers the change
-5. Manual runtime exercise of the actual behavior, when relevant
+5. `npm run test:browser`, when the change touches auth, session, checkout or
+   any behaviour those suites cover
+6. Manual runtime exercise of the actual behavior, when relevant
 
 Run the smallest relevant check first. Compilation success is **not** proof of
 correct behavior — verify the behavior itself.

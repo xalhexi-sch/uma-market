@@ -32,8 +32,14 @@ env:
 #   Tier 3  ISOLATED  — mutates the dedicated security-test Supabase project.
 #           Requires repository secrets + a Supabase CLI access token. Skipped
 #           (and REPORTED AS SKIPPED) when secrets are unavailable, e.g. fork PRs.
+#           Seeding the isolated catalogue is an explicit step of this tier and
+#           runs BEFORE every verification step, so no suite in Tier 3 can depend
+#           on data that nothing has written yet.
 #   Tier 4  BROWSER   — Playwright regression for E2E-005 and SEC-AUTH-001.
-#           Same secret requirements as Tier 3.
+#           Same secret requirements as Tier 3, and `needs: verify-isolated-db`
+#           so it can only start once Tier 3 has COMPLETED. Tier 3 and Tier 4
+#           therefore never write to the shared isolated database at the same
+#           time — there is no seed/test race between them.
 #
 # A skipped tier is never reported as a pass: the `verification-report` job
 # always runs and prints the exact status of every tier.
@@ -178,6 +184,17 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SECURITY_TEST_SUPABASE_DB_PASSWORD }}
 
+      # Seeding is the DETERMINISTIC PREREQUISITE for every verification step
+      # below: the suites query the demo catalogue (categories, demo products)
+      # that this step writes. It runs before them inside the same job, so the
+      # ordering is explicit and cannot race with Tier 4 — Tier 4 waits for this
+      # whole job via `needs`.
+      #
+      # The script itself fails closed (exit 2) unless it resolves to the
+      # isolated project, so it can never become a production write path.
+      - name: Seed the isolated security-test catalogue (Tier 3 prerequisite)
+        run: npm run seed:demo
+
       - name: Verify / order query tabs (A6)
         run: npm run verify:order-tabs
 
@@ -190,8 +207,14 @@ jobs:
       - name: Verify / avatar synchronization (A7)
         run: npm run verify:avatar-sync
 
+      # This suite shells out to `supabase db query --linked`, which authenticates
+      # with SUPABASE_ACCESS_TOKEN. The runner has no OS keyring entry for the
+      # CLI, so exporting the token here is what makes the invocation work at all
+      # in CI; without it the CLI fails before issuing the query.
       - name: Verify / query efficiency + index hardening (A8)
         run: npm run verify:query-efficiency
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Remove the isolated env file
         if: always()
@@ -200,6 +223,13 @@ jobs:
   # ── Tier 4: browser regression (E2E-005, SEC-AUTH-001) ─────────────────────
   verify-browser:
     name: Verify / browser regression (E2E-005, SEC-AUTH-001)
+    # DETERMINISTIC ORDERING: this tier may only start once Tier 3 has completed
+    # successfully. Tier 3 and Tier 4 share ONE external database, so running them
+    # in parallel would let Tier 4 seed while Tier 3's suites were reading and
+    # deleting fixtures. With `needs`, the jobs are strictly sequential and there
+    # is no seed race. A skipped or failed Tier 3 leaves Tier 4 skipped, which the
+    # tier report prints as NOT EXECUTED (never as a pass).
+    needs: verify-isolated-db
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
@@ -271,6 +301,11 @@ jobs:
           SECURITY_TEST_CLERK_PUBLISHABLE_KEY: ${{ secrets.SECURITY_TEST_CLERK_PUBLISHABLE_KEY }}
           SECURITY_TEST_CLERK_SECRET_KEY: ${{ secrets.SECURITY_TEST_CLERK_SECRET_KEY }}
 
+      # Re-establishes the seeded catalogue before the browser suites start.
+      # Runs strictly AFTER Tier 3 has finished (see `needs` above), so this is a
+      # second, sequential seed — never a concurrent one. The script aborts with
+      # exit 2 unless it resolves to the isolated project, so Tier 4 can never
+      # invoke an unguarded production seeding path.
       - name: Seed the isolated security-test catalogue
         run: npm run seed:demo
 
@@ -320,10 +355,15 @@ jobs:
             echo ""
             if [ "$R_ISOLATED_DB" = "skipped" ] || [ "$R_BROWSER" = "skipped" ]; then
               echo "> **NOT EXECUTED — not a pass.**"
-              echo "> Tiers 3 and 4 require repository secrets and are skipped for pull requests"
-              echo "> from forks. They must be run against the isolated security-test project"
-              echo "> (see docs/security/SECURITY-TEST-ENVIRONMENT.md) before a security finding is"
-              echo "> considered covered."
+              echo "> Tiers 3 and 4 require repository secrets. They are skipped for pull"
+              echo "> requests from forks; Tier 4 is additionally skipped whenever Tier 3 did"
+              echo "> not complete, because it declares \`needs: verify-isolated-db\`. Skipped"
+              echo "> means the work never ran — it must be executed against the isolated"
+              echo "> security-test project (see docs/security/SECURITY-TEST-ENVIRONMENT.md)"
+              echo "> before a security finding is considered covered."
+            fi
+            if [ "$R_ISOLATED_DB" = "failure" ] || [ "$R_BROWSER" = "failure" ]; then
+              echo "> **FAILED — the tier ran and did not pass.**"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
           cat "$GITHUB_STEP_SUMMARY"

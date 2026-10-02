@@ -1,21 +1,25 @@
 // Demo data — not real persons or businesses
 // UMA Market — Seed Demo Data Script (Checkpoint 5.3)
+//
+// SAFETY RULES (AGENTS.md §7):
+//   1. Credentials are loaded EXCLUSIVELY from .env.security-test.local through
+//      the shared guard. .env.local points at production and is NEVER read.
+//   2. ABORTS (exit 2) BEFORE any Supabase client is constructed unless the
+//      resolved project is exactly the dedicated security-test project.
+//      Seeding is a database write, so it must fail closed exactly like the
+//      verification suites do.
+//   3. Never prints secrets.
 
 import { createClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
-import * as path from "path";
+import { loadSecurityTestEnv } from "./lib/safety-guard";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+// Environment safety guard (shared): loads .env.security-test.local and aborts
+// with exit code 2 unless the resolved project is exactly the security-test one.
+// This runs before any client exists, so a production write path cannot open.
+const env = loadSecurityTestEnv("seed-demo-data");
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SECRET_KEY ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY in environment.");
-  process.exit(1);
-}
+const supabaseUrl = env.supabaseUrl;
+const supabaseKey = env.secretKey;
 
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { autoRefreshToken: false, persistSession: false },

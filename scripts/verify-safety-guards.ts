@@ -4,8 +4,9 @@
 // TIER: deterministic / static. No database, no credentials, no network.
 //
 // This suite is the CI gate that protects every other verification script:
-//   G-01  Every destructive verification suite refuses the PRODUCTION project
-//         with exit status 2, before any Supabase client is constructed.
+//   G-01  Every destructive verification suite (including the seeder) refuses
+//         the PRODUCTION project with exit status 2, before any Supabase client
+//         is constructed.
 //   G-02  Every destructive verification suite refuses an UNKNOWN project ref
 //         with exit status 2 (no "close enough" matching).
 //   G-03  No destructive verification suite loads `.env.local`.
@@ -23,8 +24,15 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { PROD_SUPABASE_REF, SECURITY_TEST_SUPABASE_URL } from "./lib/safety-guard";
 
-/** Suites that open a destructive connection and therefore must fail closed. */
+/**
+ * Suites that open a destructive connection and therefore must fail closed.
+ *
+ * `scripts/seed-demo-data.ts` is a seeder, not a verifier, but it performs the
+ * same class of operation (an authenticated write to a Supabase project), so it
+ * is held to exactly the same production/unknown-project guards.
+ */
 const GUARDED_SUITES = [
+  "scripts/seed-demo-data.ts",
   "scripts/verify-avatar-sync.ts",
   "scripts/verify-checkout-orders.ts",
   "scripts/verify-order-query-tabs.ts",
