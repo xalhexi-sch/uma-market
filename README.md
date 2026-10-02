@@ -577,7 +577,7 @@ The following features represent future platform iterations and are not currentl
 - [ ] **Digital Payment Gateway:** Integration with regional payment gateways (GCash, Maya, PESONet) for escrow-based settlements.
 - [ ] **Advanced Admin Moderation:** Comprehensive resolution center for quality disputes, farmer verification badges, and category management.
 - [ ] **Agricultural Analytics & Forecasting:** Supply forecasting based on seasonal harvest cycles in Agusan del Norte and commercial buyer demand trends.
-- [ ] **Reputation & Review System:** Verified buyer reviews, harvest freshness ratings, and farmer reliability metrics.
+- [x] **Verified Reviews & Reputation V1:** Transaction-backed buyer reviews for completed seller orders and purchased products, with verified-order badges and aggregate ratings.
 
 ---
 

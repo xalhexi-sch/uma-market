@@ -19,6 +19,9 @@ import { MarketplaceFooter } from "@/components/marketplace/marketplace-footer";
 import { AddToCartControls } from "@/components/dashboard/add-to-cart-controls";
 import { ProductGallery } from "@/components/marketplace/product-gallery";
 import { getProductById } from "@/lib/supabase/queries/products";
+import { getProductReviewSummary, getProductReviews, getSellerReviewSummary } from "@/lib/supabase/queries/reviews";
+import { ReviewList } from "@/components/reviews/review-list";
+import { ReviewSummary } from "@/components/reviews/review-summary";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -79,6 +82,11 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
 
   const farmerClerkId = product.farmer?.clerk_id || product.farmer_clerk_id;
   const isAvailable = product.quantity_available > 0;
+  const [productReviewSummary, productReviews, sellerReviewSummary] = await Promise.all([
+    getProductReviewSummary(product.id),
+    getProductReviews(product.id),
+    getSellerReviewSummary(farmerClerkId),
+  ]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -223,6 +231,11 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                     </p>
                   )}
 
+                  <div className="mt-3 flex items-center gap-2 border-t border-border/40 pt-3">
+                    <span className="text-xs text-muted-foreground">Producer reputation</span>
+                    <ReviewSummary summary={sellerReviewSummary} />
+                  </div>
+
                   {farmerClerkId && (
                     <div className="mt-2 pt-2 border-t border-border/40 pl-12">
                       <Link
@@ -344,6 +357,19 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                   </p>
                 </div>
               )}
+
+              <div className="rounded-xl border border-border/80 bg-card p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Verified buyer reviews</h2>
+                    <div className="mt-1"><ReviewSummary summary={productReviewSummary} /></div>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">Completed UMA orders only</span>
+                </div>
+                <div className="pt-4">
+                  <ReviewList reviews={productReviews} emptyText="No verified reviews for this produce yet." />
+                </div>
+              </div>
 
               {/* Fulfillment Options */}
               <div className="rounded-xl border border-border/80 bg-card p-4">

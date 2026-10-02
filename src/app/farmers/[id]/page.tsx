@@ -24,6 +24,9 @@ import {
   getPublicFarmerProfile,
   getActiveProductsByFarmer,
 } from "@/lib/supabase/queries/public-profiles";
+import { getSellerReviewSummary, getSellerReviews } from "@/lib/supabase/queries/reviews";
+import { ReviewList } from "@/components/reviews/review-list";
+import { ReviewSummary } from "@/components/reviews/review-summary";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -56,9 +59,11 @@ export default async function PublicFarmerProfilePage({ params }: PageProps) {
   const { id } = await params;
 
   // Fetch farmer profile and products in parallel
-  const [farmer, rawProducts] = await Promise.all([
+  const [farmer, rawProducts, reviewSummary, reviews] = await Promise.all([
     getPublicFarmerProfile(id),
     getActiveProductsByFarmer(id),
+    getSellerReviewSummary(id),
+    getSellerReviews(id),
   ]);
 
   // If farmer does not exist or is not a registered farmer, return 404
@@ -171,6 +176,10 @@ export default async function PublicFarmerProfilePage({ params }: PageProps) {
                     </span>
                     <span>active listing{products.length === 1 ? "" : "s"}</span>
                   </div>
+                  <div className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1">
+                    <span className="font-medium text-foreground">Reputation</span>
+                    <ReviewSummary summary={reviewSummary} />
+                  </div>
                 </div>
 
                 {/* Farm Description / Bio */}
@@ -187,6 +196,20 @@ export default async function PublicFarmerProfilePage({ params }: PageProps) {
               </div>
             </div>
           </div>
+
+          {/* Verified Reviews */}
+          <section className="mt-8 rounded-xl border border-border bg-card p-5 shadow-2xs sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
+              <div>
+                <h2 className="text-lg font-bold tracking-tight text-foreground">Verified buyer reviews</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">Feedback from completed UMA orders.</p>
+              </div>
+              <ReviewSummary summary={reviewSummary} />
+            </div>
+            <div className="pt-4">
+              <ReviewList reviews={reviews} emptyText="No verified buyer reviews yet." />
+            </div>
+          </section>
 
           {/* Active Products Section */}
           <section className="mt-10 sm:mt-12">

@@ -77,6 +77,26 @@ export const CancelOrderSchema = z.object({
   orderId: z.string().uuid("Invalid order ID."),
 });
 
+// ── Verified Reviews ─────────────────────────────────
+const ReviewFields = {
+  rating: z.number().int().min(1, "Rating must be at least 1.").max(5, "Rating cannot exceed 5."),
+  comment: z.string().trim().max(1000, "Review must be 1000 characters or fewer.").optional(),
+};
+
+export const CreateSellerReviewSchema = z.object({
+  orderId: z.string().uuid("Invalid order ID."),
+  ...ReviewFields,
+});
+
+export const CreateProductReviewSchema = z.object({
+  orderId: z.string().uuid("Invalid order ID."),
+  orderItemId: z.string().uuid("Invalid order item ID."),
+  ...ReviewFields,
+});
+
+export type CreateSellerReviewInput = z.infer<typeof CreateSellerReviewSchema>;
+export type CreateProductReviewInput = z.infer<typeof CreateProductReviewSchema>;
+
 // ── Profile ──────────────────────────────────────────
 export const UpdateProfileSchema = z.object({
   full_name: z.string().trim().max(200).optional(),
