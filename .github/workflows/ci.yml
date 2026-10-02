@@ -109,6 +109,14 @@ jobs:
     # Repository secrets are not exposed to pull requests from forks.
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
+    # Supabase CLI authentication for the WHOLE job. Every step that shells out
+    # to the CLI (`supabase link`, and the suites running `supabase db query
+    # --linked`) authenticates to the Management API with this personal access
+    # token; the runner has no OS keyring entry for the CLI, so the env var is
+    # the only credential it can see. Job scope (not step scope) guarantees no
+    # CLI step can be added later without it. Never echo this value.
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -122,7 +130,7 @@ jobs:
           missing=0
           for name in SECURITY_TEST_SUPABASE_URL SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY \
                       SECURITY_TEST_SUPABASE_SECRET_KEY SECURITY_TEST_CLERK_PUBLISHABLE_KEY \
-                      SECURITY_TEST_CLERK_SECRET_KEY; do
+                      SECURITY_TEST_CLERK_SECRET_KEY SUPABASE_ACCESS_TOKEN; do
             value="${!name:-}"
             if [ -z "$value" ]; then
               echo "::error::Required secret $name is not configured in this repository."
@@ -139,6 +147,7 @@ jobs:
           SECURITY_TEST_SUPABASE_SECRET_KEY: ${{ secrets.SECURITY_TEST_SUPABASE_SECRET_KEY }}
           SECURITY_TEST_CLERK_PUBLISHABLE_KEY: ${{ secrets.SECURITY_TEST_CLERK_PUBLISHABLE_KEY }}
           SECURITY_TEST_CLERK_SECRET_KEY: ${{ secrets.SECURITY_TEST_CLERK_SECRET_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Preflight — assert the target is the ISOLATED project, never production
         run: |
@@ -181,7 +190,6 @@ jobs:
       - name: Link the Supabase CLI to the isolated project
         run: npx supabase link --project-ref "$SECURITY_TEST_SUPABASE_REF"
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SECURITY_TEST_SUPABASE_DB_PASSWORD }}
 
       # Seeding is the DETERMINISTIC PREREQUISITE for every verification step
@@ -208,13 +216,12 @@ jobs:
         run: npm run verify:avatar-sync
 
       # This suite shells out to `supabase db query --linked`, which authenticates
-      # with SUPABASE_ACCESS_TOKEN. The runner has no OS keyring entry for the
-      # CLI, so exporting the token here is what makes the invocation work at all
-      # in CI; without it the CLI fails before issuing the query.
+      # with SUPABASE_ACCESS_TOKEN via the Management API. The token is injected
+      # once at JOB scope (see the job `env` above), so this step — and any
+      # future CLI step — inherits it without its own block. Without it the CLI
+      # fails before issuing the query.
       - name: Verify / query efficiency + index hardening (A8)
         run: npm run verify:query-efficiency
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Remove the isolated env file
         if: always()
