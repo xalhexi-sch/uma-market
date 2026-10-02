@@ -92,7 +92,7 @@ const SUPABASE_CLI_ENV: NodeJS.ProcessEnv = {
   SUPABASE_NO_UPDATE_NOTIFIER: "1",
 };
 
-/** Shape of a successful `supabase db query --output-format json` payload. */
+/** Shape of a successful `supabase db query --output-format json` payload, normalised to rows. */
 interface SupabaseCliQueryResult {
   rows: Array<Record<string, unknown>>;
 }
@@ -105,13 +105,18 @@ function brief(value: string, max = 400): string {
 /**
  * Parses stdout of `supabase db query --output-format json`.
  *
- * The installed CLI emits exactly one JSON document on stdout:
- *   success -> { "boundary": "...", "rows": [ {...}, ... ], "warning": "..." }
+ * The installed CLI (2.117.0) emits exactly one JSON document on stdout, in one
+ * of two SUCCESS shapes — selected by its `--agent` flag (default `auto`), which
+ * auto-detects whether it is being run by an AI agent:
+ *   agent detected -> { "boundary": "...", "rows": [ {...}, ... ], "warning": "..." }
+ *   no agent (CI)  -> [ {...row}, {...row}, ... ]   (bare row array)
  *   CLI/transport failure -> { "_tag": "Error", "error": { code, message } }
  *
- * Anything else (empty stdout after a crash, a banner, a truncated document) is
- * a contract violation and throws — it is NEVER coerced into a `rows` array,
- * because `[]` would silently read "no such index" as a passing assertion.
+ * Anything else (empty stdout after a crash, a banner, a truncated document, a
+ * non-row element in the array) is a contract violation and throws — it is NEVER
+ * coerced into a `rows` array, because `[]` would silently read "no such index"
+ * as a passing assertion. An `[]` that the CLI genuinely returns is accepted as
+ * real query data and is still evaluated by the assertions below.
  */
 function parseCliQueryOutput(stdout: string, stderr: string, exitCode: number): SupabaseCliQueryResult {
   const trimmed = stdout.trim();
@@ -121,9 +126,12 @@ function parseCliQueryOutput(stdout: string, stderr: string, exitCode: number): 
     );
   }
 
-  // Tolerate a leading non-JSON line (a progress banner) but not a missing document.
-  const jsonStart = trimmed.indexOf("{");
-  if (jsonStart === -1) {
+  // Tolerate a leading non-JSON line (a progress banner) but not a missing
+  // document. The document starts with '{' (agent-mode object) or '[' (bare row
+  // array) — slicing at the first '{' alone would cut a row array open after its
+  // first element and report a bogus JSON error.
+  const documentStarts = [trimmed.indexOf("{"), trimmed.indexOf("[")].filter((i) => i !== -1);
+  if (documentStarts.length === 0) {
     throw new Error(
       `supabase db query stdout contains no JSON document (exit=${exitCode}): ${brief(trimmed)}`,
     );
@@ -131,11 +139,29 @@ function parseCliQueryOutput(stdout: string, stderr: string, exitCode: number): 
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(trimmed.slice(jsonStart));
+    parsed = JSON.parse(trimmed.slice(Math.min(...documentStarts)));
   } catch (err) {
     throw new Error(
       `supabase db query stdout is not valid JSON (exit=${exitCode}): ${(err as Error).message} | stdout: ${brief(trimmed)}`,
     );
+  }
+
+  if (parsed === null || typeof parsed !== "object") {
+    throw new Error(
+      `Unexpected 'supabase db query' payload shape — expected a JSON object or a row array. stdout: ${brief(trimmed)}`,
+    );
+  }
+
+  // Success shape #2: the CLI printed the row array itself (agent detection off).
+  if (Array.isArray(parsed)) {
+    const rows = parsed as Array<unknown>;
+    const allRowObjects = rows.every((row) => row !== null && typeof row === "object" && !Array.isArray(row));
+    if (!allRowObjects) {
+      throw new Error(
+        `Unexpected 'supabase db query' payload shape — expected every array element to be a row object. stdout: ${brief(trimmed)}`,
+      );
+    }
+    return { rows: rows as Array<Record<string, unknown>> };
   }
 
   const payload = parsed as Partial<SupabaseCliQueryResult> & {
