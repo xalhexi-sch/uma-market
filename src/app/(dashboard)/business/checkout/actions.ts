@@ -6,6 +6,13 @@ import { createClient } from "@/lib/supabase/server";
 import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
 import { PlaceOrderSchema } from "@/lib/validation";
 import { checkoutRateLimit } from "@/lib/rate-limit";
+import {
+  checkoutError,
+  genericCheckoutError,
+  mapCheckoutDatabaseError,
+  mapCheckoutSchemaIssue,
+} from "@/lib/checkout-errors";
+import type { CheckoutError } from "@/lib/checkout-errors";
 
 export interface PlaceOrderInput {
   farmerClerkId: string;
@@ -25,15 +32,19 @@ export interface CheckoutOrderGroup {
   items: Array<{ product_id: string; quantity: number }>;
 }
 
-function validatePickupDate(dateStr?: string): { valid: boolean; error?: string } {
+/**
+ * Validates a pickup date and returns a stable error code instead of a message,
+ * so no validation wording ever has to be re-derived downstream.
+ */
+function validatePickupDate(dateStr?: string): CheckoutError | null {
   if (!dateStr || typeof dateStr !== "string" || !dateStr.trim()) {
-    return { valid: false, error: "Please select a pickup date." };
+    return checkoutError("PICKUP_DATE_REQUIRED");
   }
 
   const trimmed = dateStr.trim();
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
   if (!match) {
-    return { valid: false, error: "Invalid pickup date format. Expected YYYY-MM-DD." };
+    return checkoutError("PICKUP_DATE_INVALID");
   }
 
   const year = parseInt(match[1], 10);
@@ -41,7 +52,7 @@ function validatePickupDate(dateStr?: string): { valid: boolean; error?: string 
   const day = parseInt(match[3], 10);
 
   if (month < 1 || month > 12 || day < 1 || day > 31) {
-    return { valid: false, error: "Invalid calendar pickup date." };
+    return checkoutError("PICKUP_DATE_INVALID");
   }
 
   const parsed = new Date(year, month - 1, day);
@@ -50,7 +61,7 @@ function validatePickupDate(dateStr?: string): { valid: boolean; error?: string 
     parsed.getMonth() !== month - 1 ||
     parsed.getDate() !== day
   ) {
-    return { valid: false, error: "Invalid calendar pickup date." };
+    return checkoutError("PICKUP_DATE_INVALID");
   }
 
   const todayStr = new Intl.DateTimeFormat("en-CA", {
@@ -61,21 +72,10 @@ function validatePickupDate(dateStr?: string): { valid: boolean; error?: string 
   }).format(new Date());
 
   if (trimmed < todayStr) {
-    return { valid: false, error: "Pickup date cannot be in the past." };
+    return checkoutError("PICKUP_DATE_PAST");
   }
 
-  return { valid: true };
-}
-
-function mapCheckoutError(rawMessage: string): string {
-  if (
-    rawMessage.includes("was not found or has already been checked out") ||
-    rawMessage.includes("was already checked out") ||
-    rawMessage.includes("exceeds quantity in cart")
-  ) {
-    return "Your cart was modified or already checked out in another window. Please review your cart before placing an order.";
-  }
-  return rawMessage;
+  return null;
 }
 
 /**
@@ -87,41 +87,47 @@ function mapCheckoutError(rawMessage: string): string {
 export async function placeMultiFarmerCheckout(orders: CheckoutOrderGroup[]): Promise<{
   success: boolean;
   orderIds?: string[];
-  error?: string;
+  error?: CheckoutError;
 }> {
   const { userId, sessionClaims } = await auth();
 
   if (!userId || sessionClaims?.user_role !== "business") {
-    return { success: false, error: "Unauthorized" };
+    return { success: false, error: checkoutError("UNAUTHORIZED") };
   }
 
-  const { active, error: activeError } = await assertActiveProfile(userId);
+  const { active } = await assertActiveProfile(userId);
   if (!active) {
-    return { success: false, error: activeError ?? "Account is not active." };
+    return { success: false, error: checkoutError("ACCOUNT_INACTIVE") };
   }
 
   // Rate limit: 10 checkout attempts per minute
   const rateResult = checkoutRateLimit(userId);
   if (!rateResult.success) {
-    return { success: false, error: "Too many checkout attempts. Please wait a moment and try again." };
+    return { success: false, error: checkoutError("RATE_LIMITED") };
   }
 
-  // Validate input
-  const parsed = PlaceOrderSchema.safeParse({ items: orders.flatMap((o) => o.items) });
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid checkout data." };
+  // Validate input: each order group is validated on its own, because
+  // PlaceOrderSchema requires farmerClerkId and fulfillmentType alongside items.
+  // Validating a flattened { items } object alone omits those required fields and
+  // always fails with "Invalid input: expected string, received undefined".
+  // Only the issue PATH is mapped — never issue.message, which is Zod internals.
+  for (const order of orders) {
+    const parsed = PlaceOrderSchema.safeParse(order);
+    if (!parsed.success) {
+      return { success: false, error: mapCheckoutSchemaIssue(parsed.error.issues[0]) };
+    }
   }
 
-  if (!orders || orders.length === 0) {
-    return { success: false, error: "Checkout is empty." };
+  if (orders.length === 0) {
+    return { success: false, error: checkoutError("EMPTY_CART") };
   }
 
   // Validate pickup dates across all order groups
   for (const o of orders) {
     if (o.fulfillmentType === "pickup") {
-      const dateValidation = validatePickupDate(o.pickupDate);
-      if (!dateValidation.valid) {
-        return { success: false, error: dateValidation.error };
+      const dateError = validatePickupDate(o.pickupDate);
+      if (dateError) {
+        return { success: false, error: dateError };
       }
     }
   }
@@ -146,10 +152,15 @@ export async function placeMultiFarmerCheckout(orders: CheckoutOrderGroup[]): Pr
 
   if (error) {
     console.error("[checkout] place_checkout_orders RPC error:", error.message);
-    return { success: false, error: mapCheckoutError(error.message) };
+    return { success: false, error: mapCheckoutDatabaseError(error.message) };
   }
 
   const orderIds = (data as { order_ids: string[] }).order_ids;
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    // Unexpected shape from the RPC — never surface it, collapse to a generic error.
+    console.error("[checkout] place_checkout_orders returned no order ids");
+    return { success: false, error: genericCheckoutError() };
+  }
 
   revalidatePath("/business/cart");
   revalidatePath("/business/orders");
@@ -166,27 +177,27 @@ export async function placeMultiFarmerCheckout(orders: CheckoutOrderGroup[]): Pr
 export async function placeOrder(input: PlaceOrderInput): Promise<{
   success: boolean;
   orderId?: string;
-  error?: string;
+  error?: CheckoutError;
 }> {
   const { userId, sessionClaims } = await auth();
 
   if (!userId || sessionClaims?.user_role !== "business") {
-    return { success: false, error: "Unauthorized" };
+    return { success: false, error: checkoutError("UNAUTHORIZED") };
   }
 
-  const { active, error: activeError } = await assertActiveProfile(userId);
+  const { active } = await assertActiveProfile(userId);
   if (!active) {
-    return { success: false, error: activeError ?? "Account is not active." };
+    return { success: false, error: checkoutError("ACCOUNT_INACTIVE") };
   }
 
   if (input.items.length === 0) {
-    return { success: false, error: "Cart is empty." };
+    return { success: false, error: checkoutError("EMPTY_CART") };
   }
 
   if (input.fulfillmentType === "pickup") {
-    const dateValidation = validatePickupDate(input.pickupDate);
-    if (!dateValidation.valid) {
-      return { success: false, error: dateValidation.error };
+    const dateError = validatePickupDate(input.pickupDate);
+    if (dateError) {
+      return { success: false, error: dateError };
     }
   }
 
@@ -207,10 +218,14 @@ export async function placeOrder(input: PlaceOrderInput): Promise<{
 
   if (error) {
     console.error("[checkout] place_order RPC error:", error.message);
-    // Surface the DB validation message (mapped if cart error)
-    return { success: false, error: mapCheckoutError(error.message) };
+    return { success: false, error: mapCheckoutDatabaseError(error.message) };
   }
 
   const orderId = (data as { order_id: string }).order_id;
+  if (!orderId) {
+    console.error("[checkout] place_order returned no order id");
+    return { success: false, error: genericCheckoutError() };
+  }
+
   return { success: true, orderId };
 }

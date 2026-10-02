@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { placeMultiFarmerCheckout } from "@/app/(dashboard)/business/checkout/actions";
+import { checkoutError, genericCheckoutError } from "@/lib/checkout-errors";
+import type { CheckoutError } from "@/lib/checkout-errors";
 import type { CartItem } from "@/lib/types";
 import type { FulfillmentType } from "@/lib/constants";
 
@@ -21,9 +23,37 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  /** Form-level failures (transaction, network, unexpected). */
+  const [error, setError] = useState<CheckoutError | null>(null);
+  /** Field-level failures, rendered inline next to the offending input. */
+  const [pickupDateError, setPickupDateError] = useState<CheckoutError | null>(null);
+  const [deliveryAddressError, setDeliveryAddressError] = useState<CheckoutError | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  /** Clears every message, then routes a server error to its field or the banner. */
+  function applyServerError(next: CheckoutError | undefined) {
+    const resolved = next ?? genericCheckoutError();
+    setError(null);
+    setPickupDateError(null);
+    setDeliveryAddressError(null);
+
+    if (resolved.field === "pickupDate") {
+      setPickupDateError(resolved);
+      return;
+    }
+    if (resolved.field === "deliveryAddress") {
+      setDeliveryAddressError(resolved);
+      return;
+    }
+    setError(resolved);
+  }
+
+  function clearFieldError(field: "pickupDate" | "deliveryAddress") {
+    if (field === "pickupDate") setPickupDateError(null);
+    else setDeliveryAddressError(null);
+    setError(null);
+  }
 
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila",
@@ -35,14 +65,18 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setPickupDateError(null);
+    setDeliveryAddressError(null);
 
+    // Client-side pre-check mirrors the server rules so the customer gets an
+    // immediate, field-anchored message. The server re-validates regardless.
     if (fulfillmentType === "seller_delivery" && !deliveryAddress.trim()) {
-      setError("Please enter a delivery address.");
+      setDeliveryAddressError(checkoutError("DELIVERY_ADDRESS_REQUIRED"));
       return;
     }
 
     if (fulfillmentType === "pickup" && !pickupDate.trim()) {
-      setError("Please select a pickup date.");
+      setPickupDateError(checkoutError("PICKUP_DATE_REQUIRED"));
       return;
     }
 
@@ -60,10 +94,17 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
         })),
       }));
 
-      const result = await placeMultiFarmerCheckout(orders);
+      let result: Awaited<ReturnType<typeof placeMultiFarmerCheckout>>;
+      try {
+        result = await placeMultiFarmerCheckout(orders);
+      } catch {
+        // Transport / unexpected server failure — never surface raw detail.
+        applyServerError(undefined);
+        return;
+      }
 
       if (!result.success || !result.orderIds || result.orderIds.length === 0) {
-        setError(result.error ?? "Failed to place orders. Please try again.");
+        applyServerError(result.error);
         return;
       }
 
@@ -78,14 +119,23 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    // noValidate: native constraint validation would block submit before
+    // handleSubmit runs, showing the browser's generic bubble instead of our
+    // styled, accessible field messages. The same rules are enforced here and
+    // again on the server, so no rule is weakened.
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
       {/* Fulfillment type */}
       <div className="flex flex-col gap-3">
         <Label className="text-sm font-medium">Fulfillment</Label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => setFulfillmentType("pickup")}
+            onClick={() => {
+              setFulfillmentType("pickup");
+              setPickupDateError(null);
+              setDeliveryAddressError(null);
+              setError(null);
+            }}
             className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
               fulfillmentType === "pickup"
                 ? "border-primary bg-primary/5 ring-2 ring-primary/20"
@@ -107,7 +157,12 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
 
           <button
             type="button"
-            onClick={() => setFulfillmentType("seller_delivery")}
+            onClick={() => {
+              setFulfillmentType("seller_delivery");
+              setPickupDateError(null);
+              setDeliveryAddressError(null);
+              setError(null);
+            }}
             className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
               fulfillmentType === "seller_delivery"
                 ? "border-primary bg-primary/5 ring-2 ring-primary/20"
@@ -136,10 +191,20 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
           <Input
             id="delivery-address"
             value={deliveryAddress}
-            onChange={(e) => setDeliveryAddress(e.target.value)}
+            onChange={(e) => {
+              setDeliveryAddress(e.target.value);
+              if (deliveryAddressError) clearFieldError("deliveryAddress");
+            }}
             placeholder="Street, barangay, city"
             required
+            aria-invalid={deliveryAddressError ? true : undefined}
+            aria-describedby={deliveryAddressError ? "delivery-address-error" : undefined}
           />
+          {deliveryAddressError && (
+            <p id="delivery-address-error" role="alert" className="text-xs font-medium text-destructive">
+              {deliveryAddressError.message}
+            </p>
+          )}
         </div>
       )}
 
@@ -152,12 +217,23 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
             type="date"
             min={today}
             value={pickupDate}
-            onChange={(e) => setPickupDate(e.target.value)}
+            onChange={(e) => {
+              setPickupDate(e.target.value);
+              if (pickupDateError) clearFieldError("pickupDate");
+            }}
             required
+            aria-invalid={pickupDateError ? true : undefined}
+            aria-describedby={pickupDateError ? "pickup-date-error" : "pickup-date-hint"}
           />
-          <p className="text-xs text-muted-foreground">
-            Choose when you will collect your order from the farm.
-          </p>
+          {pickupDateError ? (
+            <p id="pickup-date-error" role="alert" className="text-xs font-medium text-destructive">
+              {pickupDateError.message}
+            </p>
+          ) : (
+            <p id="pickup-date-hint" className="text-xs text-muted-foreground">
+              Choose when you will collect your order from the farm.
+            </p>
+          )}
         </div>
       )}
 
@@ -177,9 +253,12 @@ export function CheckoutForm({ byFarmer }: CheckoutFormProps) {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive flex flex-col gap-2">
-          <p className="font-medium">{error}</p>
-          {(error.includes("cart") || error.includes("another window")) && (
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive flex flex-col gap-2"
+        >
+          <p className="font-medium">{error.message}</p>
+          {error.code === "CART_CONFLICT" && (
             <div>
               <Link
                 href="/business/cart"
