@@ -9,46 +9,72 @@
 // =============================================================================
 
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
 import Module from "node:module";
-import * as dotenv from "dotenv";
-import * as path from "path";
+import path from "node:path";
+import { loadSecurityTestEnv } from "./lib/safety-guard";
 import type { OrderViewTab, OrderTabCounts } from "../src/lib/supabase/queries/orders";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.security-test.local") });
-
-// Environment safety guard
-const PROD_REF = "odnpkqjytrmciwmcehff";
-const SECURITY_TEST_REF = "xckdihprwjdwutglytwu";
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const serviceRoleKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-
-if (!supabaseUrl || !supabaseUrl.includes(SECURITY_TEST_REF) || supabaseUrl.includes(PROD_REF)) {
-  console.error(`FATAL: Must only run against security-test project (${SECURITY_TEST_REF}). Found: ${supabaseUrl}`);
-  process.exit(1);
-}
-
-if (!serviceRoleKey) {
-  console.error("FATAL: SUPABASE_SECRET_KEY is required for test fixture execution.");
-  process.exit(1);
-}
+// Environment safety guard (shared): loads .env.security-test.local and aborts
+// with exit code 2 unless the resolved project is exactly the security-test one.
+const env = loadSecurityTestEnv("verify-order-query-tabs");
+const supabaseUrl = env.supabaseUrl;
+const serviceRoleKey = env.secretKey;
 
 const adminClient = createClient(supabaseUrl, serviceRoleKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const TEST_PREFIX = "f0000099-";
 const TEST_BUYER_CLERK_ID = "user_test_buyer_tab_opt";
 const TEST_FARMER_CLERK_ID = "user_test_farmer_tab_opt";
+/**
+ * A second buyer/farmer pair whose ONLY order sits in the "progress" tab.
+ * Suite 5 needs real counts where the "needs" tab is empty but a later tab is
+ * not, because that is the only shape in which the shipped default-view rule
+ * discriminates between "pick the first non-empty tab" and the final
+ * `?? "needs"` fallback. Building such a counts object by hand would make the
+ * assertion pass by construction.
+ *
+ * They are a SEPARATE pair on purpose: attaching the order to the shared
+ * buyer/farmer would change their totals (105) and break TAB-2.2 / TAB-2.4 /
+ * TAB-3.x, which assert the shared fixture set exactly.
+ */
+const TEST_PROGRESS_ONLY_CLERK_ID = "user_test_buyer_progress_only";
+const TEST_PROGRESS_ONLY_FARMER_CLERK_ID = "user_test_farmer_progress_only";
 
-function createExpandedOrder(id: number, status: "accepted" | "completed") {
+/**
+ * Deterministic fixture UUID factory.
+ *
+ * The namespace segment is built as whole hex groups rather than by string
+ * concatenation of a prefix plus a formatted tail. Concatenating `"f0000099-" +
+ * "0000-0000-0000-" + tail` is only accidentally well-formed: any change to the
+ * prefix length silently produces a truncated/over-long string that no longer
+ * parses as a UUID and would be rejected by Postgres at INSERT time, long after
+ * the fixture builder ran.
+ *
+ * Shape: f0000099-0000-4000-8000-<12 hex digits>  (RFC 4122 v4 layout, fixed
+ * version/variant nibbles so the value is a structurally valid UUID.)
+ */
+const FIXTURE_UUID_NAMESPACE = "f0000099-0000-4000-8000";
+
+function fixtureOrderUuid(ordinal: number): string {
+  if (!Number.isInteger(ordinal) || ordinal < 0 || ordinal > 0xffffffffffff) {
+    throw new RangeError(`fixtureOrderUuid ordinal out of range: ${ordinal}`);
+  }
+  return `${FIXTURE_UUID_NAMESPACE}-${ordinal.toString(16).padStart(12, "0")}`;
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+function createExpandedOrder(ordinal: number, status: "accepted" | "completed") {
   return {
-    id: `${TEST_PREFIX}0000-0000-0000-${String(id).padStart(12, "0")}`,
+    id: fixtureOrderUuid(ordinal),
     business_clerk_id: TEST_BUYER_CLERK_ID,
     farmer_clerk_id: TEST_FARMER_CLERK_ID,
     status,
     fulfillment_type: "pickup",
-    total_amount: 1000 + id,
-    created_at: new Date(Date.UTC(2026, 8, 2, 0, id)).toISOString(),
+    total_amount: 1000 + ordinal,
+    created_at: new Date(Date.UTC(2026, 8, 2, 0, ordinal)).toISOString(),
   };
 }
 
@@ -69,9 +95,25 @@ const FIXTURES = {
     city: "Butuan City",
     status: "active",
   },
+  progressOnlyProfile: {
+    clerk_id: TEST_PROGRESS_ONLY_CLERK_ID,
+    role: "business",
+    full_name: "Tab Progress Only Buyer",
+    business_name: "Tab Progress Only Corp",
+    city: "Butuan City",
+    status: "active",
+  },
+  progressOnlyFarmerProfile: {
+    clerk_id: TEST_PROGRESS_ONLY_FARMER_CLERK_ID,
+    role: "farmer",
+    full_name: "Tab Progress Only Farmer",
+    business_name: "Tab Progress Only Farm",
+    city: "Butuan City",
+    status: "active",
+  },
   orders: [
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000001`,
+      id: fixtureOrderUuid(1),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "pending",
@@ -80,7 +122,7 @@ const FIXTURES = {
       created_at: "2026-09-01T10:00:00Z",
     },
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000002`,
+      id: fixtureOrderUuid(2),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "pending",
@@ -89,7 +131,7 @@ const FIXTURES = {
       created_at: "2026-09-01T11:00:00Z",
     },
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000003`,
+      id: fixtureOrderUuid(3),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "accepted",
@@ -99,7 +141,7 @@ const FIXTURES = {
       created_at: "2026-09-01T12:00:00Z",
     },
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000004`,
+      id: fixtureOrderUuid(4),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "ready",
@@ -108,7 +150,7 @@ const FIXTURES = {
       created_at: "2026-09-01T13:00:00Z",
     },
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000005`,
+      id: fixtureOrderUuid(5),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "completed",
@@ -117,7 +159,7 @@ const FIXTURES = {
       created_at: "2026-09-01T14:00:00Z",
     },
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000006`,
+      id: fixtureOrderUuid(6),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "cancelled",
@@ -128,6 +170,18 @@ const FIXTURES = {
     },
     ...Array.from({ length: 50 }, (_, index) => createExpandedOrder(index + 7, "completed" as const)),
     ...Array.from({ length: 49 }, (_, index) => createExpandedOrder(index + 57, "accepted" as const)),
+    // Single "progress" order for TEST_PROGRESS_ONLY_CLERK_ID — the only tab this
+    // buyer owns. Ordinal 1000 is outside every range used above, and the order is
+    // owned by its own farmer so the shared buyer/farmer totals stay at 105.
+    {
+      id: fixtureOrderUuid(1000),
+      business_clerk_id: TEST_PROGRESS_ONLY_CLERK_ID,
+      farmer_clerk_id: TEST_PROGRESS_ONLY_FARMER_CLERK_ID,
+      status: "accepted",
+      fulfillment_type: "pickup",
+      total_amount: 900,
+      created_at: "2026-09-01T16:00:00Z",
+    },
   ],
 };
 
@@ -136,6 +190,27 @@ let failed = 0;
 let ORDER_TAB_STATUSES: typeof import("../src/lib/supabase/queries/orders").ORDER_TAB_STATUSES;
 let getBusinessOrders: typeof import("../src/lib/supabase/queries/orders").getBusinessOrders;
 let getFarmerOrders: typeof import("../src/lib/supabase/queries/orders").getFarmerOrders;
+let getBusinessOrderTabCounts: typeof import("../src/lib/supabase/queries/orders").getBusinessOrderTabCounts;
+
+/**
+ * Both shipped order pages select the default view with
+ * `VALID_VIEWS.find((key) => tabCounts[key] > 0) ?? "needs"`.
+ *
+ * TAB-5.3 asserts that exact expression is present in each page; the helper
+ * below evaluates the SAME rule against counts produced by the real exported
+ * `getBusinessOrderTabCounts()`. That pairing is what keeps TAB-5.4/TAB-5.5
+ * honest: the data is real (a missing or mis-shaped fixture fails them) and the
+ * rule cannot silently diverge from the application (TAB-5.3 fails).
+ */
+const ORDER_PAGE_SOURCES = [
+  "src/app/(dashboard)/business/orders/page.tsx",
+  "src/app/(dashboard)/farmer/orders/page.tsx",
+] as const;
+
+function selectDefaultView(counts: OrderTabCounts): OrderViewTab {
+  const views: OrderViewTab[] = ["needs", "progress", "completed", "cancelled"];
+  return views.find((key) => counts[key] > 0) ?? "needs";
+}
 
 function assert(id: string, description: string, condition: boolean, details?: string) {
   if (condition) {
@@ -151,7 +226,7 @@ function assert(id: string, description: string, condition: boolean, details?: s
 async function cleanup() {
   const orderIds = FIXTURES.orders.map((o) => o.id);
   await adminClient.from("orders").delete().in("id", orderIds);
-  await adminClient.from("profiles").delete().in("clerk_id", [TEST_BUYER_CLERK_ID, TEST_FARMER_CLERK_ID]);
+  await adminClient.from("profiles").delete().in("clerk_id", [TEST_BUYER_CLERK_ID, TEST_FARMER_CLERK_ID, TEST_PROGRESS_ONLY_CLERK_ID, TEST_PROGRESS_ONLY_FARMER_CLERK_ID]);
 }
 
 async function run() {
@@ -181,13 +256,41 @@ async function run() {
     ORDER_TAB_STATUSES = orderQueries.ORDER_TAB_STATUSES;
     getBusinessOrders = orderQueries.getBusinessOrders;
     getFarmerOrders = orderQueries.getFarmerOrders;
+    getBusinessOrderTabCounts = orderQueries.getBusinessOrderTabCounts;
 
     await cleanup();
 
     // 1. Setup profiles and orders
-    await adminClient.from("profiles").upsert([FIXTURES.buyerProfile, FIXTURES.farmerProfile]);
+    await adminClient.from("profiles").upsert([FIXTURES.buyerProfile, FIXTURES.farmerProfile, FIXTURES.progressOnlyProfile, FIXTURES.progressOnlyFarmerProfile]);
     const { error: insertErr } = await adminClient.from("orders").insert(FIXTURES.orders);
     if (insertErr) throw insertErr;
+
+    console.log("\n--- TEST SUITE 0: Fixture Identity Integrity ---");
+    {
+      const fixtureIds = FIXTURES.orders.map((o) => o.id);
+      const malformed = fixtureIds.filter((id) => !UUID_PATTERN.test(id));
+      const duplicates = fixtureIds.filter((id, i) => fixtureIds.indexOf(id) !== i);
+
+      assert(
+        "TAB-0.1",
+        `All ${fixtureIds.length} generated order fixture IDs are structurally valid RFC 4122 UUIDs`,
+        malformed.length === 0,
+        malformed.length ? `Malformed: ${malformed.slice(0, 5).join(", ")}` : undefined
+      );
+      assert(
+        "TAB-0.2",
+        "All generated order fixture IDs are unique (no accidental truncation/collision)",
+        duplicates.length === 0,
+        duplicates.length ? `Duplicated: ${[...new Set(duplicates)].slice(0, 5).join(", ")}` : undefined
+      );
+      assert(
+        "TAB-0.3",
+        "Fixture ID generation is deterministic (same ordinal always yields the same UUID)",
+        fixtureOrderUuid(42) === "f0000099-0000-4000-8000-00000000002a" &&
+          fixtureOrderUuid(1) === "f0000099-0000-4000-8000-000000000001",
+        `fixtureOrderUuid(42) = ${fixtureOrderUuid(42)}`
+      );
+    }
 
     console.log("\n--- TEST SUITE 1: Tab Status Constants & Mapping ---");
     assert(
@@ -365,31 +468,80 @@ async function run() {
 
     console.log("\n--- TEST SUITE 5: Zero-Orders Empty State Resilience ---");
     {
-      const { data: emptyRows } = await adminClient
+      const EMPTY_USER = "user_non_existent_account";
+
+      // TAB-5.1 — the query must succeed AND be empty. Without surfacing
+      // `error`, a failed query (data === null) satisfies `total === 0` and a
+      // broken database would read as a passing empty-state test.
+      const { data: emptyRows, error: emptyErr } = await adminClient
         .from("orders")
         .select("status")
-        .eq("business_clerk_id", "user_non_existent_account");
+        .eq("business_clerk_id", EMPTY_USER);
 
-      const emptyCounts: OrderTabCounts = {
-        needs: 0,
-        progress: 0,
-        completed: 0,
-        cancelled: 0,
-        total: emptyRows?.length ?? 0,
-      };
-      for (const r of emptyRows ?? []) {
-        if (r.status === "pending") emptyCounts.needs++;
-      }
+      assert(
+        "TAB-5.1",
+        "Empty user's order query succeeds and returns exactly zero rows",
+        !emptyErr && Array.isArray(emptyRows) && emptyRows.length === 0,
+        emptyErr
+          ? `query error: ${emptyErr.message}`
+          : `rows returned: ${Array.isArray(emptyRows) ? emptyRows.length : "non-array"}`
+      );
 
-      assert("TAB-5.1", "Empty user has total === 0", emptyCounts.total === 0);
-      const defaultView = ["needs", "progress", "completed", "cancelled"].find(
-        (key) => emptyCounts[key as OrderViewTab] > 0
-      ) ?? "needs";
-      assert("TAB-5.2", "Empty user gracefully falls back to defaultView 'needs'", defaultView === "needs");
+      // TAB-5.2 — real EXPORTED behaviour (getBusinessOrderTabCounts) against
+      // the real database, instead of a counts object assembled in this file.
+      const emptyCounts = await getBusinessOrderTabCounts(EMPTY_USER);
+      assert(
+        "TAB-5.2",
+        "getBusinessOrderTabCounts() reports all-zero counts for a user with no orders",
+        emptyCounts.total === 0 &&
+          emptyCounts.needs === 0 &&
+          emptyCounts.progress === 0 &&
+          emptyCounts.completed === 0 &&
+          emptyCounts.cancelled === 0,
+        `counts: ${JSON.stringify(emptyCounts)}`
+      );
+
+      // TAB-5.3 — the default-view rule must actually exist in the SHIPPED
+      // pages, otherwise the local evaluation below would drift from the app.
+      const DEFAULT_VIEW_RULE = "VALID_VIEWS.find((key) => tabCounts[key] > 0) ?? \"needs\"";
+      const missingRule = ORDER_PAGE_SOURCES.filter((relative) => {
+        const source = readFileSync(path.join(process.cwd(), relative), "utf8");
+        return !source.includes(DEFAULT_VIEW_RULE);
+      });
+      assert(
+        "TAB-5.3",
+        "Both shipped order pages derive defaultView from tab counts with a 'needs' fallback",
+        missingRule.length === 0,
+        missingRule.length ? `rule not found in: ${missingRule.join(", ")}` : undefined
+      );
+
+      // TAB-5.4 — the real empty-state fallback.
+      assert(
+        "TAB-5.4",
+        "Default-view rule falls back to 'needs' when every tab count is zero",
+        selectDefaultView(emptyCounts) === "needs",
+        `counts: ${JSON.stringify(emptyCounts)}`
+      );
+
+      // TAB-5.5 — the discriminating case. The 'needs' tab is empty while
+      // 'progress' holds one real order, so an unconditional `?? "needs"`
+      // fallback (the old tautological assertion) would fail here.
+      const progressOnlyCounts = await getBusinessOrderTabCounts(TEST_PROGRESS_ONLY_CLERK_ID);
+      assert(
+        "TAB-5.5",
+        "Default-view rule selects the first NON-EMPTY tab ('progress') when 'needs' is empty",
+        progressOnlyCounts.needs === 0 &&
+          progressOnlyCounts.progress === 1 &&
+          progressOnlyCounts.total === 1 &&
+          selectDefaultView(progressOnlyCounts) === "progress",
+        `counts: ${JSON.stringify(progressOnlyCounts)} defaultView: ${selectDefaultView(progressOnlyCounts)}`
+      );
     }
 
     console.log("\n--- TEST SUITE 6: Exported Query Functions - Default Limit Enforcement ---");
     {
+      const DEFAULT_LIMIT = 50;
+
       const { data: unboundedCompleted, error: unboundedCompletedErr } = await adminClient
         .from("orders")
         .select("id")
@@ -398,7 +550,10 @@ async function run() {
       assert(
         "TAB-6.0",
         "Expanded completed fixture set would exceed the default limit without bounding",
-        !unboundedCompletedErr && (unboundedCompleted?.length ?? 0) > 50
+        !unboundedCompletedErr && (unboundedCompleted?.length ?? 0) > DEFAULT_LIMIT,
+        unboundedCompletedErr
+          ? `query error: ${unboundedCompletedErr.message}`
+          : `unbounded completed rows: ${unboundedCompleted?.length ?? 0}`
       );
 
       const { data: unboundedProgress, error: unboundedProgressErr } = await adminClient
@@ -409,56 +564,45 @@ async function run() {
       assert(
         "TAB-6.0b",
         "Expanded progress fixture set would exceed the default limit without bounding",
-        !unboundedProgressErr && (unboundedProgress?.length ?? 0) > 50
+        !unboundedProgressErr && (unboundedProgress?.length ?? 0) > DEFAULT_LIMIT,
+        unboundedProgressErr
+          ? `query error: ${unboundedProgressErr.message}`
+          : `unbounded progress rows: ${unboundedProgress?.length ?? 0}`
       );
+
+      // Every bounded call below is checked twice: it must return ROWS (an empty
+      // array is not a passing query result when fixtures are known to exist)
+      // and it must stop at the default limit of 50.
+      const boundedSuite: Array<{ label: string; rows: unknown[] }> = [];
 
       const businessCompleted = await getBusinessOrders(TEST_BUYER_CLERK_ID, { statusGroup: "completed" });
-      assert(
-        "TAB-6.1",
-        "getBusinessOrders(statusGroup: completed) executes",
-        Array.isArray(businessCompleted)
-      );
-      assert(
-        "TAB-6.2",
-        "getBusinessOrders(statusGroup: completed) is bounded to <= 50",
-        businessCompleted.length <= 50
-      );
+      boundedSuite.push({ label: "getBusinessOrders(statusGroup: completed)", rows: businessCompleted });
 
       const businessProgress = await getBusinessOrders(TEST_BUYER_CLERK_ID, { statusGroup: "progress" });
-      assert(
-        "TAB-6.3",
-        "getBusinessOrders(statusGroup: progress) executes",
-        Array.isArray(businessProgress)
-      );
-      assert(
-        "TAB-6.4",
-        "getBusinessOrders(statusGroup: progress) is bounded to <= 50",
-        businessProgress.length <= 50
-      );
+      boundedSuite.push({ label: "getBusinessOrders(statusGroup: progress)", rows: businessProgress });
 
       const farmerCompleted = await getFarmerOrders(TEST_FARMER_CLERK_ID, { statusGroup: "completed" });
-      assert(
-        "TAB-6.5",
-        "getFarmerOrders(statusGroup: completed) executes",
-        Array.isArray(farmerCompleted)
-      );
-      assert(
-        "TAB-6.6",
-        "getFarmerOrders(statusGroup: completed) is bounded to <= 50",
-        farmerCompleted.length <= 50
-      );
+      boundedSuite.push({ label: "getFarmerOrders(statusGroup: completed)", rows: farmerCompleted });
 
       const farmerProgress = await getFarmerOrders(TEST_FARMER_CLERK_ID, { statusGroup: "progress" });
-      assert(
-        "TAB-6.7",
-        "getFarmerOrders(statusGroup: progress) executes",
-        Array.isArray(farmerProgress)
-      );
-      assert(
-        "TAB-6.8",
-        "getFarmerOrders(statusGroup: progress) is bounded to <= 50",
-        farmerProgress.length <= 50
-      );
+      boundedSuite.push({ label: "getFarmerOrders(statusGroup: progress)", rows: farmerProgress });
+
+      const ids = ["TAB-6.1", "TAB-6.3", "TAB-6.5", "TAB-6.7"];
+      const boundIds = ["TAB-6.2", "TAB-6.4", "TAB-6.6", "TAB-6.8"];
+      boundedSuite.forEach((entry, index) => {
+        assert(
+          ids[index],
+          `${entry.label} executes and returns rows`,
+          Array.isArray(entry.rows) && entry.rows.length > 0,
+          `returned ${Array.isArray(entry.rows) ? entry.rows.length : "non-array"} rows`
+        );
+        assert(
+          boundIds[index],
+          `${entry.label} is bounded to the default limit of ${DEFAULT_LIMIT}`,
+          Array.isArray(entry.rows) && entry.rows.length === DEFAULT_LIMIT,
+          `returned ${Array.isArray(entry.rows) ? entry.rows.length : "non-array"} rows, expected exactly ${DEFAULT_LIMIT} (TAB-6.0/6.0b prove the unbounded set exceeds it)`
+        );
+      });
     }
 
   } finally {

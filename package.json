@@ -7,9 +7,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:demo": "npx tsx scripts/seed-demo-data.ts",
-    "verify:reviews": "npx tsx scripts/verify-verified-reviews.ts",
-    "verify:notifications": "npx tsx scripts/verify-notifications.ts"
+    "typecheck": "tsc --noEmit",
+    "seed:demo": "tsx scripts/seed-demo-data.ts",
+    "verify:reviews": "tsx scripts/verify-verified-reviews.ts",
+    "verify:notifications": "tsx scripts/verify-notifications.ts",
+    "verify:checkout-orders": "tsx scripts/verify-checkout-orders.ts",
+    "verify:order-tabs": "tsx scripts/verify-order-query-tabs.ts",
+    "verify:pickup-date": "tsx scripts/verify-pickup-date.ts",
+    "verify:avatar-sync": "tsx scripts/verify-avatar-sync.ts",
+    "verify:query-efficiency": "tsx scripts/verify-query-efficiency.ts",
+    "verify:guards": "tsx scripts/verify-safety-guards.ts",
+    "test:browser": "playwright test",
+    "test:browser:install": "playwright install chromium"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -36,6 +45,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -45,6 +55,7 @@
     "shadcn": "^4.21.0",
     "supabase": "^2.117.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

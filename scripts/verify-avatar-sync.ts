@@ -1,33 +1,54 @@
 // ==============================================================================
 // UMA Market — Farmer Avatar Synchronization Verification Suite
 // Tests Clerk webhook lifecycle synchronization, field protection, RLS, and UI
+//
+// SAFETY RULES:
+//   1. MUST ONLY target the dedicated security-test Supabase project.
+//   2. Credentials are loaded EXCLUSIVELY from .env.security-test.local.
+//      .env.local points at production and is never read.
+//   3. ABORTS (exit 2) before any Supabase client is constructed if the resolved
+//      project is production or any unknown ref. The suite deletes profile rows
+//      on the way out, so the guard must fail closed BEFORE any connection.
+//   4. Never prints keys, secrets, or JWTs.
 // ==============================================================================
 
 import { createClient } from "@supabase/supabase-js";
 import { Webhook } from "standardwebhooks";
 import { NextRequest } from "next/server";
-import * as dotenv from "dotenv";
-import * as path from "path";
+import { randomBytes } from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { loadSecurityTestEnv } from "./lib/safety-guard";
 
 // Mock server-only before importing server components/routes
 require.cache[require.resolve("server-only")] = { exports: {} } as unknown as NodeModule;
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+// Environment safety guard (shared): loads .env.security-test.local, aborts with
+// exit code 2 on production or on any unknown Supabase project.
+const env = loadSecurityTestEnv("verify-avatar-sync");
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!;
-const clerkSigningSecret = process.env.CLERK_WEBHOOK_SIGNING_SECRET!;
+const supabaseUrl = env.supabaseUrl;
+const supabaseAnonKey = env.anonKey;
+const supabaseSecretKey = env.secretKey;
 
-if (!supabaseUrl || !supabaseAnonKey || !supabaseSecretKey) {
-  console.error("Missing required Supabase environment variables in .env.local");
-  process.exit(1);
-}
+/**
+ * Webhook signing secret used to sign synthetic in-process webhook deliveries.
+ *
+ * The route handler calls Clerk's verifyWebhook(), which reads
+ * CLERK_WEBHOOK_SIGNING_SECRET from the process environment. If the security-test
+ * env file does not define one, an EPHEMERAL random secret is generated for this
+ * run only. The webhook never leaves the process, the secret is never persisted,
+ * and TEST-07 still genuinely exercises rejection of unsigned/forged payloads
+ * because the route and the harness agree on the same in-memory secret.
+ */
+const usingEphemeralSigningSecret = env.clerkWebhookSigningSecret.length === 0;
+const clerkSigningSecret = usingEphemeralSigningSecret
+  ? // standardwebhooks requires a base64 secret after the "whsec_" prefix.
+    `whsec_${randomBytes(32).toString("base64")}`
+  : env.clerkWebhookSigningSecret;
 
-if (!clerkSigningSecret) {
-  console.error("Missing CLERK_WEBHOOK_SIGNING_SECRET in .env.local");
-  process.exit(1);
-}
+// Set before the route module is imported so the ordering is explicit.
+process.env.CLERK_WEBHOOK_SIGNING_SECRET = clerkSigningSecret;
 
 // Anonymous public client
 const publicClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -119,6 +140,13 @@ async function runAvatarSyncVerification() {
 
   const urlHost = new URL(supabaseUrl).host;
   console.log(`Target Supabase Host: ${urlHost} (Safe identification verified)`);
+  console.log(
+    `Webhook signing secret: ${
+      usingEphemeralSigningSecret
+        ? "EPHEMERAL in-memory (none configured in .env.security-test.local)"
+        : "from .env.security-test.local"
+    }`
+  );
 
   const testFarmer1 = `user_sync_test_1_${Date.now()}`;
   const testFarmer2 = `user_sync_test_2_${Date.now()}`;
@@ -395,19 +423,58 @@ async function runAvatarSyncVerification() {
     // TEST 9: anon still cannot SELECT public.profiles directly
     // ------------------------------------------------------------------------
     {
+      // Precondition — the target row MUST exist, proven with the admin client.
+      // Without this, "0 rows" is indistinguishable from a missing fixture and
+      // the assertion below would pass even if RLS were completely absent.
+      const { data: fixture, error: fixtureErr } = await adminClient
+        .from("profiles")
+        .select("id, clerk_id")
+        .eq("clerk_id", testFarmer2)
+        .maybeSingle();
+
+      const fixturePresent = !fixtureErr && fixture !== null;
+      assert(
+        "TEST-09a",
+        "TEST-09 precondition: target profile row exists (admin read)",
+        fixturePresent,
+        fixtureErr ? `admin read error: ${fixtureErr.message}` : `fixture: ${JSON.stringify(fixture)}`
+      );
+
       const { data, error } = await publicClient
         .from("profiles")
         .select("id, clerk_id, avatar_url")
         .eq("clerk_id", testFarmer2);
 
-      const blocked = error !== null || (data ?? []).length === 0;
+      // Four mutually exclusive outcomes, reported distinctly instead of being
+      // collapsed into `error !== null || (data ?? []).length === 0`:
+      //   denied   — PostgREST refused the table (expected RLS denial)
+      //   filtered — query succeeded but RLS hid every row, incl. our fixture
+      //   readable — the fixture row was returned to an anonymous client
+      //   db-error — an unrelated failure that proves nothing about RLS
+      let verdict: "denied" | "filtered" | "readable" | "db-error";
+      if (error) {
+        const rlsSignal =
+          error.code === "42501" || /row-level security|permission denied/i.test(error.message);
+        verdict = rlsSignal ? "denied" : "db-error";
+      } else if ((data ?? []).some((row) => row.clerk_id === testFarmer2)) {
+        verdict = "readable";
+      } else {
+        verdict = "filtered";
+      }
+
+      const enforced = verdict === "denied" || verdict === "filtered";
       assert(
         "TEST-09",
         "anon still cannot SELECT public.profiles directly",
-        blocked,
-        blocked
-          ? `RLS active and enforced: direct table access denied (${error?.message || "0 rows returned"})`
-          : "SECURITY FAILURE: Direct profiles table was readable by anonymous client!"
+        fixturePresent && enforced,
+        `verdict=${verdict}; ` +
+          (verdict === "readable"
+            ? "SECURITY FAILURE: the profile row was returned to an anonymous client"
+            : verdict === "db-error"
+              ? `UNRELATED DB ERROR — proves nothing about RLS: ${error?.message}`
+              : verdict === "denied"
+                ? `RLS denial: ${error?.message}`
+                : "RLS filtered every row (0 rows returned for an existing fixture)")
       );
     }
 
@@ -496,25 +563,32 @@ async function runAvatarSyncVerification() {
 
     // ------------------------------------------------------------------------
     // TEST 12: Onboarding action avatar_url resolution logic
+    //
+    // Asserts against the REAL application source, not a helper defined inside
+    // this test file. src/app/onboarding/actions.ts writes the Clerk avatar into
+    // public.profiles.avatar_url only when the Clerk user actually has an image.
     // ------------------------------------------------------------------------
     {
-      const resolveOnboardingAvatar = (user: { hasImage: boolean; imageUrl: string }) =>
-        user.hasImage ? user.imageUrl : null;
+      const onboardingActionsPath = path.join(process.cwd(), "src/app/onboarding/actions.ts");
+      const onboardingActionsSrc = fs.readFileSync(onboardingActionsPath, "utf-8");
 
-      const userWithImage = { hasImage: true, imageUrl: "https://img.clerk.com/onboarded.jpg" };
-      const userWithoutImage = { hasImage: false, imageUrl: "https://img.clerk.com/default.png" };
+      const avatarAssignmentLine = onboardingActionsSrc
+        .split("\n")
+        .find((line) => line.includes("avatar_url:"));
 
       const passed =
-        resolveOnboardingAvatar(userWithImage) === "https://img.clerk.com/onboarded.jpg" &&
-        resolveOnboardingAvatar(userWithoutImage) === null;
+        avatarAssignmentLine !== undefined &&
+        /avatar_url:\s*clerkUser\.hasImage\s*\?\s*clerkUser\.imageUrl\s*:\s*null/.test(
+          avatarAssignmentLine.trim()
+        );
 
       assert(
         "TEST-12",
-        "Onboarding action resolves avatar_url only when hasImage is true",
+        "Onboarding action resolves avatar_url only when hasImage is true (real source assertion)",
         passed,
         passed
-          ? "Onboarding logic populates imageUrl when hasImage=true, and null when hasImage=false"
-          : "Failed onboarding avatar resolution"
+          ? `src/app/onboarding/actions.ts: ${avatarAssignmentLine?.trim()}`
+          : `Expected 'avatar_url: clerkUser.hasImage ? clerkUser.imageUrl : null' in src/app/onboarding/actions.ts, found: ${avatarAssignmentLine?.trim() ?? "(no avatar_url assignment)"}`
       );
     }
   } finally {

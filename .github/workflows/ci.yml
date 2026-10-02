@@ -5,8 +5,61 @@ on:
     branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Injected for every job so the tier-gated database jobs never inherit a
+  # stray local environment variable.
+  NEXT_TELEMETRY_DISABLED: "1"
+  # Guard rails: the isolated security-test project ref. Any job that writes to a
+  # database asserts this exact ref before it runs (see verify:db:preflight).
+  SECURITY_TEST_SUPABASE_REF: xckdihprwjdwutglytwu
+  PROD_SUPABASE_REF: odnpkqjytrmciwmcehff
+
+# ---------------------------------------------------------------------------
+# Job tiers
+#
+#   Tier 1  REQUIRED  — deterministic / static. No secrets, no database.
+#           Runs on every pull request, including forks.
+#   Tier 2  REQUIRED  — compile gates. No secrets, no database.
+#   Tier 3  ISOLATED  — mutates the dedicated security-test Supabase project.
+#           Requires repository secrets + a Supabase CLI access token. Skipped
+#           (and REPORTED AS SKIPPED) when secrets are unavailable, e.g. fork PRs.
+#           Seeding the isolated catalogue is an explicit step of this tier and
+#           runs BEFORE every verification step, so no suite in Tier 3 can depend
+#           on data that nothing has written yet.
+#   Tier 4  BROWSER   — Playwright regression for E2E-005 and SEC-AUTH-001.
+#           Same secret requirements as Tier 3, and `needs: verify-isolated-db`
+#           so it can only start once Tier 3 has COMPLETED. Tier 3 and Tier 4
+#           therefore never write to the shared isolated database at the same
+#           time — there is no seed/test race between them.
+#
+# A skipped tier is never reported as a pass: the `verification-report` job
+# always runs and prints the exact status of every tier.
+# ---------------------------------------------------------------------------
 
 jobs:
+  # ── Tier 1a: deterministic production-safety guards ────────────────────────
+  verify-deterministic:
+    name: Verify / deterministic safety guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify every destructive suite fails closed on production
+        run: npm run verify:guards
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -14,7 +67,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run lint
@@ -26,10 +79,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx tsc --noEmit
+      - run: npm run typecheck
 
   build:
     name: Build
@@ -38,7 +91,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run build
@@ -49,3 +102,275 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+
+  # ── Tier 3: isolated security-test database verification ───────────────────
+  verify-isolated-db:
+    name: Verify / isolated security-test database
+    # Repository secrets are not exposed to pull requests from forks.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    # Supabase CLI authentication for the WHOLE job. Every step that shells out
+    # to the CLI (`supabase link`, and the suites running `supabase db query
+    # --linked`) authenticates to the Management API with this personal access
+    # token; the runner has no OS keyring entry for the CLI, so the env var is
+    # the only credential it can see. Job scope (not step scope) guarantees no
+    # CLI step can be added later without it. Never echo this value.
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Preflight — assert every required secret is present
+        run: |
+          missing=0
+          for name in SECURITY_TEST_SUPABASE_URL SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY \
+                      SECURITY_TEST_SUPABASE_SECRET_KEY SECURITY_TEST_CLERK_PUBLISHABLE_KEY \
+                      SECURITY_TEST_CLERK_SECRET_KEY SUPABASE_ACCESS_TOKEN; do
+            value="${!name:-}"
+            if [ -z "$value" ]; then
+              echo "::error::Required secret $name is not configured in this repository."
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::Tier 3 cannot run without the security-test secrets. Failing explicitly."
+            exit 1
+          fi
+        env:
+          SECURITY_TEST_SUPABASE_URL: ${{ secrets.SECURITY_TEST_SUPABASE_URL }}
+          SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY }}
+          SECURITY_TEST_SUPABASE_SECRET_KEY: ${{ secrets.SECURITY_TEST_SUPABASE_SECRET_KEY }}
+          SECURITY_TEST_CLERK_PUBLISHABLE_KEY: ${{ secrets.SECURITY_TEST_CLERK_PUBLISHABLE_KEY }}
+          SECURITY_TEST_CLERK_SECRET_KEY: ${{ secrets.SECURITY_TEST_CLERK_SECRET_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Preflight — assert the target is the ISOLATED project, never production
+        run: |
+          url="${SECURITY_TEST_SUPABASE_URL}"
+          echo "Resolved target host: $(printf '%s' "$url" | sed -E 's#https?://([^./]+).*#\1#')"
+          case "$url" in
+            *"$PROD_SUPABASE_REF"*)
+              echo "::error::Refusing to run: target is the PRODUCTION project."
+              exit 1 ;;
+          esac
+          case "$url" in
+            *"$SECURITY_TEST_SUPABASE_REF"*) ;;
+            *) echo "::error::Refusing to run: target must be $SECURITY_TEST_SUPABASE_REF.supabase.co"; exit 1 ;;
+          esac
+        env:
+          SECURITY_TEST_SUPABASE_URL: ${{ secrets.SECURITY_TEST_SUPABASE_URL }}
+
+      - name: Materialise the isolated env file
+        run: |
+          umask 077
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=${SECURITY_TEST_SUPABASE_URL}"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY}"
+            echo "SUPABASE_SECRET_KEY=${SECURITY_TEST_SUPABASE_SECRET_KEY}"
+            echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${SECURITY_TEST_CLERK_PUBLISHABLE_KEY}"
+            echo "CLERK_SECRET_KEY=${SECURITY_TEST_CLERK_SECRET_KEY}"
+            echo "NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in"
+            echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up"
+            echo "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/"
+            echo "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/onboarding"
+          } > .env.security-test.local
+          echo "wrote .env.security-test.local (values redacted)"
+        env:
+          SECURITY_TEST_SUPABASE_URL: ${{ secrets.SECURITY_TEST_SUPABASE_URL }}
+          SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY }}
+          SECURITY_TEST_SUPABASE_SECRET_KEY: ${{ secrets.SECURITY_TEST_SUPABASE_SECRET_KEY }}
+          SECURITY_TEST_CLERK_PUBLISHABLE_KEY: ${{ secrets.SECURITY_TEST_CLERK_PUBLISHABLE_KEY }}
+          SECURITY_TEST_CLERK_SECRET_KEY: ${{ secrets.SECURITY_TEST_CLERK_SECRET_KEY }}
+
+      - name: Link the Supabase CLI to the isolated project
+        run: npx supabase link --project-ref "$SECURITY_TEST_SUPABASE_REF"
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SECURITY_TEST_SUPABASE_DB_PASSWORD }}
+
+      # Seeding is the DETERMINISTIC PREREQUISITE for every verification step
+      # below: the suites query the demo catalogue (categories, demo products)
+      # that this step writes. It runs before them inside the same job, so the
+      # ordering is explicit and cannot race with Tier 4 — Tier 4 waits for this
+      # whole job via `needs`.
+      #
+      # The script itself fails closed (exit 2) unless it resolves to the
+      # isolated project, so it can never become a production write path.
+      - name: Seed the isolated security-test catalogue (Tier 3 prerequisite)
+        run: npm run seed:demo
+
+      - name: Verify / order query tabs (A6)
+        run: npm run verify:order-tabs
+
+      - name: Verify / checkout + orders + inventory (A10)
+        run: npm run verify:checkout-orders
+
+      - name: Verify / pickup date lifecycle (A9)
+        run: npm run verify:pickup-date
+
+      - name: Verify / avatar synchronization (A7)
+        run: npm run verify:avatar-sync
+
+      # This suite shells out to `supabase db query --linked`, which authenticates
+      # with SUPABASE_ACCESS_TOKEN via the Management API. The token is injected
+      # once at JOB scope (see the job `env` above), so this step — and any
+      # future CLI step — inherits it without its own block. Without it the CLI
+      # fails before issuing the query.
+      - name: Verify / query efficiency + index hardening (A8)
+        run: npm run verify:query-efficiency
+
+      - name: Remove the isolated env file
+        if: always()
+        run: rm -f .env.security-test.local
+
+  # ── Tier 4: browser regression (E2E-005, SEC-AUTH-001) ─────────────────────
+  verify-browser:
+    name: Verify / browser regression (E2E-005, SEC-AUTH-001)
+    # DETERMINISTIC ORDERING: this tier may only start once Tier 3 has completed
+    # successfully. Tier 3 and Tier 4 share ONE external database, so running them
+    # in parallel would let Tier 4 seed while Tier 3's suites were reading and
+    # deleting fixtures. With `needs`, the jobs are strictly sequential and there
+    # is no seed race. A skipped or failed Tier 3 leaves Tier 4 skipped, which the
+    # tier report prints as NOT EXECUTED (never as a pass).
+    needs: verify-isolated-db
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Preflight — assert every required secret is present
+        run: |
+          missing=0
+          for name in SECURITY_TEST_SUPABASE_URL SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY \
+                      SECURITY_TEST_SUPABASE_SECRET_KEY SECURITY_TEST_CLERK_PUBLISHABLE_KEY \
+                      SECURITY_TEST_CLERK_SECRET_KEY; do
+            value="${!name:-}"
+            if [ -z "$value" ]; then
+              echo "::error::Required secret $name is not configured in this repository."
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::Tier 4 cannot run without the security-test secrets. Failing explicitly."
+            exit 1
+          fi
+        env:
+          SECURITY_TEST_SUPABASE_URL: ${{ secrets.SECURITY_TEST_SUPABASE_URL }}
+          SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY }}
+          SECURITY_TEST_SUPABASE_SECRET_KEY: ${{ secrets.SECURITY_TEST_SUPABASE_SECRET_KEY }}
+          SECURITY_TEST_CLERK_PUBLISHABLE_KEY: ${{ secrets.SECURITY_TEST_CLERK_PUBLISHABLE_KEY }}
+          SECURITY_TEST_CLERK_SECRET_KEY: ${{ secrets.SECURITY_TEST_CLERK_SECRET_KEY }}
+
+      - name: Preflight — assert the target is the ISOLATED project, never production
+        run: |
+          url="${SECURITY_TEST_SUPABASE_URL}"
+          echo "Resolved target host: $(printf '%s' "$url" | sed -E 's#https?://([^./]+).*#\1#')"
+          case "$url" in
+            *"$PROD_SUPABASE_REF"*)
+              echo "::error::Refusing to run: target is the PRODUCTION project."
+              exit 1 ;;
+          esac
+          case "$url" in
+            *"$SECURITY_TEST_SUPABASE_REF"*) ;;
+            *) echo "::error::Refusing to run: target must be $SECURITY_TEST_SUPABASE_REF.supabase.co"; exit 1 ;;
+          esac
+        env:
+          SECURITY_TEST_SUPABASE_URL: ${{ secrets.SECURITY_TEST_SUPABASE_URL }}
+
+      - name: Materialise the isolated env file
+        run: |
+          umask 077
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=${SECURITY_TEST_SUPABASE_URL}"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY}"
+            echo "SUPABASE_SECRET_KEY=${SECURITY_TEST_SUPABASE_SECRET_KEY}"
+            echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${SECURITY_TEST_CLERK_PUBLISHABLE_KEY}"
+            echo "CLERK_SECRET_KEY=${SECURITY_TEST_CLERK_SECRET_KEY}"
+            echo "NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in"
+            echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up"
+            echo "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/"
+            echo "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/onboarding"
+          } > .env.security-test.local
+          echo "wrote .env.security-test.local (values redacted)"
+        env:
+          SECURITY_TEST_SUPABASE_URL: ${{ secrets.SECURITY_TEST_SUPABASE_URL }}
+          SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SECURITY_TEST_SUPABASE_PUBLISHABLE_KEY }}
+          SECURITY_TEST_SUPABASE_SECRET_KEY: ${{ secrets.SECURITY_TEST_SUPABASE_SECRET_KEY }}
+          SECURITY_TEST_CLERK_PUBLISHABLE_KEY: ${{ secrets.SECURITY_TEST_CLERK_PUBLISHABLE_KEY }}
+          SECURITY_TEST_CLERK_SECRET_KEY: ${{ secrets.SECURITY_TEST_CLERK_SECRET_KEY }}
+
+      # Re-establishes the seeded catalogue before the browser suites start.
+      # Runs strictly AFTER Tier 3 has finished (see `needs` above), so this is a
+      # second, sequential seed — never a concurrent one. The script aborts with
+      # exit 2 unless it resolves to the isolated project, so Tier 4 can never
+      # invoke an unguarded production seeding path.
+      - name: Seed the isolated security-test catalogue
+        run: npm run seed:demo
+
+      - name: Install Chromium
+        run: npm run test:browser:install -- --with-deps
+
+      - name: Run the browser regression suite
+        run: npm run test:browser
+
+      - name: Remove the isolated env file
+        if: always()
+        run: rm -f .env.security-test.local
+
+  # ── Explicit tier report: never let a skipped tier read as a pass ───────────
+  verification-report:
+    name: Verification tier report
+    if: always()
+    needs:
+      - verify-deterministic
+      - lint
+      - typecheck
+      - build
+      - verify-isolated-db
+      - verify-browser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summarise which verification tiers actually executed
+        env:
+          R_DETERMINISTIC: ${{ needs.verify-deterministic.result }}
+          R_LINT: ${{ needs.lint.result }}
+          R_TYPECHECK: ${{ needs.typecheck.result }}
+          R_BUILD: ${{ needs.build.result }}
+          R_ISOLATED_DB: ${{ needs.verify-isolated-db.result }}
+          R_BROWSER: ${{ needs.verify-browser.result }}
+        run: |
+          {
+            echo "## UMA Market — Verification tier report"
+            echo ""
+            echo "| Tier | Job | Result |"
+            echo "|---|---|---|"
+            echo "| 1 (required, deterministic) | verify-deterministic | $R_DETERMINISTIC |"
+            echo "| 2 (required, compile) | lint | $R_LINT |"
+            echo "| 2 (required, compile) | typecheck | $R_TYPECHECK |"
+            echo "| 2 (required, compile) | build | $R_BUILD |"
+            echo "| 3 (isolated database) | verify-isolated-db | $R_ISOLATED_DB |"
+            echo "| 4 (browser regression) | verify-browser | $R_BROWSER |"
+            echo ""
+            if [ "$R_ISOLATED_DB" = "skipped" ] || [ "$R_BROWSER" = "skipped" ]; then
+              echo "> **NOT EXECUTED — not a pass.**"
+              echo "> Tiers 3 and 4 require repository secrets. They are skipped for pull"
+              echo "> requests from forks; Tier 4 is additionally skipped whenever Tier 3 did"
+              echo "> not complete, because it declares \`needs: verify-isolated-db\`. Skipped"
+              echo "> means the work never ran — it must be executed against the isolated"
+              echo "> security-test project (see docs/security/SECURITY-TEST-ENVIRONMENT.md)"
+              echo "> before a security finding is considered covered."
+            fi
+            if [ "$R_ISOLATED_DB" = "failure" ] || [ "$R_BROWSER" = "failure" ]; then
+              echo "> **FAILED — the tier ran and did not pass.**"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"
