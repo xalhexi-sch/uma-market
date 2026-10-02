@@ -7,7 +7,7 @@ import { getFarmerOrderById } from "@/lib/supabase/queries/orders";
 import { getOrderMessages } from "@/lib/supabase/queries/messages";
 import { FarmerOrderStatusSection } from "@/components/dashboard/farmer-order-status-sync";
 import { OrderChat } from "@/components/dashboard/order-chat";
-import { OrderTimeline } from "@/components/dashboard/order-timeline";
+import { OrderProgress } from "@/components/dashboard/order-progress";
 import { CURRENCY, FULFILLMENT_LABELS } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -156,7 +156,8 @@ export default async function FarmerOrderDetailPage({ params }: PageProps) {
 
       <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-6xl">
         {/* Order Progress Timeline */}
-        <OrderTimeline
+        <OrderProgress
+          variant="compact"
           status={order.status}
           fulfillmentType={order.fulfillment_type}
           cancellationReason={order.cancellation_reason}
