@@ -1,6 +1,31 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Order } from "@/lib/types";
 
+export type OrderViewTab = "needs" | "progress" | "completed" | "cancelled";
+
+export const ORDER_TAB_STATUSES: Record<OrderViewTab, string[]> = {
+  needs: ["pending"],
+  progress: ["accepted", "preparing", "ready", "for_delivery"],
+  completed: ["completed"],
+  cancelled: ["cancelled"],
+};
+
+export interface OrderQueryOptions {
+  statusGroup?: OrderViewTab;
+  statuses?: string[];
+  sortDirection?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
+}
+
+export interface OrderTabCounts {
+  needs: number;
+  progress: number;
+  completed: number;
+  cancelled: number;
+  total: number;
+}
+
 function mapOrderRow(row: {
   id: string;
   business_clerk_id: string;
@@ -96,12 +121,18 @@ function mapOrderRow(row: {
 }
 
 /**
- * Fetch all orders for a business buyer, newest first.
+ * Fetch all orders for a business buyer, with optional tab status filtering,
+ * database-level sorting, and pagination.
  */
 export async function getBusinessOrders(
   businessClerkId: string,
-  limit?: number
+  optionsOrLimit?: OrderQueryOptions | number
 ): Promise<Order[]> {
+  const options: OrderQueryOptions =
+    typeof optionsOrLimit === "number"
+      ? { limit: optionsOrLimit }
+      : optionsOrLimit ?? {};
+
   const supabase = await createClient();
 
   let query = supabase
@@ -115,11 +146,38 @@ export async function getBusinessOrders(
       items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
     `
     )
-    .eq("business_clerk_id", businessClerkId)
-    .order("created_at", { ascending: false });
+    .eq("business_clerk_id", businessClerkId);
 
-  if (limit !== undefined && limit > 0) {
-    query = query.limit(limit);
+  // Status filtering: push filter to database
+  if (options.statusGroup) {
+    const statuses = ORDER_TAB_STATUSES[options.statusGroup];
+    if (statuses && statuses.length === 1) {
+      query = query.eq("status", statuses[0]);
+    } else if (statuses && statuses.length > 1) {
+      query = query.in("status", statuses);
+    }
+  } else if (options.statuses && options.statuses.length > 0) {
+    if (options.statuses.length === 1) {
+      query = query.eq("status", options.statuses[0]);
+    } else {
+      query = query.in("status", options.statuses);
+    }
+  }
+
+  // Ordering: needs/progress oldest-first (longest waiting); completed/cancelled newest-first
+  const ascending =
+    options.sortDirection !== undefined
+      ? options.sortDirection === "asc"
+      : options.statusGroup === "needs" || options.statusGroup === "progress";
+
+  query = query.order("created_at", { ascending });
+
+  // Pagination / Limit — always bounded (default 50)
+  const effectiveLimit = options.limit && options.limit > 0 ? options.limit : 50;
+  if (options.offset !== undefined && options.offset > 0) {
+    query = query.range(options.offset, options.offset + effectiveLimit - 1);
+  } else {
+    query = query.limit(effectiveLimit);
   }
 
   const { data, error } = await query;
@@ -189,12 +247,18 @@ export async function getBusinessOrdersByIds(
 }
 
 /**
- * Fetch all orders directed to a farmer, newest first.
+ * Fetch all orders directed to a farmer, with optional tab status filtering,
+ * database-level sorting, and pagination.
  */
 export async function getFarmerOrders(
   farmerClerkId: string,
-  limit?: number
+  optionsOrLimit?: OrderQueryOptions | number
 ): Promise<Order[]> {
+  const options: OrderQueryOptions =
+    typeof optionsOrLimit === "number"
+      ? { limit: optionsOrLimit }
+      : optionsOrLimit ?? {};
+
   const supabase = await createClient();
 
   let query = supabase
@@ -208,11 +272,38 @@ export async function getFarmerOrders(
       items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
     `
     )
-    .eq("farmer_clerk_id", farmerClerkId)
-    .order("created_at", { ascending: false });
+    .eq("farmer_clerk_id", farmerClerkId);
 
-  if (limit !== undefined && limit > 0) {
-    query = query.limit(limit);
+  // Status filtering: push filter to database
+  if (options.statusGroup) {
+    const statuses = ORDER_TAB_STATUSES[options.statusGroup];
+    if (statuses && statuses.length === 1) {
+      query = query.eq("status", statuses[0]);
+    } else if (statuses && statuses.length > 1) {
+      query = query.in("status", statuses);
+    }
+  } else if (options.statuses && options.statuses.length > 0) {
+    if (options.statuses.length === 1) {
+      query = query.eq("status", options.statuses[0]);
+    } else {
+      query = query.in("status", options.statuses);
+    }
+  }
+
+  // Ordering: needs/progress oldest-first (longest waiting); completed/cancelled newest-first
+  const ascending =
+    options.sortDirection !== undefined
+      ? options.sortDirection === "asc"
+      : options.statusGroup === "needs" || options.statusGroup === "progress";
+
+  query = query.order("created_at", { ascending });
+
+  // Pagination / Limit — always bounded (default 50)
+  const effectiveLimit = options.limit && options.limit > 0 ? options.limit : 50;
+  if (options.offset !== undefined && options.offset > 0) {
+    query = query.range(options.offset, options.offset + effectiveLimit - 1);
+  } else {
+    query = query.limit(effectiveLimit);
   }
 
   const { data, error } = await query;
@@ -357,4 +448,66 @@ export async function getBusinessActiveOrderCount(businessClerkId: string): Prom
     return 0;
   }
   return count ?? 0;
+}
+
+function computeTabCounts(rows: Array<{ status: string }> | null): OrderTabCounts {
+  const counts: OrderTabCounts = {
+    needs: 0,
+    progress: 0,
+    completed: 0,
+    cancelled: 0,
+    total: rows?.length ?? 0,
+  };
+
+  if (!rows) return counts;
+
+  for (const row of rows) {
+    if (row.status === "pending") {
+      counts.needs++;
+    } else if (["accepted", "preparing", "ready", "for_delivery"].includes(row.status)) {
+      counts.progress++;
+    } else if (row.status === "completed") {
+      counts.completed++;
+    } else if (row.status === "cancelled") {
+      counts.cancelled++;
+    }
+  }
+
+  return counts;
+}
+
+/**
+ * Fetch lightweight status counts across all order tabs for a commercial buyer.
+ * Uses index scan on (business_clerk_id) with no joins or heavy payload.
+ */
+export async function getBusinessOrderTabCounts(businessClerkId: string): Promise<OrderTabCounts> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("business_clerk_id", businessClerkId);
+
+  if (error) {
+    console.error("[orders] getBusinessOrderTabCounts error:", error.message);
+    return computeTabCounts(null);
+  }
+  return computeTabCounts(data);
+}
+
+/**
+ * Fetch lightweight status counts across all order tabs for a farmer.
+ * Uses index scan on (farmer_clerk_id) with no joins or heavy payload.
+ */
+export async function getFarmerOrderTabCounts(farmerClerkId: string): Promise<OrderTabCounts> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("farmer_clerk_id", farmerClerkId);
+
+  if (error) {
+    console.error("[orders] getFarmerOrderTabCounts error:", error.message);
+    return computeTabCounts(null);
+  }
+  return computeTabCounts(data);
 }

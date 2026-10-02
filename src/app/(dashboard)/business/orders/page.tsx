@@ -8,7 +8,12 @@ import {
   RiStore2Line,
   RiArrowRightSLine,
 } from "@remixicon/react";
-import { getBusinessOrders } from "@/lib/supabase/queries/orders";
+import {
+  getBusinessOrders,
+  getBusinessOrderTabCounts,
+} from "@/lib/supabase/queries/orders";
+import type { OrderViewTab, OrderTabCounts } from "@/lib/supabase/queries/orders";
+import type { Order } from "@/lib/types";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { CURRENCY, FULFILLMENT_LABELS } from "@/lib/constants";
@@ -23,7 +28,7 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = { title: "My Orders" };
 export const dynamic = "force-dynamic";
 
-type ViewTab = "needs" | "progress" | "completed" | "cancelled";
+type ViewTab = OrderViewTab;
 const VALID_VIEWS: ViewTab[] = ["needs", "progress", "completed", "cancelled"];
 
 const TAB_CONFIG: Array<{ id: ViewTab; label: string }> = [
@@ -66,37 +71,33 @@ export default async function BusinessOrdersPage({ searchParams }: PageProps) {
   }
 
   const { view } = await searchParams;
-  const orders = await getBusinessOrders(userId);
-
-  // Group orders by tab view
-  const tabGroups: Record<ViewTab, typeof orders> = {
-    needs: orders.filter((o) => o.status === "pending"),
-    progress: orders.filter((o) =>
-      ["accepted", "preparing", "ready", "for_delivery"].includes(o.status)
-    ),
-    completed: orders.filter((o) => o.status === "completed"),
-    cancelled: orders.filter((o) => o.status === "cancelled"),
-  };
-
-  // Default view = first non-empty tab in order; invalid ?view falls back to default
-  const defaultView =
-    VALID_VIEWS.find((key) => tabGroups[key].length > 0) ?? "needs";
-  const activeView: ViewTab =
+  const requestedView =
     view && (VALID_VIEWS as string[]).includes(view)
       ? (view as ViewTab)
-      : defaultView;
+      : undefined;
 
-  // Sort orders: needs/progress oldest-first (longest waiting); completed/cancelled newest-first
-  const currentOrders = [...tabGroups[activeView]].sort((a, b) => {
-    const timeA = new Date(a.created_at).getTime();
-    const timeB = new Date(b.created_at).getTime();
-    if (activeView === "needs" || activeView === "progress") {
-      return timeA - timeB;
-    }
-    return timeB - timeA;
-  });
+  let tabCounts: OrderTabCounts;
+  let currentOrders: Order[];
 
-  const pendingCount = tabGroups.needs.length;
+  if (requestedView) {
+    [tabCounts, currentOrders] = await Promise.all([
+      getBusinessOrderTabCounts(userId),
+      getBusinessOrders(userId, { statusGroup: requestedView }),
+    ]);
+  } else {
+    tabCounts = await getBusinessOrderTabCounts(userId);
+    const defaultView =
+      VALID_VIEWS.find((key) => tabCounts[key] > 0) ?? "needs";
+    currentOrders =
+      tabCounts.total > 0
+        ? await getBusinessOrders(userId, { statusGroup: defaultView })
+        : [];
+  }
+
+  const defaultView =
+    VALID_VIEWS.find((key) => tabCounts[key] > 0) ?? "needs";
+  const activeView: ViewTab = requestedView ?? defaultView;
+  const pendingCount = tabCounts.needs;
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-6xl">
@@ -112,7 +113,7 @@ export default async function BusinessOrdersPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      {orders.length === 0 ? (
+      {tabCounts.total === 0 ? (
         /* Global Empty State (no orders at all) */
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-center rounded-xl border border-dashed border-border">
           <RiShoppingBagLine className="size-10 text-muted-foreground/40" />
@@ -135,7 +136,7 @@ export default async function BusinessOrdersPage({ searchParams }: PageProps) {
           <div className="flex items-center gap-1 border-b border-border overflow-x-auto scrollbar-none pb-0.5 -mx-4 px-4 sm:mx-0 sm:px-0">
             {TAB_CONFIG.map((tab) => {
               const isActive = activeView === tab.id;
-              const count = tabGroups[tab.id].length;
+              const count = tabCounts[tab.id];
               const isAmber = tab.id === "needs" && count > 0;
 
               return (
