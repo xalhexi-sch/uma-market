@@ -12,6 +12,7 @@ import { getBusinessOrderById } from "@/lib/supabase/queries/orders";
 import { getOrderMessages } from "@/lib/supabase/queries/messages";
 import { BusinessOrderStatusSection } from "@/components/dashboard/business-order-status-sync";
 import { OrderChat } from "@/components/dashboard/order-chat";
+import { OrderTimeline } from "@/components/dashboard/order-timeline";
 import { CURRENCY, FULFILLMENT_LABELS } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -171,6 +172,13 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
       </div>
 
       <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-6xl">
+        {/* Order Progress Timeline */}
+        <OrderTimeline
+          status={order.status}
+          fulfillmentType={order.fulfillment_type}
+          cancellationReason={order.cancellation_reason}
+        />
+
         {/* Live-synced header + responsive workspace layout */}
         <BusinessOrderStatusSection
           orderId={order.id}
