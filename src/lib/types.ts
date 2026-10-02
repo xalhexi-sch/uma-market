@@ -103,6 +103,20 @@ export interface OrderItem {
   product?: Product;
 }
 
+// ── Verified Reviews ─────────────────────────────────
+export interface ReviewEntry {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  verified: true;
+}
+
+export interface ReviewSummary {
+  averageRating: number;
+  reviewCount: number;
+}
+
 // ── Cart Item ──────────────────────────────────────
 export interface CartItem {
   id: string;

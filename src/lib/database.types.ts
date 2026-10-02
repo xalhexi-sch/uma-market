@@ -367,6 +367,42 @@ export type Database = {
           },
         ]
       }
+      product_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          order_item_id: string
+          product_id: string
+          rating: number
+          reviewer_clerk_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          order_item_id: string
+          product_id: string
+          rating: number
+          reviewer_clerk_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          order_item_id?: string
+          product_id?: string
+          rating?: number
+          reviewer_clerk_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -418,6 +454,39 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          rating: number
+          reviewer_clerk_id: string
+          target_farmer_clerk_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          rating: number
+          reviewer_clerk_id: string
+          target_farmer_clerk_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          rating?: number
+          reviewer_clerk_id?: string
+          target_farmer_clerk_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_farmer_profiles: {
@@ -452,6 +521,14 @@ export type Database = {
       }
     }
     Functions: {
+      get_product_review_summary: {
+        Args: { p_product_id: string }
+        Returns: Json
+      }
+      get_seller_review_summary: {
+        Args: { p_farmer_clerk_id: string }
+        Returns: Json
+      }
       place_checkout_orders: { Args: { p_orders?: Json }; Returns: Json }
       place_order: {
         Args: {

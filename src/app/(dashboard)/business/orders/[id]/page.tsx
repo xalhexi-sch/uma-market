@@ -13,8 +13,10 @@ import { getOrderMessages } from "@/lib/supabase/queries/messages";
 import { BusinessOrderStatusSection } from "@/components/dashboard/business-order-status-sync";
 import { OrderChat } from "@/components/dashboard/order-chat";
 import { OrderTimeline } from "@/components/dashboard/order-timeline";
+import { OrderReviewPanel } from "@/components/reviews/order-review-panel";
 import { CURRENCY, FULFILLMENT_LABELS } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
+import { getOrderReviewStatus } from "@/lib/supabase/queries/reviews";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -42,6 +44,9 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
   if (!order) notFound();
 
   const messages = await getOrderMessages(order.id);
+  const reviewStatus = order.status === "completed"
+    ? await getOrderReviewStatus(order.id, userId)
+    : { sellerReviewed: false, reviewedProductItemIds: [] };
 
   const farmerName =
     order.farmer?.business_name || order.farmer?.full_name || "Local Farm";
@@ -194,6 +199,15 @@ export default async function BusinessOrderDetailPage({ params }: PageProps) {
           contactContent={contactContent}
           chatContent={chatContent}
         />
+        {order.status === "completed" && (
+          <OrderReviewPanel
+            orderId={order.id}
+            farmerName={farmerName}
+            items={order.items ?? []}
+            sellerReviewed={reviewStatus.sellerReviewed}
+            reviewedProductItemIds={reviewStatus.reviewedProductItemIds}
+          />
+        )}
       </div>
     </div>
   );

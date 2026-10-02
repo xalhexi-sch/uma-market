@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:demo": "npx tsx scripts/seed-demo-data.ts"
+    "seed:demo": "npx tsx scripts/seed-demo-data.ts",
+    "verify:reviews": "npx tsx scripts/verify-verified-reviews.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
