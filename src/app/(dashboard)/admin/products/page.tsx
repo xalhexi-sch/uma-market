@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { RiArrowLeftLine, RiStoreLine } from "@remixicon/react";
+import { Empty, EmptyHeader, EmptyTitle, EmptyMedia } from "@/components/ui/empty";
 import { getAdminProducts } from "@/lib/supabase/queries/admin";
 import { AdminProductRow } from "@/components/dashboard/admin-product-row";
 import type { UserRole } from "@/lib/constants";
@@ -58,8 +59,15 @@ export default async function AdminProductsPage() {
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                    No products listed on the platform yet.
+                  <td colSpan={6} className="py-8">
+                    <Empty>
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <RiStoreLine className="size-4" />
+                        </EmptyMedia>
+                        <EmptyTitle>No products listed on the platform yet.</EmptyTitle>
+                      </EmptyHeader>
+                    </Empty>
                   </td>
                 </tr>
               ) : (

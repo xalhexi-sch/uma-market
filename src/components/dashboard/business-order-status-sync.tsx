@@ -2,7 +2,7 @@
 
 import { useOrderStatusSync } from "@/hooks/use-order-status-sync";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
-import { OrderStatusTimeline } from "@/components/dashboard/order-status-timeline";
+import { OrderProgress } from "@/components/dashboard/order-progress";
 import { CancelOrderButton } from "@/components/dashboard/cancel-order-button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { OrderStatus, FulfillmentType } from "@/lib/constants";
@@ -67,7 +67,8 @@ export function BusinessOrderStatusSection({
 
   // Timeline node
   const timelineNode = (
-    <OrderStatusTimeline
+    <OrderProgress
+      variant="timeline"
       status={status}
       fulfillmentType={fulfillmentType}
       cancellationReason={cancellationReason}

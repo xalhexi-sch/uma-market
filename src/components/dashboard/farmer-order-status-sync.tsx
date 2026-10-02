@@ -3,7 +3,7 @@
 import { useOrderStatusSync } from "@/hooks/use-order-status-sync";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { OrderStatusActions } from "@/components/dashboard/order-status-actions";
-import { OrderProgressSteps } from "@/components/dashboard/order-progress-steps";
+import { OrderProgress } from "@/components/dashboard/order-progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { OrderStatus, FulfillmentType } from "@/lib/constants";
 
@@ -67,7 +67,8 @@ export function FarmerOrderStatusSection({
   // Shared progress steps box
   const progressBox =
     status === "cancelled" ? (
-      <OrderProgressSteps
+      <OrderProgress
+        variant="steps"
         status={status}
         fulfillmentType={fulfillmentType}
         cancellationReason={cancellationReason}
@@ -75,7 +76,8 @@ export function FarmerOrderStatusSection({
     ) : (
       <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
         <p className="text-sm font-medium text-foreground mb-3">Order Progress</p>
-        <OrderProgressSteps
+        <OrderProgress
+          variant="steps"
           status={status}
           fulfillmentType={fulfillmentType}
           cancellationReason={cancellationReason}

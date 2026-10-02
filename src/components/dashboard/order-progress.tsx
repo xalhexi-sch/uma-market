@@ -1,22 +1,110 @@
-import { RiCheckLine } from "@remixicon/react";
-import { ORDER_STATUS_LABELS } from "@/lib/constants";
-import type { OrderStatus, FulfillmentType } from "@/lib/constants";
+import { RiCheckLine, RiTimeLine, RiCircleLine, RiCloseLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
+import { ORDER_STATUS_LABELS, getOrderFlow } from "@/lib/constants";
+import type { OrderStatus, FulfillmentType } from "@/lib/constants";
 
-interface OrderStatusTimelineProps {
+/**
+ * Visual variants of the shared order-progress display:
+ * - "timeline": detailed timeline used by the Business order section
+ *   (horizontal dot timeline on sm+, descriptive stepper on small mobile).
+ * - "steps": compact vertical check-list used by the Farmer order section.
+ * - "compact": page-top horizontal circle stepper (Business, Farmer and
+ *   Admin order detail pages).
+ */
+export type OrderProgressVariant = "timeline" | "steps" | "compact";
+
+interface OrderProgressProps {
+  variant: OrderProgressVariant;
   status: OrderStatus;
   fulfillmentType: FulfillmentType;
   cancellationReason?: string | null;
 }
 
-const STATUS_FLOW: OrderStatus[] = [
-  "pending",
-  "accepted",
-  "preparing",
-  "ready",
-  "for_delivery",
-  "completed",
-];
+/** Shared destructive notice shown instead of progress when cancelled. */
+function CancelledNotice({ cancellationReason }: { cancellationReason?: string | null }) {
+  return (
+    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+      <div className="flex items-center gap-2 text-destructive">
+        <RiCloseLine className="size-5" />
+        <span className="font-medium">Order Cancelled</span>
+      </div>
+      {cancellationReason && (
+        <p className="mt-1 text-sm text-muted-foreground">{cancellationReason}</p>
+      )}
+    </div>
+  );
+}
+
+// ── "steps": compact vertical check-list (Farmer section) ──────────────
+
+function ProgressSteps({
+  status,
+  fulfillmentType,
+}: {
+  status: OrderStatus;
+  fulfillmentType: FulfillmentType;
+}) {
+  const flow = getOrderFlow(fulfillmentType);
+  const currentIndex = flow.indexOf(status);
+  const isCompleted = status === "completed";
+
+  return (
+    <ol className="space-y-0" aria-label="Order progress">
+      {flow.map((step, index) => {
+        const isDone = index < currentIndex || (isCompleted && index === currentIndex);
+        const isCurrent = index === currentIndex && !isCompleted;
+
+        return (
+          <li
+            key={step}
+            className="relative flex items-start gap-3"
+            aria-current={isCurrent ? "step" : undefined}
+          >
+            {/* Connector line */}
+            {index < flow.length - 1 && (
+              <div
+                className={cn(
+                  "absolute left-[9px] top-[22px] w-0.5 h-[calc(100%)]",
+                  index < currentIndex ? "bg-primary" : "bg-border"
+                )}
+              />
+            )}
+
+            {/* Icon */}
+            <div className="relative z-10 mt-0.5 shrink-0">
+              {isDone ? (
+                <RiCheckLine className="size-[18px] text-primary" />
+              ) : isCurrent ? (
+                <RiTimeLine className="size-[18px] text-primary" />
+              ) : (
+                <RiCircleLine className="size-[18px] text-muted-foreground/40" />
+              )}
+            </div>
+
+            {/* Label */}
+            <p
+              className={cn(
+                "pb-4 text-sm font-medium",
+                isDone || isCurrent
+                  ? "text-foreground"
+                  : "text-muted-foreground/60",
+                isCurrent && "text-primary"
+              )}
+            >
+              {step === "completed" && fulfillmentType === "pickup"
+                ? "Picked Up"
+                : step === "completed" && fulfillmentType === "seller_delivery"
+                  ? "Delivered"
+                  : ORDER_STATUS_LABELS[step]}
+            </p>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// ── "timeline": detailed timeline (Business section) ───────────────────
 
 function getStatusDescription(
   status: OrderStatus,
@@ -62,27 +150,15 @@ function getStatusDescription(
   }
 }
 
-export function OrderStatusTimeline({
+function ProgressTimeline({
   status,
   fulfillmentType,
-  cancellationReason,
-}: OrderStatusTimelineProps) {
+}: {
+  status: OrderStatus;
+  fulfillmentType: FulfillmentType;
+}) {
   const isDelivery = fulfillmentType === "seller_delivery";
-  const isCancelled = status === "cancelled";
-
-  if (isCancelled) {
-    return (
-      <div className="rounded-lg bg-destructive/5 border border-destructive/20 px-4 py-3">
-        <p className="text-sm font-medium text-destructive">Order Cancelled</p>
-        {cancellationReason && (
-          <p className="text-sm text-muted-foreground mt-0.5">{cancellationReason}</p>
-        )}
-      </div>
-    );
-  }
-
-  // Filter steps: omit 'for_delivery' if pickup
-  const steps = STATUS_FLOW.filter((s) => s !== "for_delivery" || isDelivery);
+  const steps = getOrderFlow(fulfillmentType);
   const activeIndex = steps.indexOf(status);
 
   return (
@@ -217,4 +293,94 @@ export function OrderStatusTimeline({
       </div>
     </div>
   );
+}
+
+// ── "compact": page-top horizontal circle stepper ──────────────────────
+
+function ProgressCompact({
+  status,
+  fulfillmentType,
+}: {
+  status: OrderStatus;
+  fulfillmentType: FulfillmentType;
+}) {
+  const steps = getOrderFlow(fulfillmentType);
+  const currentIndex = steps.indexOf(status);
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex items-center justify-between">
+        {steps.map((step, index) => {
+          const isCompleted = index < currentIndex;
+          const isCurrent = index === currentIndex;
+
+          return (
+            <div key={step} className="flex flex-1 items-center">
+              <div className="flex flex-col items-center gap-1.5">
+                <div
+                  className={cn(
+                    "flex size-7 items-center justify-center rounded-full border-2 transition-colors",
+                    isCompleted && "border-primary bg-primary text-primary-foreground",
+                    isCurrent && "border-primary text-primary",
+                    !isCompleted && !isCurrent && "border-border text-muted-foreground"
+                  )}
+                >
+                  {isCompleted ? (
+                    <RiCheckLine className="size-3.5" />
+                  ) : (
+                    <RiCircleLine className="size-3.5" />
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    "text-[10px] font-medium text-center leading-tight",
+                    isCurrent && "text-foreground",
+                    !isCurrent && "text-muted-foreground"
+                  )}
+                >
+                  {ORDER_STATUS_LABELS[step]}
+                </span>
+              </div>
+              {index < steps.length - 1 && (
+                <div
+                  className={cn(
+                    "mx-1 h-0.5 flex-1 rounded-full",
+                    index < currentIndex ? "bg-primary" : "bg-border"
+                  )}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Shared order-progress display driven by the canonical order-state flow
+ * (`getOrderFlow`). Server-safe: no hooks, no client state.
+ *
+ * The live-updating sections (`BusinessOrderStatusSection`,
+ * `FarmerOrderStatusSection`) re-render this on realtime status changes;
+ * the page-top usage renders it server-side.
+ */
+export function OrderProgress({
+  variant,
+  status,
+  fulfillmentType,
+  cancellationReason,
+}: OrderProgressProps) {
+  if (status === "cancelled") {
+    return <CancelledNotice cancellationReason={cancellationReason} />;
+  }
+
+  switch (variant) {
+    case "timeline":
+      return <ProgressTimeline status={status} fulfillmentType={fulfillmentType} />;
+    case "steps":
+      return <ProgressSteps status={status} fulfillmentType={fulfillmentType} />;
+    case "compact":
+      return <ProgressCompact status={status} fulfillmentType={fulfillmentType} />;
+  }
 }

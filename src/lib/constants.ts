@@ -30,6 +30,28 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
 };
 
+/**
+ * Canonical forward order-state progression.
+ * Mirrors the `public.update_order_status` RPC state machine:
+ *   pending → accepted → preparing → ready → for_delivery → completed
+ * Pickup orders skip `for_delivery`. Terminal states: completed, cancelled.
+ */
+export const ORDER_FLOW: OrderStatus[] = [
+  "pending",
+  "accepted",
+  "preparing",
+  "ready",
+  "for_delivery",
+  "completed",
+];
+
+/** Steps shown for a given fulfillment type (pickup omits `for_delivery`). */
+export function getOrderFlow(fulfillmentType: FulfillmentType): OrderStatus[] {
+  return fulfillmentType === FULFILLMENT_TYPE.PICKUP
+    ? ORDER_FLOW.filter((s) => s !== "for_delivery")
+    : ORDER_FLOW;
+}
+
 // ── Fulfillment Types ──────────────────────────────
 export const FULFILLMENT_TYPE = {
   PICKUP: "pickup",

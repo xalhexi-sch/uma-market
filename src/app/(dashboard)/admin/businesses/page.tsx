@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { RiArrowLeftLine, RiBuildingLine, RiMapPinLine, RiPhoneLine } from "@remixicon/react";
+import { Empty, EmptyHeader, EmptyTitle, EmptyMedia } from "@/components/ui/empty";
 import { getAdminProfiles } from "@/lib/supabase/queries/admin";
 import { AdminVerifyButton } from "@/components/dashboard/admin-verify-button";
 import { AdminAccountStatusButton } from "@/components/dashboard/admin-account-status-button";
@@ -59,8 +60,15 @@ export default async function AdminBusinessesPage() {
             <tbody>
               {businesses.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                    No commercial buyers registered yet.
+                  <td colSpan={6} className="py-8">
+                    <Empty>
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <RiBuildingLine className="size-4" />
+                        </EmptyMedia>
+                        <EmptyTitle>No commercial buyers registered yet.</EmptyTitle>
+                      </EmptyHeader>
+                    </Empty>
                   </td>
                 </tr>
               ) : (

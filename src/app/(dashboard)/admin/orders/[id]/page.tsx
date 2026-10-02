@@ -13,7 +13,7 @@ import {
 } from "@remixicon/react";
 import { getAdminOrderById } from "@/lib/supabase/queries/admin";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
-import { OrderTimeline } from "@/components/dashboard/order-timeline";
+import { OrderProgress } from "@/components/dashboard/order-progress";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CURRENCY } from "@/lib/constants";
@@ -100,7 +100,8 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         </div>
 
         {/* Order Progress Timeline */}
-        <OrderTimeline
+        <OrderProgress
+          variant="compact"
           status={order.status}
           fulfillmentType={order.fulfillment_type}
           cancellationReason={order.cancellation_reason}
