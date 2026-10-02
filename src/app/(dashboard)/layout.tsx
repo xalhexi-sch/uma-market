@@ -7,6 +7,7 @@ import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
 import type { UserRole } from "@/lib/constants";
 import { getCartItemCount } from "@/lib/supabase/queries/cart";
 import { getProfileByClerkId } from "@/lib/supabase/queries/profiles";
+import { NotificationCenter } from "@/components/dashboard/notification-center";
 import {
   getFarmerPendingOrderCount,
   getBusinessActiveOrderCount,
@@ -95,6 +96,10 @@ export default async function DashboardLayout({
           farmerPendingCount={farmerPendingCount}
           businessActiveOrderCount={businessActiveOrderCount}
         />
+      </div>
+
+      <div className="fixed right-4 top-3 z-50 md:right-6 md:top-4">
+        <NotificationCenter />
       </div>
 
       {/* Main Content Area */}

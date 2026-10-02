@@ -119,6 +119,42 @@ const FIXTURES = {
   productMOQ: "e0000001-0000-0000-0000-000000000222",
 };
 
+// =============================================================================
+// DETERMINISTIC PICKUP DATE
+//
+// CURRENT CONTRACT enforced by public.place_checkout_orders
+// (supabase/migrations/20260928000001_pickup_date_validation.sql):
+//   1. fulfillment_type = 'pickup' REQUIRES a non-null pickup_date
+//      -> otherwise: "Pickup date is required for pickup orders"
+//   2. pickup_date must not be earlier than
+//      (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::DATE
+//      -> otherwise: "Pickup date cannot be in the past"
+//   3. fulfillment_type = 'seller_delivery' forces pickup_date to NULL
+//
+// Pickup-order payloads below therefore carry a valid future date formatted
+// YYYY-MM-DD, matching the application rule in
+// src/app/(dashboard)/business/checkout/actions.ts :: validatePickupDate().
+// The value is resolved ONCE per run so every assertion observes the same date.
+// =============================================================================
+
+function buildPickupDate(daysFromManilaToday: number): string {
+  const todayManila = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  const target = new Date(`${todayManila}T00:00:00Z`);
+  target.setUTCDate(target.getUTCDate() + daysFromManilaToday);
+
+  return target.toISOString().slice(0, 10);
+}
+
+// 7 days out: comfortably in the future under Manila-time validation,
+// regardless of the day the suite is executed.
+const PICKUP_DATE = buildPickupDate(7);
+
 interface TestResult {
   id: string;
   name: string;
@@ -399,11 +435,13 @@ async function runAuthE2ETests(): Promise<void> {
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
           fulfillment_type: "pickup",
+          pickup_date: PICKUP_DATE,
           items: [{ product_id: FIXTURES.productA1, quantity: 5 }],
         },
         {
           farmer_clerk_id: PERSONAS.farmerB.clerkId,
           fulfillment_type: "pickup",
+          pickup_date: PICKUP_DATE,
           items: [{ product_id: FIXTURES.productB1, quantity: 5 }],
         },
       ],
@@ -449,11 +487,13 @@ async function runAuthE2ETests(): Promise<void> {
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
           fulfillment_type: "pickup",
+          pickup_date: PICKUP_DATE,
           items: [{ product_id: FIXTURES.productA1, quantity: 5 }],
         },
         {
           farmer_clerk_id: PERSONAS.farmerB.clerkId,
           fulfillment_type: "pickup",
+          pickup_date: PICKUP_DATE,
           items: [{ product_id: FIXTURES.productB1, quantity: 9999 }],
         },
       ],
@@ -491,6 +531,7 @@ async function runAuthE2ETests(): Promise<void> {
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
           fulfillment_type: "pickup",
+          pickup_date: PICKUP_DATE,
           items: [{ product_id: FIXTURES.productMOQ, quantity: 2 }],
         },
       ],
