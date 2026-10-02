@@ -5,6 +5,7 @@ import { RiArrowLeftLine, RiShoppingBagLine } from "@remixicon/react";
 import { getAdminOrders } from "@/lib/supabase/queries/admin";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { Badge } from "@/components/ui/badge";
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from "@/components/ui/empty";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole, OrderStatus } from "@/lib/constants";
 
@@ -61,8 +62,18 @@ export default async function AdminOrdersPage() {
             <tbody>
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
-                    No orders placed on the platform yet.
+                  <td colSpan={7} className="py-8">
+                    <Empty>
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <RiShoppingBagLine className="size-4" />
+                        </EmptyMedia>
+                        <EmptyTitle>No orders placed on the platform yet</EmptyTitle>
+                        <EmptyDescription>
+                          Orders will appear here when commercial buyers start placing wholesale purchases.
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
                   </td>
                 </tr>
               ) : (

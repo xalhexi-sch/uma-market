@@ -13,6 +13,7 @@ import { CategoryPills } from "@/components/products/category-pills";
 import { ProductSearchProvider } from "@/components/products/product-search-context";
 import { LiveProductGrid } from "@/components/products/live-product-grid";
 import { CategoryIcon } from "@/components/marketplace/category-icon";
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from "@/components/ui/empty";
 import { getActiveProducts, searchActiveProducts, getCategories } from "@/lib/supabase/queries/products";
 import type { ProductSort } from "@/lib/supabase/queries/products";
 import type { Category } from "@/lib/types";
@@ -157,13 +158,17 @@ async function CuratedDiscovery({
         </div>
 
         {allProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center bg-card">
-            <RiPlantLine className="size-10 text-muted-foreground/40 mb-3" />
-            <p className="font-semibold text-foreground">No active produce listed yet</p>
-            <p className="mt-1 text-sm text-muted-foreground max-w-sm">
-              Farmers are preparing upcoming seasonal harvests. Check back soon.
-            </p>
-          </div>
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <RiPlantLine className="size-4" />
+              </EmptyMedia>
+              <EmptyTitle>No active produce listed yet</EmptyTitle>
+              <EmptyDescription>
+                Farmers are preparing upcoming seasonal harvests. Check back soon.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {allProducts.map((p, idx) => (

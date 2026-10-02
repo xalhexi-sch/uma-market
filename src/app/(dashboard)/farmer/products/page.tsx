@@ -6,6 +6,7 @@ import { RiAddLine, RiPlantLine, RiEditLine } from "@remixicon/react";
 import { getFarmerProducts } from "@/lib/supabase/queries/products";
 import { ProductStatusBadge } from "@/components/dashboard/product-status-badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 
@@ -38,21 +39,23 @@ export default async function FarmerProductsPage() {
       </div>
 
       {products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-4 py-20 text-center rounded-xl border border-border border-dashed">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-            <RiPlantLine className="size-7 text-muted-foreground/60" />
-          </div>
-          <div>
-            <p className="font-medium text-foreground">No products yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <RiPlantLine className="size-4" />
+            </EmptyMedia>
+            <EmptyTitle>No products yet</EmptyTitle>
+            <EmptyDescription>
               Add your first product listing to start receiving orders.
-            </p>
-          </div>
-          <Link href="/farmer/products/new" className={buttonVariants({ variant: "outline" })}>
-            <RiAddLine className="size-4 mr-2" />
-            Add First Product
-          </Link>
-        </div>
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Link href="/farmer/products/new" className={buttonVariants({ variant: "outline" })}>
+              <RiAddLine className="size-4 mr-2" />
+              Add First Product
+            </Link>
+          </EmptyContent>
+        </Empty>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">

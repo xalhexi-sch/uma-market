@@ -31,11 +31,32 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const product = await getProductById(id).catch(() => null);
   if (!product) return { title: "Produce Not Found" };
 
+  const imageUrl = product.image_url || product.image_path || "";
+
   return {
     title: `${product.name} — Butuan Produce Marketplace`,
     description:
       product.description ||
       `Source fresh ${product.name} directly from local producers in Butuan City.`,
+    alternates: {
+      canonical: `/products/${id}`,
+    },
+    openGraph: {
+      title: `${product.name} — Butuan Produce Marketplace`,
+      description:
+        product.description ||
+        `Source fresh ${product.name} directly from local producers in Butuan City.`,
+      type: "website",
+      images: imageUrl ? [{ url: imageUrl }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${product.name} — Butuan Produce Marketplace`,
+      description:
+        product.description ||
+        `Source fresh ${product.name} directly from local producers in Butuan City.`,
+      images: imageUrl ? [imageUrl] : [],
+    },
   };
 }
 
@@ -59,8 +80,32 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
   const farmerClerkId = product.farmer?.clerk_id || product.farmer_clerk_id;
   const isAvailable = product.quantity_available > 0;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description || `Fresh ${product.name} from Butuan City`,
+    image: product.image_url || product.image_path || undefined,
+    offers: {
+      "@type": "Offer",
+      price: product.price_per_unit,
+      priceCurrency: "PHP",
+      availability: isAvailable
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      seller: {
+        "@type": "Organization",
+        name: farmerName,
+      },
+    },
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Shared Minimal Public Header */}
       <MarketplaceHeader activeRoute="products" />
 

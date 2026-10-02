@@ -8,6 +8,7 @@ import { CartItemRow } from "@/components/dashboard/cart-item-row";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 import { buttonVariants } from "@/components/ui/button";
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "My Cart" };
@@ -37,18 +38,20 @@ export default async function CartPage() {
 
   if (cartItems.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-24 px-6 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <RiShoppingCart2Line className="size-8 text-muted-foreground/60" />
-        </div>
-        <div>
-          <p className="font-semibold text-foreground">Your cart is empty</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <RiShoppingCart2Line className="size-4" />
+          </EmptyMedia>
+          <EmptyTitle>Your cart is empty</EmptyTitle>
+          <EmptyDescription>
             Browse local products and add them to your cart.
-          </p>
-        </div>
-        <Link href="/business/products" className={buttonVariants()}>Explore Products</Link>
-      </div>
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Link href="/business/products" className={buttonVariants()}>Explore Products</Link>
+        </EmptyContent>
+      </Empty>
     );
   }
 
