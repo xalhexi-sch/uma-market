@@ -1,33 +1,54 @@
 // ==============================================================================
 // UMA Market — Farmer Avatar Synchronization Verification Suite
 // Tests Clerk webhook lifecycle synchronization, field protection, RLS, and UI
+//
+// SAFETY RULES:
+//   1. MUST ONLY target the dedicated security-test Supabase project.
+//   2. Credentials are loaded EXCLUSIVELY from .env.security-test.local.
+//      .env.local points at production and is never read.
+//   3. ABORTS (exit 2) before any Supabase client is constructed if the resolved
+//      project is production or any unknown ref. The suite deletes profile rows
+//      on the way out, so the guard must fail closed BEFORE any connection.
+//   4. Never prints keys, secrets, or JWTs.
 // ==============================================================================
 
 import { createClient } from "@supabase/supabase-js";
 import { Webhook } from "standardwebhooks";
 import { NextRequest } from "next/server";
-import * as dotenv from "dotenv";
-import * as path from "path";
+import { randomBytes } from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { loadSecurityTestEnv } from "./lib/safety-guard";
 
 // Mock server-only before importing server components/routes
 require.cache[require.resolve("server-only")] = { exports: {} } as unknown as NodeModule;
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+// Environment safety guard (shared): loads .env.security-test.local, aborts with
+// exit code 2 on production or on any unknown Supabase project.
+const env = loadSecurityTestEnv("verify-avatar-sync");
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!;
-const clerkSigningSecret = process.env.CLERK_WEBHOOK_SIGNING_SECRET!;
+const supabaseUrl = env.supabaseUrl;
+const supabaseAnonKey = env.anonKey;
+const supabaseSecretKey = env.secretKey;
 
-if (!supabaseUrl || !supabaseAnonKey || !supabaseSecretKey) {
-  console.error("Missing required Supabase environment variables in .env.local");
-  process.exit(1);
-}
+/**
+ * Webhook signing secret used to sign synthetic in-process webhook deliveries.
+ *
+ * The route handler calls Clerk's verifyWebhook(), which reads
+ * CLERK_WEBHOOK_SIGNING_SECRET from the process environment. If the security-test
+ * env file does not define one, an EPHEMERAL random secret is generated for this
+ * run only. The webhook never leaves the process, the secret is never persisted,
+ * and TEST-07 still genuinely exercises rejection of unsigned/forged payloads
+ * because the route and the harness agree on the same in-memory secret.
+ */
+const usingEphemeralSigningSecret = env.clerkWebhookSigningSecret.length === 0;
+const clerkSigningSecret = usingEphemeralSigningSecret
+  ? // standardwebhooks requires a base64 secret after the "whsec_" prefix.
+    `whsec_${randomBytes(32).toString("base64")}`
+  : env.clerkWebhookSigningSecret;
 
-if (!clerkSigningSecret) {
-  console.error("Missing CLERK_WEBHOOK_SIGNING_SECRET in .env.local");
-  process.exit(1);
-}
+// Set before the route module is imported so the ordering is explicit.
+process.env.CLERK_WEBHOOK_SIGNING_SECRET = clerkSigningSecret;
 
 // Anonymous public client
 const publicClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -119,6 +140,13 @@ async function runAvatarSyncVerification() {
 
   const urlHost = new URL(supabaseUrl).host;
   console.log(`Target Supabase Host: ${urlHost} (Safe identification verified)`);
+  console.log(
+    `Webhook signing secret: ${
+      usingEphemeralSigningSecret
+        ? "EPHEMERAL in-memory (none configured in .env.security-test.local)"
+        : "from .env.security-test.local"
+    }`
+  );
 
   const testFarmer1 = `user_sync_test_1_${Date.now()}`;
   const testFarmer2 = `user_sync_test_2_${Date.now()}`;
@@ -496,25 +524,32 @@ async function runAvatarSyncVerification() {
 
     // ------------------------------------------------------------------------
     // TEST 12: Onboarding action avatar_url resolution logic
+    //
+    // Asserts against the REAL application source, not a helper defined inside
+    // this test file. src/app/onboarding/actions.ts writes the Clerk avatar into
+    // public.profiles.avatar_url only when the Clerk user actually has an image.
     // ------------------------------------------------------------------------
     {
-      const resolveOnboardingAvatar = (user: { hasImage: boolean; imageUrl: string }) =>
-        user.hasImage ? user.imageUrl : null;
+      const onboardingActionsPath = path.join(process.cwd(), "src/app/onboarding/actions.ts");
+      const onboardingActionsSrc = fs.readFileSync(onboardingActionsPath, "utf-8");
 
-      const userWithImage = { hasImage: true, imageUrl: "https://img.clerk.com/onboarded.jpg" };
-      const userWithoutImage = { hasImage: false, imageUrl: "https://img.clerk.com/default.png" };
+      const avatarAssignmentLine = onboardingActionsSrc
+        .split("\n")
+        .find((line) => line.includes("avatar_url:"));
 
       const passed =
-        resolveOnboardingAvatar(userWithImage) === "https://img.clerk.com/onboarded.jpg" &&
-        resolveOnboardingAvatar(userWithoutImage) === null;
+        avatarAssignmentLine !== undefined &&
+        /avatar_url:\s*clerkUser\.hasImage\s*\?\s*clerkUser\.imageUrl\s*:\s*null/.test(
+          avatarAssignmentLine.trim()
+        );
 
       assert(
         "TEST-12",
-        "Onboarding action resolves avatar_url only when hasImage is true",
+        "Onboarding action resolves avatar_url only when hasImage is true (real source assertion)",
         passed,
         passed
-          ? "Onboarding logic populates imageUrl when hasImage=true, and null when hasImage=false"
-          : "Failed onboarding avatar resolution"
+          ? `src/app/onboarding/actions.ts: ${avatarAssignmentLine?.trim()}`
+          : `Expected 'avatar_url: clerkUser.hasImage ? clerkUser.imageUrl : null' in src/app/onboarding/actions.ts, found: ${avatarAssignmentLine?.trim() ?? "(no avatar_url assignment)"}`
       );
     }
   } finally {

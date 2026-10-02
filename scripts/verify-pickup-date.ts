@@ -29,45 +29,25 @@
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { createClerkClient } from "@clerk/nextjs/server";
-import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
-
-dotenv.config({ path: path.resolve(process.cwd(), ".env.security-test.local") });
+import { loadSecurityTestEnv } from "./lib/safety-guard";
 
 // =============================================================================
-// ENVIRONMENT GUARD — hard abort if not pointed at security-test project
+// ENVIRONMENT GUARD — shared, fail-closed: loads .env.security-test.local and
+// aborts with exit code 2 unless the project is exactly the security-test one.
 // =============================================================================
 
-const PROD_REF          = "odnpkqjytrmciwmcehff";
-const SECURITY_TEST_REF = "xckdihprwjdwutglytwu";
-const SECURITY_TEST_URL = `https://${SECURITY_TEST_REF}.supabase.co`;
+const env = loadSecurityTestEnv("verify-pickup-date");
 
-const supabaseUrl       = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const supabaseAnonKey   = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
-const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY ?? "";
-const clerkSecretKey    = process.env.CLERK_SECRET_KEY ?? "";
-const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+const supabaseUrl         = env.supabaseUrl;
+const supabaseAnonKey     = env.anonKey;
+const supabaseSecretKey   = env.secretKey;
+const clerkSecretKey      = env.clerkSecretKey;
+const clerkPublishableKey = env.clerkPublishableKey;
 
-if (supabaseUrl.includes(PROD_REF)) {
-  console.error("================================================================");
-  console.error("  SAFETY ABORT: PRODUCTION DATABASE DETECTED");
-  console.error("  Mutation tests against production are STRICTLY FORBIDDEN.");
-  console.error("================================================================");
-  process.exit(2);
-}
-
-if (supabaseUrl !== SECURITY_TEST_URL) {
-  console.error("================================================================");
-  console.error("  SAFETY ABORT: UNKNOWN SUPABASE PROJECT");
-  console.error(`  Expected : ${SECURITY_TEST_URL}`);
-  console.error(`  Active   : ${supabaseUrl || "(not set)"}`);
-  console.error("================================================================");
-  process.exit(2);
-}
-
-if (!supabaseSecretKey || !clerkSecretKey) {
-  console.error("SAFETY ABORT: Missing SUPABASE_SECRET_KEY or CLERK_SECRET_KEY in test environment.");
+if (!clerkSecretKey) {
+  console.error("SAFETY ABORT: Missing CLERK_SECRET_KEY in .env.security-test.local.");
   process.exit(2);
 }
 
@@ -143,6 +123,31 @@ async function getAuthenticatedClient(clerkUserId: string): Promise<SupabaseClie
     accessToken: async () => jwt,
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+async function countBuyerOrders(): Promise<number> {
+  const { count, error } = await adminClient
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("business_clerk_id", PERSONAS.buyerA.clerkId);
+  if (error) throw new Error(`countBuyerOrders failed: ${error.message}`);
+  return count ?? 0;
+}
+
+/**
+ * Returns the source region of a single named function, bounded by the next
+ * top-level `export` declaration.
+ *
+ * Brace counting is deliberately avoided: several of these functions declare an
+ * inline object type in their return position (e.g. `Promise<{ ... }>`), so the
+ * first `{` after the signature is a type literal, not the function body.
+ */
+function extractFunctionSource(code: string, name: string): string {
+  const start = code.search(new RegExp(`(?:export\\s+)?(?:async\\s+)?function ${name}\\s*\\(`));
+  if (start === -1) return "";
+  const rest = code.slice(start);
+  const nextExport = rest.slice(1).search(/\nexport\s/);
+  return nextExport === -1 ? rest : rest.slice(0, nextExport + 1);
 }
 
 async function cleanupFixtures(): Promise<void> {
@@ -355,7 +360,7 @@ async function runTests(): Promise<void> {
   }
 
   // ---------------------------------------------------------------------------
-  // TEST-B: Pickup order with missing date is rejected
+  // TEST-B: Pickup order with missing date is rejected by the database
   // ---------------------------------------------------------------------------
   section("TEST-B: Pickup order with missing date is rejected");
   {
@@ -366,7 +371,8 @@ async function runTests(): Promise<void> {
       quantity: 2,
     });
 
-    // Test server action level validation and RPC handling
+    const ordersBefore = await countBuyerOrders();
+
     const result = await buyerAClient.rpc("place_checkout_orders", {
       p_orders: [
         {
@@ -378,35 +384,78 @@ async function runTests(): Promise<void> {
       ],
     });
 
-    const rpcFailed = Boolean(result.error);
     assert(
       "TEST-B",
-      "Missing pickup date is handled (validated in server action and migration)",
-      rpcFailed || Boolean(result.data),
-      "Validated: actions.ts strictly checks validatePickupDate before calling RPC"
+      "place_checkout_orders rejects a pickup order with no pickup_date",
+      result.error !== null && /pickup date is required/i.test(result.error.message),
+      result.error
+        ? `RPC rejected as expected: "${result.error.message.slice(0, 160)}"`
+        : "FAIL: RPC accepted a pickup order with no pickup_date"
+    );
+
+    const ordersAfter = await countBuyerOrders();
+    assert(
+      "TEST-B-NOORDER",
+      "Rejected missing-pickup-date checkout created no order (transaction rolled back)",
+      ordersAfter === ordersBefore,
+      `orders for buyer: before=${ordersBefore} after=${ordersAfter}`
     );
   }
 
   // ---------------------------------------------------------------------------
-  // TEST-C: Pickup order with past date is rejected
+  // TEST-C: Pickup order with past date is rejected by the database
   // ---------------------------------------------------------------------------
   section("TEST-C: Pickup order with past date is rejected");
   {
-    // In actions.ts, validatePickupDate("2020-01-01") rejects with "Pickup date cannot be in the past."
-    // Let's verify by testing the server action's date validation logic:
-    const todayPH = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Manila",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
+    await adminClient.from("cart_items").delete().eq("business_clerk_id", PERSONAS.buyerA.clerkId);
+    await adminClient.from("cart_items").insert({
+      business_clerk_id: PERSONAS.buyerA.clerkId,
+      product_id: FIXTURES.productA,
+      quantity: 2,
+    });
 
-    const isPastRejected = pastStr < todayPH;
+    const ordersBefore = await countBuyerOrders();
+
+    const result = await buyerAClient.rpc("place_checkout_orders", {
+      p_orders: [
+        {
+          farmer_clerk_id: PERSONAS.farmerA.clerkId,
+          fulfillment_type: "pickup",
+          pickup_date: pastStr,
+          items: [{ product_id: FIXTURES.productA, quantity: 2 }],
+        },
+      ],
+    });
+
     assert(
       "TEST-C",
-      "Pickup order with past date is strictly rejected",
-      isPastRejected,
-      `Past date ${pastStr} is strictly less than today ${todayPH}`
+      "place_checkout_orders rejects a pickup order dated in the past",
+      result.error !== null && /pickup date cannot be in the past/i.test(result.error.message),
+      result.error
+        ? `RPC rejected as expected: "${result.error.message.slice(0, 160)}"`
+        : `FAIL: RPC accepted pickup_date=${pastStr}`
+    );
+
+    const ordersAfter = await countBuyerOrders();
+    assert(
+      "TEST-C-NOORDER",
+      "Rejected past-date checkout created no order (transaction rolled back)",
+      ordersAfter === ordersBefore,
+      `orders for buyer: before=${ordersBefore} after=${ordersAfter}`
+    );
+
+    // The Server Action must reject the same input before it ever reaches the RPC.
+    const checkoutActionsSrc = fs.readFileSync(
+      path.resolve(process.cwd(), "src/app/(dashboard)/business/checkout/actions.ts"),
+      "utf-8",
+    );
+    assert(
+      "TEST-C-ACTION",
+      "placeMultiFarmerCheckout validates pickup dates server-side before calling the RPC",
+      checkoutActionsSrc.includes('checkoutError("PICKUP_DATE_PAST")') &&
+        checkoutActionsSrc.includes('checkoutError("PICKUP_DATE_REQUIRED")') &&
+        checkoutActionsSrc.includes('checkoutError("PICKUP_DATE_INVALID")'),
+      "actions.ts maps missing/invalid/past pickup dates to dedicated CheckoutError codes",
     );
   }
 
@@ -470,18 +519,41 @@ async function runTests(): Promise<void> {
       quantity: 2,
     });
 
-    // In actions.ts:
-    // const formattedOrders = orders.map((o) => {
-    //   const isPickup = o.fulfillmentType === "pickup";
-    //   pickup_date: isPickup ? (o.pickupDate?.trim() ?? null) : null,
-    // });
-    // This forces pickup_date to null for seller_delivery!
+    const maliciousPickupDate = "2030-01-01";
+    const { data: maliciousData, error: maliciousErr } = await buyerAClient.rpc("place_checkout_orders", {
+      p_orders: [
+        {
+          farmer_clerk_id: PERSONAS.farmerA.clerkId,
+          fulfillment_type: "seller_delivery",
+          delivery_address: "456 Malicious St, Butuan City",
+          pickup_date: maliciousPickupDate,
+          items: [{ product_id: FIXTURES.productA, quantity: 2 }],
+        },
+      ],
+    });
+
+    const maliciousOrderIds = (maliciousData as { order_ids?: string[] })?.order_ids ?? [];
     assert(
       "TEST-E",
-      "Seller delivery with maliciously supplied pickup date is forced to NULL by actions.ts",
-      true,
-      "actions.ts formats pickup_date as null whenever fulfillmentType is not pickup"
+      "Seller delivery order is accepted even when a pickup_date is maliciously supplied",
+      !maliciousErr && maliciousOrderIds.length === 1,
+      maliciousErr ? maliciousErr.message : `Order created: ${maliciousOrderIds[0]}`,
     );
+
+    if (maliciousOrderIds.length === 1) {
+      const { data: ord } = await adminClient
+        .from("orders")
+        .select("pickup_date, fulfillment_type, delivery_address")
+        .eq("id", maliciousOrderIds[0])
+        .single();
+
+      assert(
+        "TEST-E-DB",
+        "Database forces pickup_date to NULL for seller_delivery (malicious value not persisted)",
+        ord?.pickup_date === null && ord?.fulfillment_type === "seller_delivery",
+        `submitted pickup_date=${maliciousPickupDate}, stored pickup_date=${ord?.pickup_date}`
+      );
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -538,7 +610,8 @@ async function runTests(): Promise<void> {
       // -----------------------------------------------------------------------
       section("TEST-G: Buyer order query exposes the pickup date");
       const ordersSrc = fs.readFileSync(path.resolve(process.cwd(), "src/lib/supabase/queries/orders.ts"), "utf-8");
-      const hasPickupInBuyerQuery = ordersSrc.includes("getBusinessOrderById") && ordersSrc.includes("pickup_date");
+      const hasPickupInBuyerQuery =
+        extractFunctionSource(ordersSrc, "getBusinessOrderById").includes("pickup_date");
       const { data: buyerOrder } = await buyerAClient
         .from("orders")
         .select("id, pickup_date, fulfillment_type")
@@ -555,7 +628,8 @@ async function runTests(): Promise<void> {
       // TEST-H: Farmer order query (getFarmerOrderById) exposes the exact pickup date
       // -----------------------------------------------------------------------
       section("TEST-H: Farmer order query exposes the pickup date");
-      const hasPickupInFarmerQuery = ordersSrc.includes("getFarmerOrderById") && ordersSrc.includes("pickup_date");
+      const hasPickupInFarmerQuery =
+        extractFunctionSource(ordersSrc, "getFarmerOrderById").includes("pickup_date");
       const { data: farmerOrder } = await adminClient
         .from("orders")
         .select("id, pickup_date, fulfillment_type")
@@ -574,7 +648,8 @@ async function runTests(): Promise<void> {
       // -----------------------------------------------------------------------
       section("TEST-I: Admin order query exposes the pickup date");
       const adminSrc = fs.readFileSync(path.resolve(process.cwd(), "src/lib/supabase/queries/admin.ts"), "utf-8");
-      const hasPickupInAdminQuery = adminSrc.includes("getAdminOrderById") && adminSrc.includes("pickup_date");
+      const hasPickupInAdminQuery =
+        extractFunctionSource(adminSrc, "getAdminOrderById").includes("pickup_date");
       const { data: adminOrder } = await adminClient
         .from("orders")
         .select("id, pickup_date, fulfillment_type")
@@ -590,28 +665,79 @@ async function runTests(): Promise<void> {
   }
 
   // ---------------------------------------------------------------------------
-  // TEST-J: Confirmation & detail UI formatting correctly handles scheduled pickup date
+  // TEST-J: Every UI surface that renders a pickup date formats it correctly
+  //
+  // The formatter is asserted against the REAL application source. Each page
+  // declares its own module-private `formatPickupDate`; the body is extracted
+  // from the source file and executed, so this exercises shipped application
+  // code rather than a copy of it living inside this test script.
   // ---------------------------------------------------------------------------
   section("TEST-J: Confirmation & detail UI formatting correctly handles scheduled pickup date");
   {
-    // Test the date formatting logic used across all updated UI pages
-    function formatPickupDate(dateStr: string): string {
-      const [year, month, day] = dateStr.split("-").map(Number);
-      if (!year || !month || !day) return dateStr;
-      const date = new Date(year, month - 1, day);
-      return date.toLocaleDateString("en-PH", { dateStyle: "long" });
-    }
+    const uiSurfaces = [
+      "src/app/(dashboard)/admin/orders/[id]/page.tsx",
+      "src/app/(dashboard)/business/checkout/confirmation/[orderId]/page.tsx",
+      "src/app/(dashboard)/business/checkout/confirmation/page.tsx",
+      "src/app/(dashboard)/business/orders/[id]/page.tsx",
+      "src/app/(dashboard)/farmer/orders/[id]/page.tsx",
+    ];
 
-    const formatted = formatPickupDate("2026-11-20");
-    const containsMonth = formatted.toLowerCase().includes("november");
-    const containsDay = formatted.includes("20");
-    const containsYear = formatted.includes("2026");
+    const failures: string[] = [];
+    const outputs: string[] = [];
+
+    for (const relativePath of uiSurfaces) {
+      const absolutePath = path.resolve(process.cwd(), relativePath);
+      if (!fs.existsSync(absolutePath)) {
+        failures.push(`${relativePath}: file not found`);
+        continue;
+      }
+      const source = fs.readFileSync(absolutePath, "utf-8");
+      const start = source.indexOf("function formatPickupDate");
+      if (start === -1) {
+        failures.push(`${relativePath}: formatPickupDate not declared`);
+        continue;
+      }
+      const open = source.indexOf("{", start);
+      let depth = 0;
+      let close = -1;
+      for (let i = open; i < source.length; i++) {
+        if (source[i] === "{") depth++;
+        else if (source[i] === "}") {
+          depth--;
+          if (depth === 0) {
+            close = i;
+            break;
+          }
+        }
+      }
+      if (close === -1) {
+        failures.push(`${relativePath}: could not extract formatPickupDate body`);
+        continue;
+      }
+
+      let formatted: string;
+      try {
+        const body = source.slice(open + 1, close);
+        const fn = new Function("dateStr", body) as (dateStr: string) => string;
+        formatted = fn("2026-11-20");
+      } catch (err) {
+        failures.push(`${relativePath}: ${(err as Error).message}`);
+        continue;
+      }
+      outputs.push(`${relativePath} -> '${formatted}'`);
+
+      const ok =
+        formatted.toLowerCase().includes("november") &&
+        formatted.includes("20") &&
+        formatted.includes("2026");
+      if (!ok) failures.push(`${relativePath}: unexpected output '${formatted}'`);
+    }
 
     assert(
       "TEST-J",
-      "UI formatPickupDate formats date string to localized long date format",
-      containsMonth && containsDay && containsYear,
-      `Formatted result: '${formatted}'`
+      `All ${uiSurfaces.length} UI surfaces format a scheduled pickup date as a localized long date`,
+      failures.length === 0,
+      failures.length === 0 ? outputs.join(" | ") : failures.join(" | "),
     );
   }
 

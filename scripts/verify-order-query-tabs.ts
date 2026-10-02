@@ -10,45 +10,55 @@
 
 import { createClient } from "@supabase/supabase-js";
 import Module from "node:module";
-import * as dotenv from "dotenv";
-import * as path from "path";
+import { loadSecurityTestEnv } from "./lib/safety-guard";
 import type { OrderViewTab, OrderTabCounts } from "../src/lib/supabase/queries/orders";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.security-test.local") });
-
-// Environment safety guard
-const PROD_REF = "odnpkqjytrmciwmcehff";
-const SECURITY_TEST_REF = "xckdihprwjdwutglytwu";
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const serviceRoleKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-
-if (!supabaseUrl || !supabaseUrl.includes(SECURITY_TEST_REF) || supabaseUrl.includes(PROD_REF)) {
-  console.error(`FATAL: Must only run against security-test project (${SECURITY_TEST_REF}). Found: ${supabaseUrl}`);
-  process.exit(1);
-}
-
-if (!serviceRoleKey) {
-  console.error("FATAL: SUPABASE_SECRET_KEY is required for test fixture execution.");
-  process.exit(1);
-}
+// Environment safety guard (shared): loads .env.security-test.local and aborts
+// with exit code 2 unless the resolved project is exactly the security-test one.
+const env = loadSecurityTestEnv("verify-order-query-tabs");
+const supabaseUrl = env.supabaseUrl;
+const serviceRoleKey = env.secretKey;
 
 const adminClient = createClient(supabaseUrl, serviceRoleKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const TEST_PREFIX = "f0000099-";
 const TEST_BUYER_CLERK_ID = "user_test_buyer_tab_opt";
 const TEST_FARMER_CLERK_ID = "user_test_farmer_tab_opt";
 
-function createExpandedOrder(id: number, status: "accepted" | "completed") {
+/**
+ * Deterministic fixture UUID factory.
+ *
+ * The namespace segment is built as whole hex groups rather than by string
+ * concatenation of a prefix plus a formatted tail. Concatenating `"f0000099-" +
+ * "0000-0000-0000-" + tail` is only accidentally well-formed: any change to the
+ * prefix length silently produces a truncated/over-long string that no longer
+ * parses as a UUID and would be rejected by Postgres at INSERT time, long after
+ * the fixture builder ran.
+ *
+ * Shape: f0000099-0000-4000-8000-<12 hex digits>  (RFC 4122 v4 layout, fixed
+ * version/variant nibbles so the value is a structurally valid UUID.)
+ */
+const FIXTURE_UUID_NAMESPACE = "f0000099-0000-4000-8000";
+
+function fixtureOrderUuid(ordinal: number): string {
+  if (!Number.isInteger(ordinal) || ordinal < 0 || ordinal > 0xffffffffffff) {
+    throw new RangeError(`fixtureOrderUuid ordinal out of range: ${ordinal}`);
+  }
+  return `${FIXTURE_UUID_NAMESPACE}-${ordinal.toString(16).padStart(12, "0")}`;
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+function createExpandedOrder(ordinal: number, status: "accepted" | "completed") {
   return {
-    id: `${TEST_PREFIX}0000-0000-0000-${String(id).padStart(12, "0")}`,
+    id: fixtureOrderUuid(ordinal),
     business_clerk_id: TEST_BUYER_CLERK_ID,
     farmer_clerk_id: TEST_FARMER_CLERK_ID,
     status,
     fulfillment_type: "pickup",
-    total_amount: 1000 + id,
-    created_at: new Date(Date.UTC(2026, 8, 2, 0, id)).toISOString(),
+    total_amount: 1000 + ordinal,
+    created_at: new Date(Date.UTC(2026, 8, 2, 0, ordinal)).toISOString(),
   };
 }
 
@@ -71,7 +81,7 @@ const FIXTURES = {
   },
   orders: [
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000001`,
+      id: fixtureOrderUuid(1),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "pending",
@@ -80,7 +90,7 @@ const FIXTURES = {
       created_at: "2026-09-01T10:00:00Z",
     },
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000002`,
+      id: fixtureOrderUuid(2),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "pending",
@@ -89,7 +99,7 @@ const FIXTURES = {
       created_at: "2026-09-01T11:00:00Z",
     },
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000003`,
+      id: fixtureOrderUuid(3),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "accepted",
@@ -99,7 +109,7 @@ const FIXTURES = {
       created_at: "2026-09-01T12:00:00Z",
     },
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000004`,
+      id: fixtureOrderUuid(4),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "ready",
@@ -108,7 +118,7 @@ const FIXTURES = {
       created_at: "2026-09-01T13:00:00Z",
     },
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000005`,
+      id: fixtureOrderUuid(5),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "completed",
@@ -117,7 +127,7 @@ const FIXTURES = {
       created_at: "2026-09-01T14:00:00Z",
     },
     {
-      id: `${TEST_PREFIX}0000-0000-0000-000000000006`,
+      id: fixtureOrderUuid(6),
       business_clerk_id: TEST_BUYER_CLERK_ID,
       farmer_clerk_id: TEST_FARMER_CLERK_ID,
       status: "cancelled",
@@ -188,6 +198,33 @@ async function run() {
     await adminClient.from("profiles").upsert([FIXTURES.buyerProfile, FIXTURES.farmerProfile]);
     const { error: insertErr } = await adminClient.from("orders").insert(FIXTURES.orders);
     if (insertErr) throw insertErr;
+
+    console.log("\n--- TEST SUITE 0: Fixture Identity Integrity ---");
+    {
+      const fixtureIds = FIXTURES.orders.map((o) => o.id);
+      const malformed = fixtureIds.filter((id) => !UUID_PATTERN.test(id));
+      const duplicates = fixtureIds.filter((id, i) => fixtureIds.indexOf(id) !== i);
+
+      assert(
+        "TAB-0.1",
+        `All ${fixtureIds.length} generated order fixture IDs are structurally valid RFC 4122 UUIDs`,
+        malformed.length === 0,
+        malformed.length ? `Malformed: ${malformed.slice(0, 5).join(", ")}` : undefined
+      );
+      assert(
+        "TAB-0.2",
+        "All generated order fixture IDs are unique (no accidental truncation/collision)",
+        duplicates.length === 0,
+        duplicates.length ? `Duplicated: ${[...new Set(duplicates)].slice(0, 5).join(", ")}` : undefined
+      );
+      assert(
+        "TAB-0.3",
+        "Fixture ID generation is deterministic (same ordinal always yields the same UUID)",
+        fixtureOrderUuid(42) === "f0000099-0000-4000-8000-00000000002a" &&
+          fixtureOrderUuid(1) === "f0000099-0000-4000-8000-000000000001",
+        `fixtureOrderUuid(42) = ${fixtureOrderUuid(42)}`
+      );
+    }
 
     console.log("\n--- TEST SUITE 1: Tab Status Constants & Mapping ---");
     assert(
