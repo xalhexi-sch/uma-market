@@ -5,6 +5,7 @@ import { RiDeleteBinLine, RiSubtractLine, RiAddLine } from "@remixicon/react";
 import { updateCartItemQuantity, removeFromCart } from "@/app/(dashboard)/business/cart/actions";
 import { getProductImageUrl } from "@/lib/supabase/storage";
 import { ProductImage } from "@/components/ui/product-image";
+import { toast } from "@/components/ui/toast";
 import { CURRENCY } from "@/lib/constants";
 import type { CartItem } from "@/lib/types";
 
@@ -29,13 +30,24 @@ export function CartItemRow({ item }: CartItemRowProps) {
     const clamped = Math.max(min, Math.min(max, +newQty.toFixed(2)));
     setQuantity(clamped);
     startTransition(async () => {
-      await updateCartItemQuantity(item.id, clamped);
+      const result = await updateCartItemQuantity(item.id, clamped);
+      if (result.success) {
+        toast.success(`Quantity updated to ${clamped} ${unit}.`);
+      } else {
+        toast.error(result.error ?? "Could not update quantity.");
+      }
     });
   }
 
   function handleRemove() {
+    if (!product) return;
     startTransition(async () => {
-      await removeFromCart(item.id);
+      const result = await removeFromCart(item.id);
+      if (result.success) {
+        toast.success(`"${product.name}" removed from cart.`);
+      } else {
+        toast.error(result.error ?? "Could not remove item.");
+      }
     });
   }
 
