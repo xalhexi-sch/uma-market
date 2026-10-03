@@ -8,6 +8,9 @@ import {
   CreateProductReviewSchema,
   CreateSellerReviewSchema,
 } from "@/lib/validation";
+import { reviewRateLimit } from "@/lib/rate-limit";
+
+const REVIEW_RATE_LIMIT_ERROR = "Too many review attempts. Please wait a moment and try again.";
 
 function safeReviewError(message: string) {
   if (message.includes("duplicate key") || message.includes("already exists")) {
@@ -24,6 +27,10 @@ export async function createSellerReview(input: unknown) {
   if (!userId || sessionClaims?.user_role !== "business") return { success: false, error: "Unauthorized." };
   const { active, error: profileError } = await assertActiveProfile(userId);
   if (!active) return { success: false, error: profileError ?? "Account is not active." };
+
+  // Rate limit: 10 review submissions per minute, shared by both review types.
+  const rateResult = reviewRateLimit(userId);
+  if (!rateResult.success) return { success: false, error: REVIEW_RATE_LIMIT_ERROR };
 
   const supabase = await createClient();
   const { data: order, error: orderError } = await supabase
@@ -63,6 +70,10 @@ export async function createProductReview(input: unknown) {
   if (!userId || sessionClaims?.user_role !== "business") return { success: false, error: "Unauthorized." };
   const { active, error: profileError } = await assertActiveProfile(userId);
   if (!active) return { success: false, error: profileError ?? "Account is not active." };
+
+  // Rate limit: 10 review submissions per minute, shared by both review types.
+  const rateResult = reviewRateLimit(userId);
+  if (!rateResult.success) return { success: false, error: REVIEW_RATE_LIMIT_ERROR };
 
   const supabase = await createClient();
   const { data: order, error: orderError } = await supabase

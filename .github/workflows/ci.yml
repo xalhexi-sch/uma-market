@@ -63,6 +63,9 @@ jobs:
       - name: Verify placeOrder shares the checkout rate limit
         run: npm run verify:checkout-rate-limit
 
+      - name: Verify review and onboarding mutations are rate limited
+        run: npm run verify:review-onboarding-rate-limit
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
