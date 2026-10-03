@@ -4,6 +4,9 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROLES } from "@/lib/constants";
+import { onboardingRateLimit } from "@/lib/rate-limit";
+
+const ONBOARDING_RATE_LIMIT_ERROR = "Too many attempts. Please wait a few minutes and try again.";
 
 /**
  * Called when the user submits the onboarding role-selection form.
@@ -49,6 +52,12 @@ export async function completeOnboarding(formData: FormData) {
       };
     }
 
+    // Rate limit: 5 attempts per 5 minutes (role-recovery path).
+    const rateResult = onboardingRateLimit(userId);
+    if (!rateResult.success) {
+      return { success: false as const, error: ONBOARDING_RATE_LIMIT_ERROR };
+    }
+
     // Recovery uses only the existing Clerk role; submitted form data cannot change it.
     role = existingRole;
     const { data: profile, error: lookupError } = await supabase
@@ -75,6 +84,12 @@ export async function completeOnboarding(formData: FormData) {
       redirect(`/${role}`);
     }
   } else {
+    // Rate limit: 5 attempts per 5 minutes (first-time onboarding path).
+    const rateResult = onboardingRateLimit(userId);
+    if (!rateResult.success) {
+      return { success: false as const, error: ONBOARDING_RATE_LIMIT_ERROR };
+    }
+
     const { data: existingProfile, error: lookupError } = await supabase
       .from("profiles")
       .select("clerk_id")

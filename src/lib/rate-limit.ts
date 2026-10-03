@@ -81,6 +81,16 @@ export function productCreateRateLimit(userId: string): RateLimitResult {
   return rateLimit(`product-create:${userId}`, 20, 300_000);
 }
 
+/** Reviews: 10 submissions per minute per user (seller + product reviews share one budget) */
+export function reviewRateLimit(userId: string): RateLimitResult {
+  return rateLimit(`review:${userId}`, 10, 60_000);
+}
+
+/** Onboarding: 5 attempts per 5 minutes per user */
+export function onboardingRateLimit(userId: string): RateLimitResult {
+  return rateLimit(`onboarding:${userId}`, 5, 300_000);
+}
+
 /** General API: 100 requests per minute per user */
 export function generalRateLimit(userId: string): RateLimitResult {
   return rateLimit(`general:${userId}`, 100, 60_000);
