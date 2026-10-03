@@ -14,6 +14,7 @@
     "verify:checkout-orders": "tsx scripts/verify-checkout-orders.ts",
     "verify:order-tabs": "tsx scripts/verify-order-query-tabs.ts",
     "verify:pickup-date": "tsx scripts/verify-pickup-date.ts",
+    "verify:checkout-rate-limit": "tsx scripts/verify-place-order-rate-limit.ts",
     "verify:avatar-sync": "tsx scripts/verify-avatar-sync.ts",
     "verify:query-efficiency": "tsx scripts/verify-query-efficiency.ts",
     "verify:guards": "tsx scripts/verify-safety-guards.ts",
