@@ -8,25 +8,23 @@
 
 import { createClerkClient } from "@clerk/backend";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
-import * as path from "path";
+import { assertClerkDevelopmentKey, loadSecurityTestEnv } from "./lib/safety-guard";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.security-test.local") });
+// Shared fail-closed guard: exact security-test project only (production and
+// unknown refs abort with exit 2 before any client is constructed), credentials
+// read exclusively from .env.security-test.local, and this suite mints Clerk
+// sessions, so the key must be a Clerk Development-instance key.
+const env = loadSecurityTestEnv("verify-verified-reviews");
+assertClerkDevelopmentKey("verify-verified-reviews", env.clerkSecretKey);
 
-const SECURITY_TEST_REF = "xckdihprwjdwutglytwu";
-const PROD_REF = "odnpkqjytrmciwmcehff";
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
-const secretKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-const clerkSecretKey = process.env.CLERK_SECRET_KEY ?? "";
-const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+const supabaseUrl = env.supabaseUrl;
+const anonKey = env.anonKey;
+const secretKey = env.secretKey;
+const clerkSecretKey = env.clerkSecretKey;
+const clerkPublishableKey = env.clerkPublishableKey;
 
-if (!supabaseUrl || !supabaseUrl.includes(SECURITY_TEST_REF) || supabaseUrl.includes(PROD_REF)) {
-  console.error(`FATAL: Must only target security-test project ${SECURITY_TEST_REF}.`);
-  process.exit(2);
-}
-if (!anonKey || !secretKey || !clerkSecretKey || !clerkPublishableKey) {
-  console.error("FATAL: Missing required security-test Supabase or Clerk variables.");
+if (!clerkPublishableKey) {
+  console.error("FATAL: Missing required security-test Clerk publishable key.");
   process.exit(1);
 }
 
@@ -53,6 +51,21 @@ const IDS = {
 };
 
 const sessions: string[] = [];
+/**
+ * Dedupe keys of notification rows created by review inserts that this run
+ * deletes mid-flight (their review row is gone before cleanup can look it up).
+ * Fixture-scoped: only `review:<id>` keys for reviews THIS run created.
+ */
+const capturedNotificationKeys = new Set<string>();
+/** Every order status that can produce a `order:<id>:<type>` notification key. */
+const ORDER_STATUS_TYPES = [
+  "order_accepted",
+  "order_ready",
+  "order_for_delivery",
+  "order_completed",
+  "farmer_cancellation",
+  "business_cancellation",
+] as const;
 let passed = 0;
 let failed = 0;
 let checkoutOrderId: string | null = null;
@@ -77,6 +90,33 @@ async function cleanup() {
   const orderIds = [IDS.completedOrder, IDS.pendingOrder, IDS.cancelledOrder, IDS.unrelatedOrder, IDS.forgedOrder, checkoutOrderId].filter(
     (id): id is string => Boolean(id),
   );
+
+  // Notification rows are written by the order and review triggers in the same
+  // transaction as their source row, and notifications do NOT cascade when the
+  // order/review is deleted (their FK points at profiles). Without this step
+  // every run leaks `order:*` and `review:*` fixture notifications.
+  const reviewKeys = new Set<string>(capturedNotificationKeys);
+  for (const table of ["seller_reviews", "product_reviews"] as const) {
+    const { data, error } = await admin.from(table).select("id").in("order_id", orderIds);
+    if (error) throw new Error(`Cleanup ${table} id scan failed: ${error.message}`);
+    for (const row of data ?? []) reviewKeys.add(`review:${row.id}`);
+  }
+  const notificationKeys = [...reviewKeys];
+  for (const orderId of orderIds) {
+    notificationKeys.push(`order:new:${orderId}`);
+    for (const type of ORDER_STATUS_TYPES) notificationKeys.push(`order:${orderId}:${type}`);
+  }
+  for (let i = 0; i < notificationKeys.length; i += 50) {
+    const { error } = await admin.from("notifications").delete().in("dedupe_key", notificationKeys.slice(i, i + 50));
+    if (error) throw new Error(`Cleanup notifications failed: ${error.message}`);
+  }
+  const { data: leftoverNotifications, error: leftoverNotificationsError } = await admin
+    .from("notifications").select("dedupe_key").in("dedupe_key", notificationKeys);
+  if (leftoverNotificationsError) throw new Error(`Cleanup notification verification failed: ${leftoverNotificationsError.message}`);
+  if ((leftoverNotifications ?? []).length > 0) {
+    throw new Error(`Cleanup left notification fixtures behind: ${(leftoverNotifications ?? []).map((r) => r.dedupe_key).join(", ")}`);
+  }
+
   const sellerDelete = await admin.from("seller_reviews").delete().in("order_id", orderIds);
   if (sellerDelete.error) throw new Error(`Cleanup seller reviews failed: ${sellerDelete.error.message}`);
   const productDelete = await admin.from("product_reviews").delete().in("order_id", orderIds);
@@ -226,28 +266,97 @@ async function run() {
     });
     assert("REV-16", "ordinary client cannot create a forged completed order", Boolean(forged.error));
 
+    // Positive control first: the UPDATE policy must work for the owner.
+    // Without it REV-17 would also pass under a blanket (table-level) write
+    // denial and would prove nothing about row-level isolation.
+    const ownerUpdate = await buyerA.from("seller_reviews").update({ comment: "owner edit probe" })
+      .eq("id", sellerInsert.data?.id).select("id").single();
+    assert(
+      "REV-24",
+      "owner can update their own review (positive control for REV-17)",
+      !ownerUpdate.error && ownerUpdate.data?.id === sellerInsert.data?.id,
+      ownerUpdate.error ? `query failed: ${ownerUpdate.error.message}` : `id=${ownerUpdate.data?.id ?? "none"}`,
+    );
+
     const otherUpdate = await buyerB.from("seller_reviews").update({ rating: 1 })
       .eq("id", sellerInsert.data?.id).select("id").maybeSingle();
-    assert("REV-17", "reviewer cannot update someone else's review", Boolean(otherUpdate.error) || otherUpdate.data === null);
+    assert(
+      "REV-17",
+      "reviewer cannot update someone else's review",
+      // The query itself must succeed and simply match no row: an error is a
+      // failure of the test, never evidence of isolation.
+      !otherUpdate.error && otherUpdate.data === null,
+      otherUpdate.error ? `query failed: ${otherUpdate.error.message}` : otherUpdate.data ? "row was updated" : "",
+    );
+
     const otherDelete = await buyerB.from("seller_reviews").delete()
       .eq("id", sellerInsert.data?.id).select("id");
-    assert("REV-18", "reviewer cannot delete someone else's review", Boolean(otherDelete.error) || (otherDelete.data ?? []).length === 0);
+    assert(
+      "REV-18",
+      "reviewer cannot delete someone else's review",
+      !otherDelete.error && (otherDelete.data ?? []).length === 0,
+      otherDelete.error ? `query failed: ${otherDelete.error.message}` : `${(otherDelete.data ?? []).length} row(s) deleted`,
+    );
+    // Positive control for REV-18: the owner CAN delete, so the zero-row result
+    // above is row-level isolation rather than a missing DELETE permission.
+    const ownerDelete = await buyerA.from("seller_reviews").delete()
+      .eq("id", sellerInsert.data?.id).select("id");
+    assert(
+      "REV-25",
+      "owner can delete their own review (positive control for REV-18)",
+      !ownerDelete.error && (ownerDelete.data ?? []).length === 1,
+      ownerDelete.error ? `query failed: ${ownerDelete.error.message}` : `${(ownerDelete.data ?? []).length} row(s) deleted`,
+    );
+    // The review row is gone now, so remember the notification its insert
+    // triggered for fixture-scoped cleanup.
+    for (const row of ownerDelete.data ?? []) capturedNotificationKeys.add(`review:${row.id}`);
 
     const farmerWrite = await farmerA.from("seller_reviews").insert({
       order_id: IDS.completedOrder, reviewer_clerk_id: FARMER_A, target_farmer_clerk_id: FARMER_A, rating: 5,
     });
     assert("REV-19", "direct farmer-role review write is rejected", Boolean(farmerWrite.error));
 
-    const selfReview = await farmerA.from("seller_reviews").insert({
-      order_id: IDS.completedOrder, reviewer_clerk_id: FARMER_A, target_farmer_clerk_id: FARMER_A, rating: 5,
+    // The authenticated path can never reach a self-review: the INSERT policy
+    // forces reviewer ≠ target (and a farmer lacks the business role), so the
+    // seller_reviews_no_self_review CHECK only guards trusted/service writers.
+    // REV-19 already covers the authenticated farmer-role attempt.
+    const selfReview = await admin.from("seller_reviews").insert({
+      order_id: IDS.cancelledOrder, reviewer_clerk_id: BUYER_A, target_farmer_clerk_id: BUYER_A, rating: 5,
     });
-    assert("REV-20", "seller self-review is rejected", Boolean(selfReview.error));
+    assert(
+      "REV-20",
+      "self-review is rejected by the no-self-review constraint on the trusted path",
+      Boolean(selfReview.error) && /seller_reviews_no_self_review/.test(selfReview.error?.message ?? ""),
+      selfReview.error ? `code=${selfReview.error.code} ${selfReview.error.message}` : "insert unexpectedly succeeded",
+    );
 
-    const longComment = await buyerA.from("seller_reviews").insert({
-      order_id: IDS.unrelatedOrder, reviewer_clerk_id: BUYER_A, target_farmer_clerk_id: FARMER_B,
+    // The length limit must be proven on a row the RLS INSERT policy ALLOWS.
+    // The previous setup (buyer A on buyer B's order) was rejected by RLS with
+    // code 42501 for any comment length, so it never reached the CHECK.
+    const longComment = await buyerB.from("seller_reviews").insert({
+      order_id: IDS.unrelatedOrder, reviewer_clerk_id: BUYER_B, target_farmer_clerk_id: FARMER_B,
       rating: 5, comment: "x".repeat(1001),
     });
-    assert("REV-21", "comment over 1000 characters is rejected", Boolean(longComment.error));
+    assert(
+      "REV-21",
+      "comment over 1000 characters is rejected by the length constraint",
+      Boolean(longComment.error)
+        && longComment.error?.code === "23514"
+        && /seller_reviews_comment_check/.test(longComment.error?.message ?? ""),
+      longComment.error ? `code=${longComment.error.code} ${longComment.error.message}` : "insert unexpectedly succeeded",
+    );
+    // Positive control: same actor, same order, short comment is accepted, so
+    // REV-21's rejection can only be attributed to the 1000-character limit.
+    const shortComment = await buyerB.from("seller_reviews").insert({
+      order_id: IDS.unrelatedOrder, reviewer_clerk_id: BUYER_B, target_farmer_clerk_id: FARMER_B,
+      rating: 5, comment: "Within the limit.",
+    }).select("id").single();
+    assert(
+      "REV-26",
+      "owner-path review insert succeeds with a short comment (positive control for REV-21)",
+      !shortComment.error && Boolean(shortComment.data?.id),
+      shortComment.error ? `code=${shortComment.error.code} ${shortComment.error.message}` : `id=${shortComment.data?.id ?? "none"}`,
+    );
 
     const malformed = await buyerA.from("seller_reviews").insert({
       order_id: IDS.completedOrder, reviewer_clerk_id: BUYER_A, target_farmer_clerk_id: FARMER_A,

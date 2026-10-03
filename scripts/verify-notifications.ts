@@ -15,25 +15,24 @@
 
 import { createClerkClient } from "@clerk/backend";
 import { createClient, type RealtimeChannel, type SupabaseClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
 import * as path from "path";
+import { assertClerkDevelopmentKey, loadSecurityTestEnv } from "./lib/safety-guard";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.security-test.local") });
+// Shared fail-closed guard: exact security-test project only (production and
+// unknown refs abort with exit 2 before any client is constructed), credentials
+// read exclusively from .env.security-test.local, and this suite mints Clerk
+// sessions, so the key must be a Clerk Development-instance key.
+const env = loadSecurityTestEnv("verify-notifications");
+assertClerkDevelopmentKey("verify-notifications", env.clerkSecretKey);
 
-const SECURITY_TEST_REF = "xckdihprwjdwutglytwu";
-const PROD_REF = "odnpkqjytrmciwmcehff";
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
-const secretKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-const clerkSecretKey = process.env.CLERK_SECRET_KEY ?? "";
-const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+const supabaseUrl = env.supabaseUrl;
+const anonKey = env.anonKey;
+const secretKey = env.secretKey;
+const clerkSecretKey = env.clerkSecretKey;
+const clerkPublishableKey = env.clerkPublishableKey;
 
-if (!supabaseUrl.includes(SECURITY_TEST_REF) || supabaseUrl.includes(PROD_REF)) {
-  console.error(`FATAL: must only target security-test project ${SECURITY_TEST_REF}.`);
-  process.exit(2);
-}
-if (!anonKey || !secretKey || !clerkSecretKey || !clerkPublishableKey) {
-  console.error("FATAL: missing required security-test Supabase or Clerk variables.");
+if (!clerkPublishableKey) {
+  console.error("FATAL: missing required security-test Clerk publishable key.");
   process.exit(1);
 }
 
@@ -895,7 +894,16 @@ async function run() {
     assert("offline persistence", !reload.error && (reload.data ?? []).length > 0, reload.error?.message ?? "");
 
     const anonymous = await anon.from("notifications").select("id");
-    assert("unauthenticated access denied", Boolean(anonymous.error) || (anonymous.data ?? []).length === 0);
+    // Expected outcomes are a permission denial (REVOKE ALL FROM anon) or a
+    // successful query filtered to zero rows. Any other error — a network or
+    // PostgREST failure — proves nothing about access control and must fail.
+    const anonDenied = anonymous.error?.code === "42501";
+    const anonFiltered = !anonymous.error && (anonymous.data ?? []).length === 0;
+    assert(
+      "unauthenticated access denied",
+      anonDenied || anonFiltered,
+      anonymous.error ? `code=${anonymous.error.code} ${anonymous.error.message}` : `${(anonymous.data ?? []).length} row(s) returned`,
+    );
 
     // Fixture-scoped: notification rows created by other verification suites are irrelevant here.
     const unrelated = await admin

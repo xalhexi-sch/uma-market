@@ -43,6 +43,7 @@ const GUARDED_SUITES = [
   "scripts/verify-checkout-orders.ts",
   "scripts/verify-farmer-profiles.ts",
   "scripts/verify-image-delivery.ts",
+  "scripts/verify-notifications.ts",
   "scripts/verify-order-query-tabs.ts",
   "scripts/verify-phase-2-search.ts",
   "scripts/verify-phase-3-parity.ts",
@@ -50,6 +51,7 @@ const GUARDED_SUITES = [
   "scripts/verify-query-efficiency.ts",
   "scripts/verify-search-category-filter.ts",
   "scripts/verify-smart-search.ts",
+  "scripts/verify-verified-reviews.ts",
 ];
 
 /**
@@ -260,6 +262,22 @@ assert(
   "[source check, not runtime] browser harness asserts a Clerk development key before any Clerk call",
   /assertClerkDevelopmentKey\(\s*"browser-regression"\s*,\s*clerkSecretKey\s*\)/.test(harnessSource),
 );
+
+// 3B-3: verify-notifications.ts and verify-verified-reviews.ts mint Clerk
+// sessions, so both must keep asserting a Development-instance key before any
+// Clerk client exists. Source check (not runtime) because a live run needs the
+// security-test env file, which Tier 1 deliberately does not materialise.
+for (const suite of ["scripts/verify-notifications.ts", "scripts/verify-verified-reviews.ts"]) {
+  const source = fs.readFileSync(path.join(process.cwd(), suite), "utf8");
+  const guardCall = source.indexOf("assertClerkDevelopmentKey(");
+  const clerkCall = source.indexOf("createClerkClient(");
+  assert(
+    `G-08.7.${path.basename(suite, ".ts")}`,
+    `[source check, not runtime] ${suite} asserts a Clerk development key before any Clerk call`,
+    guardCall !== -1 && clerkCall !== -1 && guardCall < clerkCall,
+    `guardCall=${guardCall} clerkCall=${clerkCall}`,
+  );
+}
 
 section("G-09 — cleanup runner: one failing step never prevents later steps");
 
