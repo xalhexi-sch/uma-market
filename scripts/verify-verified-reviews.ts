@@ -98,6 +98,14 @@ async function cleanup() {
     .from("cart_items").select("id").eq("business_clerk_id", BUYER_A).eq("product_id", IDS.checkoutProduct);
   if (remainingCartError) throw new Error(`Cleanup cart verification failed: ${remainingCartError.message}`);
   if ((remainingCart ?? []).length > 0) throw new Error("Cleanup left checkout cart fixtures behind.");
+  const { data: remainingSellerReviews, error: remainingSellerReviewsError } = await admin
+    .from("seller_reviews").select("id").in("order_id", orderIds);
+  if (remainingSellerReviewsError) throw new Error(`Cleanup seller-review verification failed: ${remainingSellerReviewsError.message}`);
+  if ((remainingSellerReviews ?? []).length > 0) throw new Error("Cleanup left seller-review fixtures behind.");
+  const { data: remainingProductReviews, error: remainingProductReviewsError } = await admin
+    .from("product_reviews").select("id").in("order_id", orderIds);
+  if (remainingProductReviewsError) throw new Error(`Cleanup product-review verification failed: ${remainingProductReviewsError.message}`);
+  if ((remainingProductReviews ?? []).length > 0) throw new Error("Cleanup left product-review fixtures behind.");
   const { data: remainingOrders, error: remainingOrdersError } = await admin
     .from("orders").select("id").in("id", orderIds);
   if (remainingOrdersError) throw new Error(`Cleanup verification failed: ${remainingOrdersError.message}`);
@@ -134,6 +142,11 @@ async function run() {
       { id: IDS.unrelatedItem, order_id: IDS.unrelatedOrder, product_id: IDS.productB, quantity: 1, unit_price: 12, product_name: "Review Fixture B", unit: "kg" },
     ]);
     if (itemsInsert.error) throw new Error(`Order-item fixture setup failed: ${itemsInsert.error.message}`);
+    const pendingReviewInsert = await admin.from("seller_reviews").insert({
+      order_id: IDS.pendingOrder, reviewer_clerk_id: BUYER_A, target_farmer_clerk_id: FARMER_A, rating: 5,
+      comment: "Pending-order visibility fixture",
+    });
+    if (pendingReviewInsert.error) throw new Error(`Pending seller-review fixture setup failed: ${pendingReviewInsert.error.message}`);
 
     const buyerA = await authenticatedClient(BUYER_A);
     const buyerB = await authenticatedClient(BUYER_B);
@@ -184,8 +197,27 @@ async function run() {
     assert("REV-12", "verified seller review reads publicly", publicSeller?.length === 1 && publicSeller[0].rating === 5);
     assert("REV-13", "seller aggregate rating/count is correct", sellerSummary?.average_rating === 5 && Number(sellerSummary?.review_count) === 1);
     assert("REV-14", "product aggregate rating/count is correct", productSummary?.average_rating === 4 && Number(productSummary?.review_count) === 1 && publicProduct?.length === 1);
-    const { data: leaked } = await anon.from("seller_reviews").select("id").eq("order_id", IDS.pendingOrder);
-    assert("REV-15", "unrelated or non-completed review data does not leak", (leaked ?? []).length === 0);
+    const { data: pendingReviewFixture, error: pendingReviewFixtureError } = await admin
+      .from("seller_reviews").select("id, order_id, reviewer_clerk_id, target_farmer_clerk_id, rating")
+      .eq("order_id", IDS.pendingOrder).single();
+    const { data: pendingOrderFixture, error: pendingOrderFixtureError } = await admin
+      .from("orders").select("id, status").eq("id", IDS.pendingOrder).single();
+    if (pendingReviewFixtureError || pendingOrderFixtureError
+      || pendingReviewFixture?.order_id !== IDS.pendingOrder
+      || pendingReviewFixture.reviewer_clerk_id !== BUYER_A
+      || pendingReviewFixture.target_farmer_clerk_id !== FARMER_A
+      || pendingReviewFixture.rating !== 5
+      || pendingOrderFixture?.status !== "pending") {
+      throw new Error(`REV-15 fixture missing or invalid before anonymous visibility check: ${pendingReviewFixtureError?.message ?? pendingOrderFixtureError?.message ?? "admin verification did not match fixture"}`);
+    }
+    const { data: leaked, error: leakedError } = await anon.from("seller_reviews")
+      .select("id").eq("order_id", IDS.pendingOrder);
+    assert(
+      "REV-15",
+      "non-completed seller review stays hidden from anonymous readers",
+      !leakedError && Array.isArray(leaked) && leaked.length === 0,
+      leakedError ? `Anonymous query failed: ${leakedError.message}` : `${leaked?.length ?? "no"} rows returned`,
+    );
 
     // 16–22. Final authorization and input-hardening checks.
     const forged = await buyerA.from("orders").insert({

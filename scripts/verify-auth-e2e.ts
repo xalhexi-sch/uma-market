@@ -706,36 +706,41 @@ async function runAuthE2ETests(): Promise<void> {
   // ---------------------------------------------------------------------------
   section("AUTH-E2E-06 — Cross-Tenant Isolation (Buyer B vs Buyer A)");
   {
-    const { data: buyerAOrder } = await adminClient.from("orders").insert({
+    const { data: buyerAOrder, error: buyerAOrderError } = await adminClient.from("orders").insert({
       business_clerk_id: PERSONAS.buyerA.clerkId,
       farmer_clerk_id: PERSONAS.farmerA.clerkId,
       fulfillment_type: "pickup",
       total_amount: 250,
       status: "pending",
     }).select("id").single();
-
-    if (buyerAOrder) {
-      // Buyer B attempts to read Buyer A's order with real Buyer B JWT
-      const { data: crossTenantRead } = await buyerBClient
-        .from("orders")
-        .select("id, total_amount, business_clerk_id")
-        .eq("id", buyerAOrder.id);
-
-      // Sanity check with admin client
-      const { data: adminRead } = await adminClient
-        .from("orders")
-        .select("id, business_clerk_id")
-        .eq("id", buyerAOrder.id)
-        .single();
-
-      assert(
-        "AUTH-E2E-06",
-        "Authenticated Buyer B cannot read Buyer A orders (cross-tenant RLS)",
-        (!crossTenantRead || crossTenantRead.length === 0) &&
-        adminRead !== null && adminRead.business_clerk_id === PERSONAS.buyerA.clerkId,
-        crossTenantRead?.length ? `SECURITY LEAK: Buyer B read ${crossTenantRead.length} order(s)` : "RLS Enforced: 0 rows returned to Buyer B"
-      );
+    if (buyerAOrderError || !buyerAOrder) {
+      throw new Error(`AUTH-E2E-06 order fixture setup failed: ${buyerAOrderError?.message ?? "no row returned"}`);
     }
+
+    // Confirm the protected row exists and belongs to Buyer A before testing Buyer B's visibility.
+    const { data: adminRead, error: adminReadError } = await adminClient
+      .from("orders")
+      .select("id, business_clerk_id")
+      .eq("id", buyerAOrder.id)
+      .single();
+    if (adminReadError || !adminRead || adminRead.business_clerk_id !== PERSONAS.buyerA.clerkId) {
+      throw new Error(`AUTH-E2E-06 privileged fixture verification failed: ${adminReadError?.message ?? "order missing or owner mismatch"}`);
+    }
+
+    // Buyer B attempts to read Buyer A's order with a real Buyer B JWT.
+    const { data: crossTenantRead, error: crossTenantReadError } = await buyerBClient
+      .from("orders")
+      .select("id, total_amount, business_clerk_id")
+      .eq("id", buyerAOrder.id);
+
+    assert(
+      "AUTH-E2E-06",
+      "Authenticated Buyer B cannot read Buyer A orders (cross-tenant RLS)",
+      !crossTenantReadError && Array.isArray(crossTenantRead) && crossTenantRead.length === 0,
+      crossTenantReadError
+        ? `Buyer B query failed: ${crossTenantReadError.message}`
+        : crossTenantRead?.length ? `SECURITY LEAK: Buyer B read ${crossTenantRead.length} order(s)` : "RLS enforced: 0 rows returned to Buyer B",
+    );
   }
 
   // ---------------------------------------------------------------------------

@@ -496,14 +496,32 @@ async function runAnonRLSChecks(): Promise<void> {
     assert("D-19-PRE", "DATABASE", "Buyer A order created as pre-condition", false, oaErr?.message ?? "failed");
     return;
   }
-  await adminClient.from("order_items").insert({
+  const { data: itemFixture, error: itemFixtureError } = await adminClient.from("order_items").insert({
     order_id: orderA.id, product_id: T.productA1, quantity: 2,
     unit_price: 50, product_name: "TEST Kangkong Farmer A", unit: "kg",
-  });
-  await adminClient.from("cart_items").upsert(
+  }).select("id, order_id").single();
+  if (itemFixtureError || !itemFixture) {
+    throw new Error(`D-20 order-item fixture setup failed: ${itemFixtureError?.message ?? "no row returned"}`);
+  }
+  const { data: verifiedItemFixture, error: verifiedItemFixtureError } = await adminClient
+    .from("order_items").select("id, order_id").eq("id", itemFixture.id).single();
+  if (verifiedItemFixtureError || verifiedItemFixture?.order_id !== orderA.id) {
+    throw new Error(`D-20 privileged fixture verification failed: ${verifiedItemFixtureError?.message ?? "order item missing or mismatched"}`);
+  }
+
+  const { data: cartFixture, error: cartFixtureError } = await adminClient.from("cart_items").upsert(
     { business_clerk_id: T.buyerA_id, product_id: T.productA1, quantity: 5 },
     { onConflict: "business_clerk_id,product_id" }
-  );
+  ).select("id, business_clerk_id, product_id").single();
+  if (cartFixtureError || !cartFixture) {
+    throw new Error(`D-21 cart fixture setup failed: ${cartFixtureError?.message ?? "no row returned"}`);
+  }
+  const { data: verifiedCartFixture, error: verifiedCartFixtureError } = await adminClient
+    .from("cart_items").select("id, business_clerk_id, product_id").eq("id", cartFixture.id).single();
+  if (verifiedCartFixtureError || verifiedCartFixture?.business_clerk_id !== T.buyerA_id
+    || verifiedCartFixture.product_id !== T.productA1) {
+    throw new Error(`D-21 privileged fixture verification failed: ${verifiedCartFixtureError?.message ?? "cart item missing or mismatched"}`);
+  }
   const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -511,14 +529,15 @@ async function runAnonRLSChecks(): Promise<void> {
   assert("D-19", "DATABASE", "Anon client: orders returns 0 rows (RLS enforced)",
     !eOrds || eOrds.length === 0,
     eOrds?.length ? `SECURITY VIOLATION: ${eOrds.length} order(s) exposed` : "0 rows — RLS enforced");
-  const { data: eItms } = await anonClient.from("order_items").select("id").eq("order_id", orderA.id);
+  const { data: eItms, error: eItmsErr } = await anonClient.from("order_items").select("id").eq("order_id", orderA.id);
   assert("D-20", "DATABASE", "Anon client: order_items returns 0 rows (RLS enforced)",
-    !eItms || eItms.length === 0,
-    eItms?.length ? `SECURITY VIOLATION: ${eItms.length} item(s) exposed` : "0 rows — RLS enforced");
-  const { data: eCart } = await anonClient.from("cart_items").select("id").eq("business_clerk_id", T.buyerA_id);
+    !eItmsErr && Array.isArray(eItms) && eItms.length === 0,
+    eItmsErr ? `Anonymous query failed: ${eItmsErr.message}` : eItms?.length ? `SECURITY VIOLATION: ${eItms.length} item(s) exposed` : "0 rows — RLS enforced");
+  const { data: eCart, error: eCartErr } = await anonClient.from("cart_items").select("id")
+    .eq("business_clerk_id", T.buyerA_id).eq("product_id", T.productA1);
   assert("D-21", "DATABASE", "Anon client: cart_items returns 0 rows (RLS enforced)",
-    !eCart || eCart.length === 0,
-    eCart?.length ? `SECURITY VIOLATION: ${eCart.length} cart item(s) exposed` : "0 rows — RLS enforced");
+    !eCartErr && Array.isArray(eCart) && eCart.length === 0,
+    eCartErr ? `Anonymous query failed: ${eCartErr.message}` : eCart?.length ? `SECURITY VIOLATION: ${eCart.length} cart item(s) exposed` : "0 rows — RLS enforced");
   const { data: adminRead } = await adminClient.from("orders")
     .select("id, status").eq("id", orderA.id).single();
   assert("D-22", "DATABASE", "Admin (service_role) confirms order exists (sanity check)",
