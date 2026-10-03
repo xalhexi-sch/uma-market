@@ -1,12 +1,26 @@
+// ==============================================================================
+// UMA Market — Search + Category + Filter Regression Verification Suite
+//
+// SAFETY RULES:
+//   1. MUST ONLY target the dedicated security-test Supabase project.
+//   2. Credentials are loaded EXCLUSIVELY from .env.security-test.local;
+//      the production environment file is never read.
+//   3. ABORTS (exit 2) before any Supabase client is constructed if the
+//      resolved project is production or any unknown ref.
+//   4. Never prints keys, secrets, or JWTs.
+// ==============================================================================
+
 import { createClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
+import { loadSecurityTestEnv } from "./lib/safety-guard";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+// Environment safety guard (shared): aborts with exit code 2 on production or
+// on any unknown Supabase project, before any client is constructed.
+const env = loadSecurityTestEnv("verify-search-category-filter");
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+const supabaseUrl = env.supabaseUrl;
+const supabaseAnonKey = env.anonKey;
 
 const client = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { persistSession: false, autoRefreshToken: false },

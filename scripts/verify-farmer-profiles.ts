@@ -1,22 +1,27 @@
 // ==============================================================================
 // UMA Market — Public Farmer Profile Feature Verification Suite
 // Tests public access, safe fields exposure, active-product filtering, and security
+//
+// SAFETY RULES:
+//   1. MUST ONLY target the dedicated security-test Supabase project.
+//   2. Credentials are loaded EXCLUSIVELY from .env.security-test.local;
+//      the production environment file is never read.
+//   3. ABORTS (exit 2) before any Supabase client is constructed if the
+//      resolved project is production or any unknown ref.
+//   4. Never prints keys, secrets, or JWTs.
 // ==============================================================================
 
 import { createClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
-import * as path from "path";
+import { loadSecurityTestEnv } from "./lib/safety-guard";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+// Environment safety guard (shared): loads .env.security-test.local, aborts
+// with exit code 2 on production or on any unknown Supabase project, before
+// any Supabase client is constructed.
+const env = loadSecurityTestEnv("verify-farmer-profiles");
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Missing environment variables: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
-  process.exit(1);
-}
+const supabaseUrl = env.supabaseUrl;
+const supabaseAnonKey = env.anonKey;
+const supabaseSecretKey = env.secretKey;
 
 // Anonymous public client (represents unauthenticated visitor)
 const publicClient = createClient(supabaseUrl, supabaseAnonKey, {

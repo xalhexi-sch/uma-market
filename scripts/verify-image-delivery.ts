@@ -2,16 +2,26 @@
 // UMA Market — Image Delivery & Rendering Optimization Verification Suite
 // Slice 2 verification: Next.js Image pathing, crash-proof source handling,
 // responsive sizes, LCP priority, untouched Clerk avatars & upload previews
+//
+// SAFETY RULES:
+//   1. MUST ONLY target the dedicated security-test Supabase project.
+//   2. Credentials are loaded EXCLUSIVELY from .env.security-test.local;
+//      the production environment file is never read.
+//   3. ABORTS (exit 2) before any request is made if the resolved project is
+//      production or any unknown ref.
+//   4. Never prints keys, secrets, or JWTs.
 // ==============================================================================
 
 import { readFileSync } from "fs";
 import * as path from "path";
-import * as dotenv from "dotenv";
 import sharp from "sharp";
+import { loadSecurityTestEnv } from "./lib/safety-guard";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+// Environment safety guard (shared): aborts with exit code 2 on production or
+// on any unknown Supabase project, before any request is made.
+const env = loadSecurityTestEnv("verify-image-delivery");
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://xckdihprwjdwutglytwu.supabase.co";
+const supabaseUrl = env.supabaseUrl;
 
 interface TestResult {
   id: string;
