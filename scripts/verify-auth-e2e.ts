@@ -33,6 +33,7 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { createClerkClient } from "@clerk/nextjs/server";
 import * as dotenv from "dotenv";
 import * as path from "path";
+import { assertClerkDevelopmentKey } from "./lib/safety-guard";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env.security-test.local") });
 
@@ -71,6 +72,10 @@ if (!supabaseAnonKey || !supabaseSecretKey || !clerkSecretKey || !clerkPublishab
   console.error("ABORT: Missing required Supabase or Clerk environment variables");
   process.exit(1);
 }
+
+// Clerk must be the Development instance (sk_test_...): this suite mints Clerk
+// sessions and must never be able to touch a production Clerk instance.
+assertClerkDevelopmentKey("verify-auth-e2e", clerkSecretKey);
 
 // Clerk SDK Client
 const clerk = createClerkClient({

@@ -28,6 +28,9 @@ export const SECURITY_TEST_SUPABASE_URL = `https://${SECURITY_TEST_SUPABASE_REF}
 /** Env file holding the isolated security-test credentials. */
 export const SECURITY_TEST_ENV_FILE = ".env.security-test.local";
 
+/** Clerk Development-instance secret keys start with this prefix (production keys use `sk_live_`). */
+export const CLERK_DEV_SECRET_KEY_PREFIX = "sk_test_";
+
 /** Exit status used for every safety abort. Distinct from assertion failures (1). */
 export const SAFETY_ABORT_EXIT_CODE = 2;
 
@@ -66,6 +69,31 @@ function validateProjectUrl(scriptName: string, supabaseUrl: string): void {
       "Verification scripts only run against the documented security-test project.",
     ]);
   }
+}
+
+/** True only for a non-empty Clerk Development-instance secret key (`sk_test_...`). */
+export function isClerkDevelopmentKey(clerkSecretKey: string): boolean {
+  return clerkSecretKey.startsWith(CLERK_DEV_SECRET_KEY_PREFIX) &&
+    clerkSecretKey.length > CLERK_DEV_SECRET_KEY_PREFIX.length;
+}
+
+/**
+ * Fails closed (exit 2) unless the Clerk secret key is a Development key.
+ *
+ * Guards every live path that can create/delete synthetic Clerk users or mint
+ * Clerk sessions. A production (`sk_live_`), unknown or missing key aborts
+ * BEFORE any Clerk client is constructed or any Clerk request is sent. The key
+ * value is never printed.
+ */
+export function assertClerkDevelopmentKey(scriptName: string, clerkSecretKey: string): void {
+  if (isClerkDevelopmentKey(clerkSecretKey)) return;
+  abort(scriptName, "CLERK KEY IS NOT A DEVELOPMENT KEY", [
+    clerkSecretKey
+      ? `CLERK_SECRET_KEY does not start with '${CLERK_DEV_SECRET_KEY_PREFIX}'.`
+      : "CLERK_SECRET_KEY is not set.",
+    "Live authorization tests may only use the Clerk Development instance (synthetic users only).",
+    `Set a '${CLERK_DEV_SECRET_KEY_PREFIX}...' key in ${SECURITY_TEST_ENV_FILE}.`,
+  ]);
 }
 
 /**

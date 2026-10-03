@@ -19,6 +19,7 @@ import type { Browser, BrowserContext } from "@playwright/test";
 import { createHash, randomUUID } from "node:crypto";
 import { Webhook } from "standardwebhooks";
 import {
+  assertClerkDevelopmentKey,
   loadSecurityTestEnv,
   PROD_SUPABASE_REF,
   SECURITY_TEST_SUPABASE_REF,
@@ -47,6 +48,11 @@ if (!clerkSecretKey) {
     "CLERK_SECRET_KEY is required in .env.security-test.local for the browser regression suite.",
   );
 }
+
+// Every Clerk Backend API helper below authenticates with this key (synthetic
+// user create/delete, sessions, sign-in tickets). Fail closed unless it is a
+// Clerk Development key (sk_test_...); a production key never reaches a request.
+assertClerkDevelopmentKey("browser-regression", clerkSecretKey);
 
 /**
  * Signing secret the app under test uses to verify Clerk webhook deliveries.

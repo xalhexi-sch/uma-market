@@ -30,6 +30,7 @@ import {
   revokeSession,
   serviceClient,
 } from "./harness";
+import { runCleanupSteps } from "./cleanup";
 
 const REJECTED_ERROR = "Choose a valid farmer or business role to continue.";
 
@@ -46,24 +47,57 @@ test.describe("AUTHZ-10 — onboarding role escalation", () => {
     const contexts: Array<Awaited<ReturnType<typeof authenticatedContext>>["context"]> = [];
 
     const cleanup = async (): Promise<void> => {
-      // Profile rows first (while the users still exist for id clarity), then
-      // sessions, then the synthetic users themselves.
-      if (syntheticUserIds.length > 0) {
-        const { error } = await supabaseAdmin.from("profiles").delete().in("clerk_id", syntheticUserIds);
-        if (error) throw new Error(`cleanup: profile delete failed: ${error.message}`);
-      }
-      for (const sessionId of sessionIds) {
-        await revokeSession(sessionId).catch(() => undefined);
-      }
-      for (const context of contexts) {
-        await context.close().catch(() => undefined);
-      }
-      for (const userId of syntheticUserIds) {
-        await deleteClerkUser(userId);
-      }
+      // Each step runs independently. A failure (e.g. profile delete) does NOT
+      // prevent the Clerk user deletion from running — the safety property that
+      // the original single-chain implementation violated.
+      const failures = await runCleanupSteps([
+        {
+          name: "delete profiles",
+          run: async () => {
+            if (syntheticUserIds.length === 0) return;
+            const { error } = await supabaseAdmin
+              .from("profiles")
+              .delete()
+              .in("clerk_id", syntheticUserIds);
+            if (error) throw new Error(error.message);
+          },
+        },
+        {
+          name: "revoke sessions",
+          run: async () => {
+            for (const sessionId of sessionIds) {
+              await revokeSession(sessionId).catch(() => undefined);
+            }
+          },
+        },
+        {
+          name: "close contexts",
+          run: async () => {
+            for (const context of contexts) {
+              await context.close().catch(() => undefined);
+            }
+          },
+        },
+        {
+          name: "delete Clerk users",
+          run: async () => {
+            for (const userId of syntheticUserIds) {
+              await deleteClerkUser(userId);
+            }
+          },
+        },
+      ]);
+
       syntheticUserIds.length = 0;
       sessionIds.length = 0;
       contexts.length = 0;
+
+      if (failures.length > 0) {
+        throw new Error(
+          `cleanup failed (${failures.length} step(s)):\n` +
+            failures.map((f) => `  - ${f}`).join("\n"),
+        );
+      }
     };
 
     try {
