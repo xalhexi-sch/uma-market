@@ -1,22 +1,26 @@
 // ==============================================================================
 // UMA Market — Smart Search & Discovery Automated Verification Suite
 // Feature A Verification Script
+//
+// SAFETY RULES:
+//   1. MUST ONLY target the dedicated security-test Supabase project.
+//   2. Credentials are loaded EXCLUSIVELY from .env.security-test.local;
+//      the production environment file is never read.
+//   3. ABORTS (exit 2) before any Supabase client is constructed if the
+//      resolved project is production or any unknown ref.
+//   4. Never prints keys, secrets, or JWTs.
 // ==============================================================================
 
 import { createClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
-import * as path from "path";
+import { loadSecurityTestEnv } from "./lib/safety-guard";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+// Environment safety guard (shared): loads .env.security-test.local, aborts with
+// exit code 2 on production or on any unknown Supabase project.
+const env = loadSecurityTestEnv("verify-smart-search");
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Missing environment variables: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
-  process.exit(1);
-}
+const supabaseUrl = env.supabaseUrl;
+const supabaseAnonKey = env.anonKey;
+const supabaseSecretKey = env.secretKey;
 
 // Anonymous client (represents public visitors browsing /products)
 const publicClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -27,6 +31,23 @@ const publicClient = createClient(supabaseUrl, supabaseAnonKey, {
 const adminClient = createClient(supabaseUrl, supabaseSecretKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
+
+/** Fixed fixture row created by this suite; removed deterministically on the way out. */
+const FIXTURE_ID = "a0000001-0000-0000-0000-000000000099";
+
+/**
+ * Removes this suite's fixture by its exact primary key and nothing else.
+ * Warns instead of throwing: `order_items.product_id` is ON DELETE RESTRICT, so a
+ * fixture referenced by an order simply stays behind rather than failing the run.
+ */
+async function cleanupFixture(): Promise<void> {
+  try {
+    const { error } = await adminClient.from("products").delete().eq("id", FIXTURE_ID);
+    if (error) console.warn(`WARN: fixture ${FIXTURE_ID} not removed: ${error.message}`);
+  } catch (err) {
+    console.warn(`WARN: fixture cleanup failed: ${String(err)}`);
+  }
+}
 
 interface SearchRow {
   id: string;
@@ -76,7 +97,7 @@ async function run() {
 
   if (vegCat && farmer) {
     await adminClient.from("products").upsert({
-      id: "a0000001-0000-0000-0000-000000000099",
+      id: FIXTURE_ID,
       farmer_clerk_id: farmer.clerk_id,
       category_id: vegCat.id,
       name: "Ampayon Fresh Red Tomatoes",
@@ -362,6 +383,9 @@ async function run() {
     );
   }
 
+  // Deterministic fixture cleanup: exact PK only, security-test project only.
+  await cleanupFixture();
+
   console.log("\n==============================================================================");
   const total = results.length;
   const passed = results.filter((r) => r.passed).length;
@@ -374,7 +398,8 @@ async function run() {
   }
 }
 
-run().catch((err) => {
+run().catch(async (err) => {
+  await cleanupFixture();
   console.error("Fatal error running test suite:", err);
   process.exit(1);
 });

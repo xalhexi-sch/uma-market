@@ -35,9 +35,15 @@ const GUARDED_SUITES = [
   "scripts/seed-demo-data.ts",
   "scripts/verify-avatar-sync.ts",
   "scripts/verify-checkout-orders.ts",
+  "scripts/verify-farmer-profiles.ts",
+  "scripts/verify-image-delivery.ts",
   "scripts/verify-order-query-tabs.ts",
+  "scripts/verify-phase-2-search.ts",
+  "scripts/verify-phase-3-parity.ts",
   "scripts/verify-pickup-date.ts",
   "scripts/verify-query-efficiency.ts",
+  "scripts/verify-search-category-filter.ts",
+  "scripts/verify-smart-search.ts",
 ];
 
 /**
