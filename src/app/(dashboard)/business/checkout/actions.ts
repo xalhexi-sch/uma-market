@@ -190,6 +190,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<{
     return { success: false, error: checkoutError("ACCOUNT_INACTIVE") };
   }
 
+  // Rate limit: 10 checkout attempts per minute. Shares the same budget as
+  // placeMultiFarmerCheckout, so this mutation cannot be used to bypass it.
+  const rateResult = checkoutRateLimit(userId);
+  if (!rateResult.success) {
+    return { success: false, error: checkoutError("RATE_LIMITED") };
+  }
+
   if (input.items.length === 0) {
     return { success: false, error: checkoutError("EMPTY_CART") };
   }
