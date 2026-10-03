@@ -253,11 +253,21 @@ const LIMIT_ORDERS = LIMIT_ORDER_IDS.map((id, i) => ({
 }));
 
 async function cleanupLimitFixtures() {
-  await adminClient.from("orders").delete().in("id", LIMIT_ORDER_IDS);
-  await adminClient
+  const { error: ordersDeleteError } = await adminClient.from("orders").delete().in("id", LIMIT_ORDER_IDS);
+  if (ordersDeleteError) throw new Error(`Limit fixture order cleanup failed: ${ordersDeleteError.message}`);
+  const { error: profilesDeleteError } = await adminClient
     .from("profiles")
     .delete()
     .in("clerk_id", [LIMIT_BUYER_CLERK_ID, LIMIT_FARMER_CLERK_ID]);
+  if (profilesDeleteError) throw new Error(`Limit fixture profile cleanup failed: ${profilesDeleteError.message}`);
+  const { data: remainingOrders, error: remainingOrdersError } = await adminClient
+    .from("orders").select("id").in("id", LIMIT_ORDER_IDS);
+  if (remainingOrdersError) throw new Error(`Limit fixture order cleanup verification failed: ${remainingOrdersError.message}`);
+  if ((remainingOrders ?? []).length > 0) throw new Error("Limit fixture orders remain after cleanup.");
+  const { data: remainingProfiles, error: remainingProfilesError } = await adminClient
+    .from("profiles").select("clerk_id").in("clerk_id", [LIMIT_BUYER_CLERK_ID, LIMIT_FARMER_CLERK_ID]);
+  if (remainingProfilesError) throw new Error(`Limit fixture profile cleanup verification failed: ${remainingProfilesError.message}`);
+  if ((remainingProfiles ?? []).length > 0) throw new Error("Limit fixture profiles remain after cleanup.");
 }
 
 async function provisionLimitFixtures(): Promise<string | null> {
@@ -714,30 +724,50 @@ async function runQueryEfficiencyVerification() {
   // 6. Security & RLS Non-Regression
   // -------------------------------------------------------------------------
   console.log("\n--- 6. Security & RLS Non-Regression Verification ---");
+  try {
+    const fixtureError = await provisionLimitFixtures();
+    if (fixtureError) throw new Error(`SEC-01/02 fixture setup failed: ${fixtureError}`);
 
-  const { data: anonOrders, error: anonOrdersErr } = await anonClient.from("orders").select("id, total_amount");
+    const { data: protectedOrder, error: protectedOrderError } = await adminClient
+      .from("orders").select("id, total_amount").eq("id", LIMIT_ORDER_IDS[0]).single();
+    if (protectedOrderError || !protectedOrder) {
+      throw new Error(`SEC-01 privileged fixture verification failed: ${protectedOrderError?.message ?? "order row missing"}`);
+    }
+    const { data: anonOrders, error: anonOrdersErr } = await anonClient
+      .from("orders").select("id, total_amount").eq("id", protectedOrder.id);
 
-  assert(
-    "SEC-01",
-    "Anonymous client cannot access orders (RLS enforced)",
-    anonOrdersErr !== null || anonOrders === null || (Array.isArray(anonOrders) && anonOrders.length === 0),
-    anonOrdersErr
-      ? `RLS error: ${anonOrdersErr.message}`
-      : `Anonymous orders returned: ${anonOrders?.length ?? 0} rows`,
-  );
+    assert(
+      "SEC-01",
+      "Anonymous client cannot access a real order fixture (RLS enforced)",
+      !anonOrdersErr && Array.isArray(anonOrders) && anonOrders.length === 0,
+      anonOrdersErr
+        ? `Anonymous query failed: ${anonOrdersErr.message}`
+        : `Anonymous orders returned: ${anonOrders?.length ?? "no"} rows`,
+    );
 
-  const { data: anonProfiles, error: anonProfilesErr } = await anonClient
-    .from("profiles")
-    .select("clerk_id, phone, address");
+    const { data: protectedProfile, error: protectedProfileError } = await adminClient
+      .from("profiles").select("clerk_id").eq("clerk_id", LIMIT_BUYER_CLERK_ID).single();
+    if (protectedProfileError || !protectedProfile) {
+      throw new Error(`SEC-02 privileged fixture verification failed: ${protectedProfileError?.message ?? "profile row missing"}`);
+    }
+    const { data: anonProfiles, error: anonProfilesErr } = await anonClient
+      .from("profiles").select("clerk_id, phone, address").eq("clerk_id", protectedProfile.clerk_id);
+    const profileReadDenied = anonProfilesErr?.code === "42501"
+      && anonProfilesErr.message === "permission denied for table profiles";
 
-  assert(
-    "SEC-02",
-    "Anonymous client cannot access private profile columns (RLS enforced)",
-    anonProfilesErr !== null || anonProfiles === null || (Array.isArray(anonProfiles) && anonProfiles.length === 0),
-    anonProfilesErr
-      ? `RLS error: ${anonProfilesErr.message}`
-      : `Anonymous profiles returned: ${anonProfiles?.length ?? 0} rows`,
-  );
+    assert(
+      "SEC-02",
+      "Anonymous client cannot read a real private profile fixture",
+      profileReadDenied || (!anonProfilesErr && Array.isArray(anonProfiles) && anonProfiles.length === 0),
+      anonProfilesErr
+        ? profileReadDenied
+          ? `Anonymous SELECT denied by table privileges (${anonProfilesErr.code})`
+          : `Unexpected anonymous query error (${anonProfilesErr.code}): ${anonProfilesErr.message}`
+        : `Anonymous profiles returned: ${anonProfiles?.length ?? "no"} rows`,
+    );
+  } finally {
+    await cleanupLimitFixtures();
+  }
 
   const { data: publicProfiles, error: publicProfilesErr } = await anonClient
     .from("public_farmer_profiles")
