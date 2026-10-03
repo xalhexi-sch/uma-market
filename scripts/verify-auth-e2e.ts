@@ -20,6 +20,11 @@
 //   AUTH-E2E-07  Buyer JWT calling update_order_status raises farmer-only error
 //   AUTH-E2E-08  Revoked profile blocked by assertActiveProfile (SEC-AUTH-001)
 //
+// TASK 3B-1 — AUTHORIZATION REGRESSION COVERAGE (runtime, authenticated JWTs)
+//   AUTHZ-08    Farmer JWT cannot change profile role (trigger trg_protect_profile_fields)
+//   AUTHZ-09    Farmer JWT cannot change profile is_verified; admin JWT still can
+//   AUTHZ-12    Non-participants read 0 message rows for another tenant's order (RLS)
+//
 // HOW TO RUN:
 //   npx tsx --env-file=.env.security-test.local scripts/verify-auth-e2e.ts
 // =============================================================================
@@ -117,7 +122,18 @@ const FIXTURES = {
   productB1:  "e0000001-0000-0000-0000-000000000211",
   productLow: "e0000001-0000-0000-0000-000000000221",
   productMOQ: "e0000001-0000-0000-0000-000000000222",
+  // AUTHZ-12 message isolation: deterministic so pre-run cleanup self-heals.
+  authz12OrderA: "e0000001-0000-0000-0000-000000000301",
+  authz12OrderB: "e0000001-0000-0000-0000-000000000302",
 };
+
+/** Clerk ids of every shared persona — cleanup restores their profile state. */
+const ALL_PERSONAS = [
+  PERSONAS.buyerA.clerkId,
+  PERSONAS.buyerB.clerkId,
+  PERSONAS.farmerA.clerkId,
+  PERSONAS.farmerB.clerkId,
+];
 
 // =============================================================================
 // DETERMINISTIC PICKUP DATE
@@ -181,6 +197,9 @@ function section(title: string): void {
 // Store active Clerk session IDs to revoke in finally{}
 const activeClerkSessionIds: string[] = [];
 
+// dedupe keys of AUTHZ-12 message notifications created by this run
+const authz12MessageDedupeKeys: string[] = [];
+
 async function getAuthenticatedClient(userId: string): Promise<SupabaseClient> {
   const session = await clerk.sessions.createSession({ userId });
   activeClerkSessionIds.push(session.id);
@@ -241,6 +260,19 @@ async function cleanupFixtures(): Promise<void> {
     );
   if (cartDelErr) errors.push(`cart_items delete: ${cartDelErr.message}`);
 
+  // 2b. AUTHZ-12 fixture notifications (dedupe keys are derived from the
+  //     deterministic fixture ids / tracked message ids, so this is scoped).
+  const { error: authzNotifDelErr } = await adminClient
+    .from("notifications")
+    .delete()
+    .in("dedupe_key", [
+      `order:new:${FIXTURES.authz12OrderA}`,
+      `order:new:${FIXTURES.authz12OrderB}`,
+      ...authz12MessageDedupeKeys,
+    ]);
+  if (authzNotifDelErr) errors.push(`notifications delete: ${authzNotifDelErr.message}`);
+  authz12MessageDedupeKeys.length = 0;
+
   // 3. Delete deterministic test products
   const { error: productsDelErr } = await adminClient
     .from("products")
@@ -254,11 +286,12 @@ async function cleanupFixtures(): Promise<void> {
     ]);
   if (productsDelErr) errors.push(`products delete: ${productsDelErr.message}`);
 
-  // 4. Ensure Buyer A profile status is restored to active
+  // 4. Restore shared profile state: status active (SEC-AUTH-001) and
+  //    is_verified true for every persona (AUTHZ-09 flips Farmer B).
   await adminClient
     .from("profiles")
-    .update({ status: "active" })
-    .eq("clerk_id", PERSONAS.buyerA.clerkId);
+    .update({ status: "active", is_verified: true })
+    .in("clerk_id", ALL_PERSONAS);
 
   // 5. Revoke all created Clerk sessions
   for (const sessionId of activeClerkSessionIds) {
@@ -414,7 +447,9 @@ async function runAuthE2ETests(): Promise<void> {
   const buyerAClient = await getAuthenticatedClient(PERSONAS.buyerA.clerkId);
   const buyerBClient = await getAuthenticatedClient(PERSONAS.buyerB.clerkId);
   const farmerAClient = await getAuthenticatedClient(PERSONAS.farmerA.clerkId);
-  console.log("  Authenticated clients ready (Buyer A, Buyer B, Farmer A)");
+  const farmerBClient = await getAuthenticatedClient(PERSONAS.farmerB.clerkId);
+  const adminJwtClient = await getAuthenticatedClient(PERSONAS.admin.clerkId);
+  console.log("  Authenticated clients ready (Buyer A, Buyer B, Farmer A, Farmer B, Admin)");
 
   // ---------------------------------------------------------------------------
   // AUTH-E2E-01: Multi-farmer checkout atomicity via place_checkout_orders
@@ -772,6 +807,234 @@ async function runAuthE2ETests(): Promise<void> {
        checkoutErr.message.includes("not available")) &&
       revokedProfile?.status === "revoked",
       checkoutErr ? `Blocked: "${checkoutErr.message}"` : "SECURITY VIOLATION: Revoked account checkout accepted!"
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // AUTHZ-08: non-admin JWT cannot change profile role (database trigger)
+  //
+  // Exercises the JWT-backed path end to end: the update passes the "profiles:
+  // update own" RLS policy (farmer edits OWN row), then BEFORE UPDATE trigger
+  // trg_protect_profile_fields must raise. Service-role behaviour is never
+  // used as proof here.
+  // ---------------------------------------------------------------------------
+  section("AUTHZ-08 — Profile Role Tampering Rejected (trigger, JWT path)");
+  {
+    const before = await adminClient
+      .from("profiles")
+      .select("role")
+      .eq("clerk_id", PERSONAS.farmerA.clerkId)
+      .single();
+
+    const { error } = await farmerAClient
+      .from("profiles")
+      .update({ role: "admin" })
+      .eq("clerk_id", PERSONAS.farmerA.clerkId);
+
+    const after = await adminClient
+      .from("profiles")
+      .select("role")
+      .eq("clerk_id", PERSONAS.farmerA.clerkId)
+      .single();
+
+    assert(
+      "AUTHZ-08",
+      "Authenticated farmer JWT cannot set role=admin (trigger raises)",
+      before.data?.role === "farmer" &&
+      error !== null &&
+      error.message.includes("Only administrators can modify profile role") &&
+      after.data?.role === "farmer",
+      error
+        ? `Rejected: "${error.message}" | role before=${before.data?.role} after=${after.data?.role}`
+        : `SECURITY VIOLATION: update accepted, role is now "${after.data?.role}"`
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // AUTHZ-09: non-admin JWT cannot change profile is_verified (database trigger)
+  //
+  // Setup makes Farmer B genuinely UNVERIFIED so the tamper is a real state
+  // change attempt (a same-value update would be vacuous). The admin path is
+  // asserted with a real false -> true change so it cannot pass tautologically.
+  // ---------------------------------------------------------------------------
+  section("AUTHZ-09 — Profile is_verified Tampering Rejected (trigger, JWT path)");
+  {
+    const setup = await adminClient
+      .from("profiles")
+      .update({ is_verified: false })
+      .eq("clerk_id", PERSONAS.farmerB.clerkId)
+      .select("is_verified")
+      .single();
+
+    const { error } = await farmerBClient
+      .from("profiles")
+      .update({ is_verified: true })
+      .eq("clerk_id", PERSONAS.farmerB.clerkId);
+
+    const afterTamper = await adminClient
+      .from("profiles")
+      .select("is_verified")
+      .eq("clerk_id", PERSONAS.farmerB.clerkId)
+      .single();
+
+    assert(
+      "AUTHZ-09",
+      "Unverified farmer JWT cannot set is_verified=true (trigger raises)",
+      setup.data?.is_verified === false &&
+      error !== null &&
+      error.message.includes("Only administrators can modify profile verification status") &&
+      afterTamper.data?.is_verified === false,
+      error
+        ? `Rejected: "${error.message}" | is_verified still ${afterTamper.data?.is_verified}`
+        : `SECURITY VIOLATION: update accepted, is_verified is now "${afterTamper.data?.is_verified}"`
+    );
+
+    // Allowed admin path (existing policy, unchanged): admin JWT flips the
+    // protected field false -> true, proving the exception above is a role
+    // gate and not a dead column.
+    const adminFlip = await adminJwtClient
+      .from("profiles")
+      .update({ is_verified: true })
+      .eq("clerk_id", PERSONAS.farmerB.clerkId)
+      .select("is_verified")
+      .single();
+
+    assert(
+      "AUTHZ-09-A",
+      "Admin JWT may modify is_verified (existing admin policy)",
+      adminFlip.data?.is_verified === true,
+      adminFlip.error
+        ? `Admin update rejected: "${adminFlip.error.message}"`
+        : `is_verified is now ${adminFlip.data?.is_verified}`
+    );
+
+    // Restore shared fixture state (also restored defensively in cleanup).
+    await adminClient
+      .from("profiles")
+      .update({ is_verified: true })
+      .eq("clerk_id", PERSONAS.farmerB.clerkId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // AUTHZ-12: cross-tenant message read isolation (RLS "messages: participants read")
+  //
+  // Order A = Buyer A + Farmer A (holds a real message), Order B = Buyer B +
+  // Farmer B. The protected row's existence is proven with the authorized
+  // service-role client BEFORE the attacker reads are attempted.
+  // ---------------------------------------------------------------------------
+  section("AUTHZ-12 — Cross-Tenant Message Read Isolation (RLS)");
+  {
+    const fixtureOrders = await adminClient.from("orders").upsert(
+      [
+        {
+          id: FIXTURES.authz12OrderA,
+          business_clerk_id: PERSONAS.buyerA.clerkId,
+          farmer_clerk_id: PERSONAS.farmerA.clerkId,
+          fulfillment_type: "pickup",
+          total_amount: 10,
+          status: "pending",
+        },
+        {
+          id: FIXTURES.authz12OrderB,
+          business_clerk_id: PERSONAS.buyerB.clerkId,
+          farmer_clerk_id: PERSONAS.farmerB.clerkId,
+          fulfillment_type: "pickup",
+          total_amount: 10,
+          status: "pending",
+        },
+      ],
+      { onConflict: "id" },
+    );
+    assert(
+      "AUTHZ-12-0",
+      "Fixture orders A and B exist (different tenants)",
+      !fixtureOrders.error,
+      fixtureOrders.error?.message ?? "orders upserted"
+    );
+
+    // Real message written through the authenticated participant insert policy.
+    const inserted = await buyerAClient
+      .from("messages")
+      .insert({
+        order_id: FIXTURES.authz12OrderA,
+        sender_clerk_id: PERSONAS.buyerA.clerkId,
+        body: "AUTHZ-12 fixture message — must not leak cross-tenant",
+      })
+      .select("id")
+      .single();
+    if (inserted.data?.id) authz12MessageDedupeKeys.push(`message:${inserted.data.id}`);
+
+    // Prove the protected row exists via the authorized setup client.
+    const { data: protectedRows } = await adminClient
+      .from("messages")
+      .select("id, body")
+      .eq("order_id", FIXTURES.authz12OrderA);
+    const nonVacuous = !inserted.error && (protectedRows ?? []).length >= 1;
+    assert(
+      "AUTHZ-12-1",
+      "Order A holds at least one message (non-vacuous fixture)",
+      nonVacuous,
+      inserted.error
+        ? `participant insert failed: ${inserted.error.message}`
+        : `messages on order A (service role): ${(protectedRows ?? []).length}`
+    );
+
+    // --- Attacks: cross-tenant readers get ZERO rows ---
+    const buyerBRead = await buyerBClient
+      .from("messages")
+      .select("id, body")
+      .eq("order_id", FIXTURES.authz12OrderA);
+    assert(
+      "AUTHZ-12-2",
+      "Non-participant business (Buyer B) reads 0 rows of Order A",
+      !buyerBRead.error && (buyerBRead.data ?? []).length === 0,
+      buyerBRead.error
+        ? `query error: ${buyerBRead.error.message}`
+        : (buyerBRead.data ?? []).length === 0
+          ? "0 rows returned"
+          : `SECURITY LEAK: ${(buyerBRead.data ?? []).length} row(s) returned`
+    );
+
+    const farmerBRead = await farmerBClient
+      .from("messages")
+      .select("id, body")
+      .eq("order_id", FIXTURES.authz12OrderA);
+    assert(
+      "AUTHZ-12-3",
+      "Non-participant farmer (Farmer B) reads 0 rows of Order A",
+      !farmerBRead.error && (farmerBRead.data ?? []).length === 0,
+      farmerBRead.error
+        ? `query error: ${farmerBRead.error.message}`
+        : (farmerBRead.data ?? []).length === 0
+          ? "0 rows returned"
+          : `SECURITY LEAK: ${(farmerBRead.data ?? []).length} row(s) returned`
+    );
+
+    // --- Legitimate participants still read their own thread ---
+    const buyerARead = await buyerAClient
+      .from("messages")
+      .select("id, body")
+      .eq("order_id", FIXTURES.authz12OrderA);
+    assert(
+      "AUTHZ-12-4",
+      "Participant business (Buyer A) reads Order A thread",
+      !buyerARead.error && (buyerARead.data ?? []).length >= 1,
+      buyerARead.error
+        ? `query error: ${buyerARead.error.message}`
+        : `${(buyerARead.data ?? []).length} row(s) returned`
+    );
+
+    const farmerARead = await farmerAClient
+      .from("messages")
+      .select("id, body")
+      .eq("order_id", FIXTURES.authz12OrderA);
+    assert(
+      "AUTHZ-12-5",
+      "Participant farmer (Farmer A) reads Order A thread",
+      !farmerARead.error && (farmerARead.data ?? []).length >= 1,
+      farmerARead.error
+        ? `query error: ${farmerARead.error.message}`
+        : `${(farmerARead.data ?? []).length} row(s) returned`
     );
   }
 }

@@ -221,6 +221,12 @@ jobs:
       - name: Verify / avatar synchronization (A7)
         run: npm run verify:avatar-sync
 
+      # AUTHZ-08/09/12: live authorization regression coverage. Runs real
+      # Clerk session JWTs against the isolated project (trigger + RLS paths),
+      # with fixture-scoped cleanup and fail-closed environment guards.
+      - name: Verify / authorization regressions (AUTHZ-08/09/12)
+        run: npm run verify:auth-e2e
+
       # This suite shells out to `supabase db query --linked`, which authenticates
       # with SUPABASE_ACCESS_TOKEN via the Management API. The token is injected
       # once at JOB scope (see the job `env` above), so this step — and any

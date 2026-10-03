@@ -195,6 +195,48 @@ export async function createSignInTicket(clerkUserId: string): Promise<string> {
   return token;
 }
 
+/**
+ * Creates a synthetic, ROLE-LESS Clerk test user (AUTHZ-10).
+ *
+ * The account exists only in the isolated Development instance, carries no
+ * `publicMetadata.role`, and must be deleted by the caller's cleanup. A
+ * role-less `user.created` event carries no profile write, so it cannot
+ * mutate any database outside this test.
+ */
+export async function createSyntheticUser(prefix: string): Promise<Persona> {
+  const email = `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+  // BAPI key is `email_address` (array). Addresses are created VERIFIED by
+  // default, satisfying this instance's verify-at-sign-up requirement.
+  const user = await clerkFetch<{ id: string }>("/users", {
+    method: "POST",
+    body: JSON.stringify({
+      email_address: [email],
+      password: `Uma!Test-${randomUUID()}`,
+    }),
+  });
+  return { clerkUserId: user.id, email };
+}
+
+/** Deletes a synthetic Clerk test user. Cleanup only; never throws on 404. */
+export async function deleteClerkUser(clerkUserId: string): Promise<void> {
+  const response = await fetch(`${CLERK_API}/users/${clerkUserId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${clerkSecretKey}` },
+  });
+  // 204 = deleted, 404 = already gone. Both are acceptable for cleanup.
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`Deleting Clerk test user failed: HTTP ${response.status}`);
+  }
+}
+
+/** Reads a user's public metadata (AUTHZ-10 escalation assertions). */
+export async function getPublicMetadata(clerkUserId: string): Promise<Record<string, unknown>> {
+  const user = await clerkFetch<{ public_metadata: Record<string, unknown> | null }>(
+    `/users/${clerkUserId}`,
+  );
+  return user.public_metadata ?? {};
+}
+
 const PERSONA_DEFAULTS = {
   business: { envKey: "UMA_E2E_BUSYER_EMAIL", fallback: "buyer.test@example.com" },
   farmer: { envKey: "UMA_E2E_FARMER_EMAIL", fallback: "farmer.test@example.com" },
