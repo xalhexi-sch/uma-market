@@ -110,6 +110,16 @@ export const CATEGORIES = [
 // ── Currency ───────────────────────────────────────
 export const CURRENCY = "₱";
 
+// ── Timezone ───────────────────────────────────────
+/**
+ * Canonical application timezone. Every dashboard greeting, displayed date,
+ * and chart day-bucket is resolved against this zone — never against the
+ * server's local time.
+ */
+export const APP_TIME_ZONE = "Asia/Manila";
+/** Manila is fixed at UTC+8 with no daylight saving. */
+export const APP_TIME_ZONE_OFFSET = "+08:00";
+
 // ── App Info ───────────────────────────────────────
 export const APP_NAME = "UMA Market";
 export const APP_TAGLINE = "From Farm to Business.";
