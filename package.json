@@ -19,6 +19,7 @@
     "verify:avatar-sync": "tsx scripts/verify-avatar-sync.ts",
     "verify:auth-e2e": "tsx scripts/verify-auth-e2e.ts",
     "verify:query-efficiency": "tsx scripts/verify-query-efficiency.ts",
+    "verify:overview-aggregation": "tsx scripts/verify-overview-aggregation.ts",
     "verify:guards": "tsx scripts/verify-safety-guards.ts",
     "test:browser": "playwright test",
     "test:browser:install": "playwright install chromium"

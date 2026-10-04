@@ -563,6 +563,14 @@ export type Database = {
       }
     }
     Functions: {
+      get_business_overview_metrics: {
+        Args: { p_end: string; p_prev_start: string; p_start: string }
+        Returns: Json
+      }
+      get_farmer_overview_metrics: {
+        Args: { p_end: string; p_prev_start: string; p_start: string }
+        Returns: Json
+      }
       get_product_review_summary: {
         Args: { p_product_id: string }
         Returns: Json

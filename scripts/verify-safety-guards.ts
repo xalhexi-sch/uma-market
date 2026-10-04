@@ -45,6 +45,7 @@ const GUARDED_SUITES = [
   "scripts/verify-image-delivery.ts",
   "scripts/verify-notifications.ts",
   "scripts/verify-order-query-tabs.ts",
+  "scripts/verify-overview-aggregation.ts",
   "scripts/verify-phase-2-search.ts",
   "scripts/verify-phase-3-parity.ts",
   "scripts/verify-pickup-date.ts",
@@ -263,11 +264,12 @@ assert(
   /assertClerkDevelopmentKey\(\s*"browser-regression"\s*,\s*clerkSecretKey\s*\)/.test(harnessSource),
 );
 
-// 3B-3: verify-notifications.ts and verify-verified-reviews.ts mint Clerk
-// sessions, so both must keep asserting a Development-instance key before any
-// Clerk client exists. Source check (not runtime) because a live run needs the
-// security-test env file, which Tier 1 deliberately does not materialise.
-for (const suite of ["scripts/verify-notifications.ts", "scripts/verify-verified-reviews.ts"]) {
+// 3B-3: verify-notifications.ts, verify-verified-reviews.ts and
+// verify-overview-aggregation.ts mint Clerk sessions, so each must keep
+// asserting a Development-instance key before any Clerk client exists. Source
+// check (not runtime) because a live run needs the security-test env file,
+// which Tier 1 deliberately does not materialise.
+for (const suite of ["scripts/verify-notifications.ts", "scripts/verify-verified-reviews.ts", "scripts/verify-overview-aggregation.ts"]) {
   const source = fs.readFileSync(path.join(process.cwd(), suite), "utf8");
   const guardCall = source.indexOf("assertClerkDevelopmentKey(");
   const clerkCall = source.indexOf("createClerkClient(");

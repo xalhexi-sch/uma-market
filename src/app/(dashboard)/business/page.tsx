@@ -14,14 +14,14 @@ import {
   RiMoreLine,
 } from "@remixicon/react";
 import type { UserRole } from "@/lib/constants";
-import { CURRENCY } from "@/lib/constants";
+import { APP_TIME_ZONE, CURRENCY } from "@/lib/constants";
 import {
-  getBusinessOverviewKPIs,
-  getBusinessSpendingOverTime,
-  getBusinessOrderStatusBreakdown,
+  getBusinessOverview,
   toRecentOverviewOrder,
 } from "@/lib/supabase/queries/overview";
 import { getBusinessOrders } from "@/lib/supabase/queries/orders";
+import { resolveOverviewRange } from "@/lib/overview-range";
+import { getManilaGreeting } from "@/lib/time";
 import {
   Card,
   CardContent,
@@ -46,7 +46,11 @@ import { OrderStatusDonut } from "@/components/dashboard/overview-charts";
 export const metadata: Metadata = { title: "Overview — Business Dashboard" };
 export const dynamic = "force-dynamic";
 
-export default async function BusinessOverviewPage() {
+export default async function BusinessOverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
+}) {
   const { userId, sessionClaims } = await auth();
   const role = sessionClaims?.user_role as UserRole | undefined;
 
@@ -59,21 +63,14 @@ export default async function BusinessOverviewPage() {
   const user = await currentUser();
   const firstName = user?.firstName ?? "there";
 
-  const [kpis, spendingData, orderStatus, recentOrderRows] = await Promise.all([
-    getBusinessOverviewKPIs(userId),
-    getBusinessSpendingOverTime(userId, 7),
-    getBusinessOrderStatusBreakdown(userId),
+  const range = resolveOverviewRange(await searchParams);
+
+  const [overview, recentOrderRows] = await Promise.all([
+    getBusinessOverview(range),
     getBusinessOrders(userId, 3),
   ]);
   const recentOrders = recentOrderRows.map(toRecentOverviewOrder);
-
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12
-      ? "Good morning"
-      : hour < 18
-        ? "Good afternoon"
-        : "Good evening";
+  const greeting = getManilaGreeting();
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-[1400px]">
@@ -101,25 +98,25 @@ export default async function BusinessOverviewPage() {
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <KPICard
           label="Total Orders"
-          value={String(kpis.totalOrders)}
+          value={String(overview.metrics.orders)}
           icon={<RiShoppingBagLine className="size-4" />}
           iconBgClass="bg-primary/10 text-primary"
         />
         <KPICard
           label="Total Spend"
-          value={`${CURRENCY}${kpis.totalSales.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          value={`${CURRENCY}${overview.metrics.revenue.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
           icon={<RiCoinLine className="size-4" />}
           iconBgClass="bg-emerald-500/10 text-emerald-600"
         />
         <KPICard
           label="Products Available"
-          value={String(kpis.productsListed)}
+          value={String(overview.metrics.productsListed)}
           icon={<RiStoreLine className="size-4" />}
           iconBgClass="bg-amber-500/10 text-amber-600"
         />
         <KPICard
           label="Sellers Connected"
-          value={String(kpis.activeCustomers)}
+          value={String(overview.metrics.activeBuyers)}
           icon={<RiTeamLine className="size-4" />}
           iconBgClass="bg-sky-500/10 text-sky-600"
         />
@@ -135,7 +132,7 @@ export default async function BusinessOverviewPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <SalesChartSection data={spendingData} />
+            <SalesChartSection data={overview.chart} />
           </CardContent>
         </Card>
 
@@ -145,14 +142,14 @@ export default async function BusinessOverviewPage() {
             <CardDescription>Total orders this month.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            {orderStatus.total > 0 ? (
+            {overview.status.total > 0 ? (
               <>
                 <OrderStatusDonut
-                  data={orderStatus.breakdown}
-                  total={orderStatus.total}
+                  data={overview.status.breakdown}
+                  total={overview.status.total}
                 />
                 <div className="grid w-full gap-1.5">
-                  {orderStatus.breakdown.map((item) => (
+                  {overview.status.breakdown.map((item) => (
                     <div
                       key={item.status}
                       className="flex items-center justify-between text-xs"
@@ -171,8 +168,8 @@ export default async function BusinessOverviewPage() {
                           {item.count}
                         </span>
                         <span className="text-muted-foreground w-8 text-right">
-                          {orderStatus.total > 0
-                            ? `${Math.round((item.count / orderStatus.total) * 100)}%`
+                          {overview.status.total > 0
+                            ? `${Math.round((item.count / overview.status.total) * 100)}%`
                             : "0%"}
                         </span>
                       </div>
@@ -265,6 +262,7 @@ export default async function BusinessOverviewPage() {
                         </TableCell>
                         <TableCell className="text-right text-xs text-muted-foreground">
                           {new Date(order.date).toLocaleDateString("en-PH", {
+                            timeZone: APP_TIME_ZONE,
                             month: "short",
                             day: "numeric",
                             year: "numeric",
@@ -272,6 +270,7 @@ export default async function BusinessOverviewPage() {
                           <br />
                           <span className="text-[11px]">
                             {new Date(order.date).toLocaleTimeString("en-PH", {
+                              timeZone: APP_TIME_ZONE,
                               hour: "numeric",
                               minute: "2-digit",
                               hour12: true,
@@ -314,11 +313,13 @@ export default async function BusinessOverviewPage() {
                         </span>
                         <span className="text-muted-foreground">
                           {new Date(order.date).toLocaleDateString("en-PH", {
+                            timeZone: APP_TIME_ZONE,
                             month: "short",
                             day: "numeric",
                           })}
                           ,{" "}
                           {new Date(order.date).toLocaleTimeString("en-PH", {
+                            timeZone: APP_TIME_ZONE,
                             hour: "numeric",
                             minute: "2-digit",
                             hour12: true,

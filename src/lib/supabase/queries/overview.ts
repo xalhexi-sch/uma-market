@@ -1,14 +1,43 @@
 import { createClient } from "@/lib/supabase/server";
 import type { OrderStatus } from "@/lib/constants";
 import type { Order } from "@/lib/types";
+import type { Json } from "@/lib/database.types";
+import type { OverviewDateRange } from "@/lib/overview-range";
 
 // ── Types ─────────────────────────────────────────
 
-export interface OverviewKPI {
-  totalOrders: number;
-  totalSales: number;
+/**
+ * Period-scoped Overview metrics. Every field is derived from the same
+ * selected window (orders whose created_at falls inside the range):
+ *
+ *   revenue      = completed orders in the period
+ *   pipeline     = open orders in the period
+ *   orders       = orders created in the period
+ *   activeBuyers = distinct counterparties with non-cancelled orders in the period
+ *
+ * `previous` holds the identical definitions over the previous window of
+ * equal length, for delta comparisons.
+ *
+ * Aggregation happens in PostgreSQL (see the overview RPCs in
+ * `supabase/migrations/20261005000001_overview_dashboard_aggregation.sql`);
+ * this module only decodes the compact result.
+ */
+export interface OverviewMetrics {
+  revenue: number;
+  pipeline: number;
+  orders: number;
+  activeBuyers: number;
+  previous: {
+    revenue: number;
+    pipeline: number;
+    orders: number;
+    activeBuyers: number;
+  };
+}
+
+export interface BusinessOverviewMetrics extends OverviewMetrics {
+  /** Snapshot: all active marketplace products (inventory, not period-scoped). */
   productsListed: number;
-  activeCustomers: number;
 }
 
 export interface SalesDataPoint {
@@ -44,6 +73,18 @@ export interface RecentOverviewOrder {
   date: string;
 }
 
+export interface FarmerOverviewData {
+  metrics: OverviewMetrics;
+  chart: SalesDataPoint[];
+  status: { breakdown: OrderStatusBreakdown[]; total: number };
+}
+
+export interface BusinessOverviewData {
+  metrics: BusinessOverviewMetrics;
+  chart: SalesDataPoint[];
+  status: { breakdown: OrderStatusBreakdown[]; total: number };
+}
+
 /**
  * Maps a bounded `Order` row (from getBusinessOrders/getFarmerOrders, which
  * join the counterparty profile and items) onto the overview table shape.
@@ -69,7 +110,7 @@ export function toRecentOverviewOrder(order: Order): RecentOverviewOrder {
   };
 }
 
-// ── Status colors ─────────────────────────────────
+// ── Status colors / labels ────────────────────────
 
 const STATUS_CHART_COLORS: Record<string, string> = {
   completed: "hsl(142, 71%, 45%)",
@@ -85,160 +126,209 @@ const STATUS_CHART_LABELS: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
-// ── Farmer Overview KPIs ──────────────────────────
+const STATUS_SORT_ORDER = ["completed", "pending", "in_progress", "cancelled"];
 
-export async function getFarmerOverviewKPIs(
-  farmerClerkId: string
-): Promise<OverviewKPI> {
-  const supabase = await createClient();
+// ── Database-side aggregation (RPC) ───────────────
 
-  // Get all orders for the farmer
-  const { data: orders, error: ordersError } = await supabase
-    .from("orders")
-    .select("id, status, total_amount, business_clerk_id")
-    .eq("farmer_clerk_id", farmerClerkId);
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
-  if (ordersError) {
-    console.error("[overview] getFarmerOverviewKPIs orders error:", ordersError.message);
-    return { totalOrders: 0, totalSales: 0, productsListed: 0, activeCustomers: 0 };
-  }
+type OverviewRpcName =
+  | "get_farmer_overview_metrics"
+  | "get_business_overview_metrics";
 
-  // Get active product count
-  const { count: productsCount, error: productsError } = await supabase
-    .from("products")
-    .select("id", { count: "exact", head: true })
-    .eq("farmer_clerk_id", farmerClerkId)
-    .eq("status", "active");
+interface RpcChartPoint {
+  day: string;
+  sales: number;
+  orders: number;
+}
 
-  if (productsError) {
-    console.error("[overview] getFarmerOverviewKPIs products error:", productsError.message);
-  }
+interface RpcStatusCount {
+  status: string;
+  count: number;
+}
 
-  const allOrders = orders ?? [];
-  const nonCancelledOrders = allOrders.filter((o) => o.status !== "cancelled");
-  const totalSales = nonCancelledOrders.reduce(
-    (sum, o) => sum + (Number(o.total_amount) || 0),
-    0
-  );
+interface OverviewAggregate {
+  metrics: OverviewMetrics;
+  chart: RpcChartPoint[];
+  status: RpcStatusCount[];
+}
 
-  // Unique customers (business buyers)
-  const uniqueCustomers = new Set(allOrders.map((o) => o.business_clerk_id));
+function asObject(value: Json | undefined): Record<string, Json | undefined> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value
+    : null;
+}
+
+function asNumber(value: Json | undefined): number {
+  return typeof value === "number" ? value : 0;
+}
+
+function asString(value: Json | undefined): string {
+  return typeof value === "string" ? value : "";
+}
+
+function readMetrics(raw: Record<string, Json | undefined> | null): OverviewMetrics {
+  const current = raw ?? {};
+  const previous = asObject(current.previous) ?? {};
 
   return {
-    totalOrders: allOrders.length,
-    totalSales,
-    productsListed: productsCount ?? 0,
-    activeCustomers: uniqueCustomers.size,
+    revenue: asNumber(current.revenue),
+    pipeline: asNumber(current.pipeline),
+    orders: asNumber(current.orders),
+    activeBuyers: asNumber(current.active_buyers),
+    previous: {
+      revenue: asNumber(previous.revenue),
+      pipeline: asNumber(previous.pipeline),
+      orders: asNumber(previous.orders),
+      activeBuyers: asNumber(previous.active_buyers),
+    },
   };
 }
 
-// ── Farmer Sales Over Time ────────────────────────
+function readRows(
+  value: Json | undefined,
+): Array<Record<string, Json | undefined>> {
+  if (!Array.isArray(value)) return [];
+  return value.map(asObject).filter((row): row is Record<string, Json | undefined> => row !== null);
+}
 
-export async function getFarmerSalesOverTime(
-  farmerClerkId: string,
-  days: number = 7
-): Promise<SalesDataPoint[]> {
-  const supabase = await createClient();
-
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-  const startISO = startDate.toISOString();
-
-  const { data, error } = await supabase
-    .from("orders")
-    .select("created_at, total_amount, status")
-    .eq("farmer_clerk_id", farmerClerkId)
-    .gte("created_at", startISO)
-    .neq("status", "cancelled")
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    console.error("[overview] getFarmerSalesOverTime error:", error.message);
-    return [];
+/**
+ * Decodes the compact JSON document returned by the overview RPCs. The
+ * payload is validated field by field instead of cast wholesale: the database
+ * is a trust boundary and a shape change must degrade to zeros/empties, not
+ * to `NaN` rendered as a KPI.
+ */
+function decodeOverviewAggregate(payload: Json | null): OverviewAggregate {
+  const root = asObject(payload ?? null);
+  if (!root) {
+    throw new Error("[overview] overview RPC returned an unexpected payload");
   }
 
-  // Group by date
-  const grouped = new Map<string, { sales: number; orders: number }>();
+  return {
+    metrics: readMetrics(asObject(root.metrics)),
+    chart: readRows(root.chart).map((row) => ({
+      day: asString(row.day),
+      sales: asNumber(row.sales),
+      orders: asNumber(row.orders),
+    })),
+    status: readRows(root.status).map((row) => ({
+      status: asString(row.status),
+      count: asNumber(row.count),
+    })),
+  };
+}
 
-  // Pre-populate all dates in range
-  for (let i = 0; i <= days; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - (days - i));
-    const key = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    grouped.set(key, { sales: 0, orders: 0 });
-  }
+/**
+ * Runs one period aggregation RPC. Only the three window instants (derived
+ * from the shared Phase 1 range model) are sent — the caller's Clerk identity
+ * and role are read from the JWT inside the function, and RLS on `orders`
+ * still applies because the function is SECURITY INVOKER.
+ */
+async function fetchOverviewAggregate(
+  supabase: SupabaseServerClient,
+  rpcName: OverviewRpcName,
+  range: OverviewDateRange,
+): Promise<OverviewAggregate> {
+  const { data, error } = await supabase.rpc(rpcName, {
+    p_prev_start: range.previous.startIso,
+    p_start: range.startIso,
+    p_end: range.endIso,
+  });
 
-  for (const row of data ?? []) {
-    const d = new Date(row.created_at);
-    const key = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const existing = grouped.get(key) ?? { sales: 0, orders: 0 };
-    existing.sales += Number(row.total_amount) || 0;
-    existing.orders += 1;
-    grouped.set(key, existing);
-  }
+  if (error) throw error;
 
-  return Array.from(grouped.entries()).map(([date, data]) => ({
-    date,
-    sales: data.sales,
-    orders: data.orders,
+  return decodeOverviewAggregate(data);
+}
+
+/** Label for a Manila day key, e.g. "Oct 5" (anchored to the key itself). */
+function dayKeyLabel(dayKey: string): string {
+  return new Date(`${dayKey}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** One bucket per Manila day of the period, already zero-filled by SQL. */
+function buildChart(points: RpcChartPoint[]): SalesDataPoint[] {
+  return points.map((point) => ({
+    date: dayKeyLabel(point.day),
+    sales: point.sales,
+    orders: point.orders,
   }));
 }
 
-// ── Farmer Order Status Breakdown ─────────────────
+function buildStatusBreakdown(counts: RpcStatusCount[]) {
+  const breakdown: OrderStatusBreakdown[] = counts.map((row) => ({
+    status: row.status,
+    label: STATUS_CHART_LABELS[row.status] ?? row.status,
+    count: row.count,
+    color: STATUS_CHART_COLORS[row.status] ?? "hsl(0, 0%, 60%)",
+  }));
 
-export async function getFarmerOrderStatusBreakdown(
-  farmerClerkId: string
-): Promise<{ breakdown: OrderStatusBreakdown[]; total: number }> {
-  const supabase = await createClient();
+  breakdown.sort(
+    (a, b) => STATUS_SORT_ORDER.indexOf(a.status) - STATUS_SORT_ORDER.indexOf(b.status),
+  );
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select("status")
-    .eq("farmer_clerk_id", farmerClerkId);
-
-  if (error) {
-    console.error("[overview] getFarmerOrderStatusBreakdown error:", error.message);
-    return { breakdown: [], total: 0 };
-  }
-
-  const orders = data ?? [];
-  const counts = new Map<string, number>();
-
-  for (const order of orders) {
-    // Group active statuses (accepted, preparing, ready, for_delivery) as "in_progress"
-    const key =
-      ["accepted", "preparing", "ready", "for_delivery"].includes(order.status)
-        ? "in_progress"
-        : order.status;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-
-  const breakdown: OrderStatusBreakdown[] = [];
-  for (const [status, count] of counts.entries()) {
-    breakdown.push({
-      status,
-      label: STATUS_CHART_LABELS[status] ?? status,
-      count,
-      color: STATUS_CHART_COLORS[status] ?? "hsl(0, 0%, 60%)",
-    });
-  }
-
-  // Sort: completed first, then pending, in_progress, cancelled
-  const sortOrder = ["completed", "pending", "in_progress", "cancelled"];
-  breakdown.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
-
-  return { breakdown, total: orders.length };
+  return { breakdown, total: counts.reduce((sum, row) => sum + row.count, 0) };
 }
 
-// ── Farmer Top Products ───────────────────────────
+// ── Farmer Overview ───────────────────────────────
+
+export async function getFarmerOverview(
+  range: OverviewDateRange,
+): Promise<FarmerOverviewData> {
+  const supabase = await createClient();
+  const aggregate = await fetchOverviewAggregate(
+    supabase,
+    "get_farmer_overview_metrics",
+    range,
+  );
+
+  return {
+    metrics: aggregate.metrics,
+    chart: buildChart(aggregate.chart),
+    status: buildStatusBreakdown(aggregate.status),
+  };
+}
+
+// ── Business Overview ─────────────────────────────
+
+export async function getBusinessOverview(
+  range: OverviewDateRange,
+): Promise<BusinessOverviewData> {
+  const supabase = await createClient();
+  const aggregate = await fetchOverviewAggregate(
+    supabase,
+    "get_business_overview_metrics",
+    range,
+  );
+
+  const { count: productsListed, error: productsError } = await supabase
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "active");
+  if (productsError) throw productsError;
+
+  return {
+    metrics: {
+      ...aggregate.metrics,
+      productsListed: productsListed ?? 0,
+    },
+    chart: buildChart(aggregate.chart),
+    status: buildStatusBreakdown(aggregate.status),
+  };
+}
+
+// ── Farmer Top Products (period-scoped) ───────────
 
 export async function getFarmerTopProducts(
   farmerClerkId: string,
-  limit: number = 5
+  range: OverviewDateRange,
+  limit: number = 5,
 ): Promise<TopProduct[]> {
   const supabase = await createClient();
 
-  // Get completed orders with their items
   const { data: orders, error } = await supabase
     .from("orders")
     .select(`
@@ -246,12 +336,11 @@ export async function getFarmerTopProducts(
       items:order_items(product_id, product_name, quantity, unit_price, unit)
     `)
     .eq("farmer_clerk_id", farmerClerkId)
-    .eq("status", "completed");
+    .eq("status", "completed")
+    .gte("created_at", range.startIso)
+    .lt("created_at", range.endIso);
 
-  if (error) {
-    console.error("[overview] getFarmerTopProducts error:", error.message);
-    return [];
-  }
+  if (error) throw error;
 
   // Aggregate by product
   const productMap = new Map<
@@ -286,10 +375,12 @@ export async function getFarmerTopProducts(
   const categoryMap = new Map<string, string>();
 
   if (productIds.length > 0) {
-    const { data: products } = await supabase
+    const { data: products, error: categoriesError } = await supabase
       .from("products")
       .select("id, category:categories(name)")
       .in("id", productIds);
+
+    if (categoriesError) throw categoriesError;
 
     for (const product of products ?? []) {
       const cat = product.category as { name: string } | null;
@@ -311,138 +402,3 @@ export async function getFarmerTopProducts(
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, limit);
 }
-
-// ── Business Overview KPIs ────────────────────────
-
-export async function getBusinessOverviewKPIs(
-  businessClerkId: string
-): Promise<OverviewKPI> {
-  const supabase = await createClient();
-
-  const { data: orders, error: ordersError } = await supabase
-    .from("orders")
-    .select("id, status, total_amount, farmer_clerk_id")
-    .eq("business_clerk_id", businessClerkId);
-
-  if (ordersError) {
-    console.error("[overview] getBusinessOverviewKPIs orders error:", ordersError.message);
-    return { totalOrders: 0, totalSales: 0, productsListed: 0, activeCustomers: 0 };
-  }
-
-  const allOrders = orders ?? [];
-  const nonCancelledOrders = allOrders.filter((o) => o.status !== "cancelled");
-  const totalSpend = nonCancelledOrders.reduce(
-    (sum, o) => sum + (Number(o.total_amount) || 0),
-    0
-  );
-
-  // Unique sellers (farmers)
-  const uniqueSellers = new Set(allOrders.map((o) => o.farmer_clerk_id));
-
-  // Count active products available to browse (not per-user)
-  const { count: productsCount } = await supabase
-    .from("products")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "active");
-
-  return {
-    totalOrders: allOrders.length,
-    totalSales: totalSpend,
-    productsListed: productsCount ?? 0,
-    activeCustomers: uniqueSellers.size,
-  };
-}
-
-// ── Business Spending Over Time ───────────────────
-
-export async function getBusinessSpendingOverTime(
-  businessClerkId: string,
-  days: number = 7
-): Promise<SalesDataPoint[]> {
-  const supabase = await createClient();
-
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-  const startISO = startDate.toISOString();
-
-  const { data, error } = await supabase
-    .from("orders")
-    .select("created_at, total_amount, status")
-    .eq("business_clerk_id", businessClerkId)
-    .gte("created_at", startISO)
-    .neq("status", "cancelled")
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    console.error("[overview] getBusinessSpendingOverTime error:", error.message);
-    return [];
-  }
-
-  const grouped = new Map<string, { sales: number; orders: number }>();
-  for (let i = 0; i <= days; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - (days - i));
-    const key = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    grouped.set(key, { sales: 0, orders: 0 });
-  }
-
-  for (const row of data ?? []) {
-    const d = new Date(row.created_at);
-    const key = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const existing = grouped.get(key) ?? { sales: 0, orders: 0 };
-    existing.sales += Number(row.total_amount) || 0;
-    existing.orders += 1;
-    grouped.set(key, existing);
-  }
-
-  return Array.from(grouped.entries()).map(([date, data]) => ({
-    date,
-    sales: data.sales,
-    orders: data.orders,
-  }));
-}
-
-// ── Business Order Status Breakdown ───────────────
-
-export async function getBusinessOrderStatusBreakdown(
-  businessClerkId: string
-): Promise<{ breakdown: OrderStatusBreakdown[]; total: number }> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("orders")
-    .select("status")
-    .eq("business_clerk_id", businessClerkId);
-
-  if (error) {
-    console.error("[overview] getBusinessOrderStatusBreakdown error:", error.message);
-    return { breakdown: [], total: 0 };
-  }
-
-  const orders = data ?? [];
-  const counts = new Map<string, number>();
-
-  for (const order of orders) {
-    const key =
-      ["accepted", "preparing", "ready", "for_delivery"].includes(order.status)
-        ? "in_progress"
-        : order.status;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-
-  const breakdown: OrderStatusBreakdown[] = [];
-  for (const [status, count] of counts.entries()) {
-    breakdown.push({
-      status,
-      label: STATUS_CHART_LABELS[status] ?? status,
-      count,
-      color: STATUS_CHART_COLORS[status] ?? "hsl(0, 0%, 60%)",
-    });
-  }
-
-  const sortOrder = ["completed", "pending", "in_progress", "cancelled"];
-  breakdown.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
-
-  return { breakdown, total: orders.length };
-}
-
