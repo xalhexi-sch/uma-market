@@ -19,8 +19,9 @@ import {
   getBusinessOverviewKPIs,
   getBusinessSpendingOverTime,
   getBusinessOrderStatusBreakdown,
-  getBusinessRecentOverviewOrders,
+  toRecentOverviewOrder,
 } from "@/lib/supabase/queries/overview";
+import { getBusinessOrders } from "@/lib/supabase/queries/orders";
 import {
   Card,
   CardContent,
@@ -58,12 +59,13 @@ export default async function BusinessOverviewPage() {
   const user = await currentUser();
   const firstName = user?.firstName ?? "there";
 
-  const [kpis, spendingData, orderStatus, recentOrders] = await Promise.all([
+  const [kpis, spendingData, orderStatus, recentOrderRows] = await Promise.all([
     getBusinessOverviewKPIs(userId),
     getBusinessSpendingOverTime(userId, 7),
     getBusinessOrderStatusBreakdown(userId),
-    getBusinessRecentOverviewOrders(userId, 5),
+    getBusinessOrders(userId, 3),
   ]);
+  const recentOrders = recentOrderRows.map(toRecentOverviewOrder);
 
   const hour = new Date().getHours();
   const greeting =

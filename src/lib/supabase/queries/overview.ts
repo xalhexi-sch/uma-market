@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { OrderStatus } from "@/lib/constants";
+import type { Order } from "@/lib/types";
 
 // ── Types ─────────────────────────────────────────
 
@@ -41,6 +42,31 @@ export interface RecentOverviewOrder {
   amount: number;
   status: OrderStatus;
   date: string;
+}
+
+/**
+ * Maps a bounded `Order` row (from getBusinessOrders/getFarmerOrders, which
+ * join the counterparty profile and items) onto the overview table shape.
+ * The dashboard home pages fetch at most 3 rows through those bounded
+ * queries and render them with this mapper.
+ */
+export function toRecentOverviewOrder(order: Order): RecentOverviewOrder {
+  const party = order.farmer ?? order.business;
+  const firstItem = order.items?.[0];
+  const totalItems = order.items?.length ?? 0;
+
+  return {
+    id: order.id,
+    buyerName: party?.business_name || party?.full_name || "Unknown",
+    buyerCity: party?.city || "",
+    productName: firstItem?.product_name ?? "—",
+    productQuantity: firstItem
+      ? `${firstItem.quantity} ${firstItem.unit ?? ""}${totalItems > 1 ? ` +${totalItems - 1}` : ""}`
+      : "—",
+    amount: order.total_amount ?? 0,
+    status: order.status,
+    date: order.created_at,
+  };
 }
 
 // ── Status colors ─────────────────────────────────
@@ -286,61 +312,6 @@ export async function getFarmerTopProducts(
     .slice(0, limit);
 }
 
-// ── Farmer Recent Orders (for overview table) ─────
-
-export async function getFarmerRecentOverviewOrders(
-  farmerClerkId: string,
-  limit: number = 5
-): Promise<RecentOverviewOrder[]> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("orders")
-    .select(`
-      id, status, total_amount, created_at,
-      business:profiles!orders_business_clerk_id_fkey(full_name, business_name, city),
-      items:order_items(product_name, quantity, unit)
-    `)
-    .eq("farmer_clerk_id", farmerClerkId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.error("[overview] getFarmerRecentOverviewOrders error:", error.message);
-    return [];
-  }
-
-  return (data ?? []).map((row) => {
-    const business = row.business as {
-      full_name: string | null;
-      business_name: string | null;
-      city: string;
-    } | null;
-
-    const items = row.items as Array<{
-      product_name: string | null;
-      quantity: number;
-      unit: string | null;
-    }> | null;
-
-    const firstItem = items?.[0];
-    const totalItems = items?.length ?? 0;
-
-    return {
-      id: row.id,
-      buyerName: business?.business_name || business?.full_name || "Unknown",
-      buyerCity: business?.city || "",
-      productName: firstItem?.product_name ?? "—",
-      productQuantity: firstItem
-        ? `${firstItem.quantity} ${firstItem.unit ?? ""}${totalItems > 1 ? ` +${totalItems - 1}` : ""}`
-        : "—",
-      amount: Number(row.total_amount) || 0,
-      status: row.status as OrderStatus,
-      date: row.created_at,
-    };
-  });
-}
-
 // ── Business Overview KPIs ────────────────────────
 
 export async function getBusinessOverviewKPIs(
@@ -475,57 +446,3 @@ export async function getBusinessOrderStatusBreakdown(
   return { breakdown, total: orders.length };
 }
 
-// ── Business Recent Orders (for overview table) ───
-
-export async function getBusinessRecentOverviewOrders(
-  businessClerkId: string,
-  limit: number = 5
-): Promise<RecentOverviewOrder[]> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("orders")
-    .select(`
-      id, status, total_amount, created_at,
-      farmer:profiles!orders_farmer_clerk_id_fkey(full_name, business_name, city),
-      items:order_items(product_name, quantity, unit)
-    `)
-    .eq("business_clerk_id", businessClerkId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.error("[overview] getBusinessRecentOverviewOrders error:", error.message);
-    return [];
-  }
-
-  return (data ?? []).map((row) => {
-    const farmer = row.farmer as {
-      full_name: string | null;
-      business_name: string | null;
-      city: string;
-    } | null;
-
-    const items = row.items as Array<{
-      product_name: string | null;
-      quantity: number;
-      unit: string | null;
-    }> | null;
-
-    const firstItem = items?.[0];
-    const totalItems = items?.length ?? 0;
-
-    return {
-      id: row.id,
-      buyerName: farmer?.business_name || farmer?.full_name || "Unknown",
-      buyerCity: farmer?.city || "",
-      productName: firstItem?.product_name ?? "—",
-      productQuantity: firstItem
-        ? `${firstItem.quantity} ${firstItem.unit ?? ""}${totalItems > 1 ? ` +${totalItems - 1}` : ""}`
-        : "—",
-      amount: Number(row.total_amount) || 0,
-      status: row.status as OrderStatus,
-      date: row.created_at,
-    };
-  });
-}

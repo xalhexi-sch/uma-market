@@ -21,8 +21,10 @@ import {
   getFarmerSalesOverTime,
   getFarmerOrderStatusBreakdown,
   getFarmerTopProducts,
-  getFarmerRecentOverviewOrders,
+  toRecentOverviewOrder,
 } from "@/lib/supabase/queries/overview";
+import { getFarmerOrders } from "@/lib/supabase/queries/orders";
+import { getFarmerActiveProductCount } from "@/lib/supabase/queries/products";
 import {
   Card,
   CardContent,
@@ -60,14 +62,16 @@ export default async function FarmerOverviewPage() {
   const user = await currentUser();
   const firstName = user?.firstName ?? "there";
 
-  const [kpis, salesData, orderStatus, topProducts, recentOrders] =
+  const [kpis, activeProducts, salesData, orderStatus, topProducts, recentOrderRows] =
     await Promise.all([
       getFarmerOverviewKPIs(userId),
+      getFarmerActiveProductCount(userId),
       getFarmerSalesOverTime(userId, 7),
       getFarmerOrderStatusBreakdown(userId),
       getFarmerTopProducts(userId, 5),
-      getFarmerRecentOverviewOrders(userId, 5),
+      getFarmerOrders(userId, 3),
     ]);
+  const recentOrders = recentOrderRows.map(toRecentOverviewOrder);
 
   // Generate greeting based on time of day
   const hour = new Date().getHours();
@@ -116,7 +120,7 @@ export default async function FarmerOverviewPage() {
         />
         <KPICard
           label="Products Listed"
-          value={String(kpis.productsListed)}
+          value={String(activeProducts)}
           icon={<RiPlantLine className="size-4" />}
           iconBgClass="bg-amber-500/10 text-amber-600"
         />
