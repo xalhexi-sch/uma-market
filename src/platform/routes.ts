@@ -31,6 +31,7 @@ export const routes = {
     (orderId ? `/checkout/confirmation/${orderId}` : "/checkout/confirmation") as string,
   orders: "/orders",
   order: (id: string) => `/orders/${id}` as const,
+  dashboardRoot: "/dashboard",
 
   // Auth
   signIn: "/sign-in",
@@ -39,6 +40,7 @@ export const routes = {
 
   // Dashboard (role-neutral base)
   dashboard: {
+    root: "/dashboard",
     // Farmer / producer dashboard
     farmer: {
       root: "/farmer",

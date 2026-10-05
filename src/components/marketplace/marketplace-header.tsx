@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string }) {
   const { isAuthenticated, sessionClaims } = await auth();
   const role = sessionClaims?.user_role as UserRole | undefined;
-  const dashboardHref = role ? `/${role}` : "/onboarding";
+  const dashboardHref = isAuthenticated ? routes.dashboardRoot : "/onboarding";
   const isBusiness = role === "business";
 
   const navLinks = [

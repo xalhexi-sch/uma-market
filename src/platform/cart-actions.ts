@@ -186,5 +186,6 @@ export async function switchActiveBusiness(
   await setActiveBusinessCookie(businessId);
   revalidatePath("/cart");
   revalidatePath("/orders");
+  revalidatePath("/dashboard");
   return { success: true, businessId };
 }
