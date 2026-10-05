@@ -33,6 +33,7 @@ import { ReviewList } from "@/components/reviews/review-list";
 import { ReviewSummary } from "@/components/reviews/review-summary";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
+import { routes } from "@/platform/routes";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -285,7 +286,7 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                     <span>Sold by</span>
                     {producerId ? (
                       <Link
-                        href={`/farmers/${producerId}`}
+                        href={routes.producer(producerId)}
                         className="rounded-sm font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {producerName}
@@ -487,7 +488,7 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                 <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-start">
                   {producerId && (
                     <Link
-                      href={`/farmers/${producerId}`}
+                      href={routes.producer(producerId)}
                       className={buttonVariants({ variant: "secondary", className: "w-full gap-2 sm:w-auto" })}
                     >
                       <RiStore2Line className="size-4" aria-hidden="true" />
@@ -535,7 +536,7 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                 </h2>
                 {producerId && (
                   <Link
-                    href={`/farmers/${producerId}`}
+                    href={routes.producer(producerId)}
                     className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     View all

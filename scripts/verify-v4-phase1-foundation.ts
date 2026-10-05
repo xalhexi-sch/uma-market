@@ -177,9 +177,12 @@ async function runTests(): Promise<void> {
   assert("FND-04h", "dashboardRoot('admin') returns /admin",
     dashboardRoot("admin") === "/admin",
     `got=${dashboardRoot("admin")}`);
-  assert("FND-04i", "routes.producer is a function",
-    typeof routes.producer === "function" && routes.producer("xyz") === "/farmers/xyz",
+  assert("FND-04i", "routes.producer is a function returning /producers/:id",
+    typeof routes.producer === "function" && routes.producer("xyz") === "/producers/xyz",
     `got=${routes.producer("xyz")}`);
+  assert("FND-04j", "routes.producers is /producers",
+    routes.producers === "/producers",
+    `got=${routes.producers}`);
 
   // ── 5. Logging ───────────────────────────────────────────────────────
   section("FND-05: Structured logging");

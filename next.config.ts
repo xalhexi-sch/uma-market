@@ -18,6 +18,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      // ── Legacy V2 → V4 Route Migration ──────────────────────────────────
+      // Compatibility redirect: legacy public farmer profiles → V4 producer profiles
+      {
+        source: "/farmers/:id",
+        destination: "/producers/:id",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

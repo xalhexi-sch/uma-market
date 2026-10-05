@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MarketplaceProductCard } from "@/components/marketplace/marketplace-product-card";
 import { SectionHeading } from "@/components/marketplace/section-heading";
 import { getActiveProducts } from "@/lib/supabase/queries/products";
+import { routes } from "@/platform/routes";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
@@ -141,7 +142,7 @@ function ProducerCard({ producer }: { producer: ProducerSummary }) {
   return (
     <li>
       <Link
-        href={`/farmers/${producer.clerkId}`}
+        href={routes.producer(producer.clerkId)}
         className="group flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition-all duration-200 hover:border-primary/40 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <div className="flex items-center gap-3">

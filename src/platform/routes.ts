@@ -23,8 +23,8 @@ export const routes = {
   privacy: "/privacy",
   products: "/products",
   product: (id: string) => `/products/${id}` as const,
-  producers: "/farmers",
-  producer: (id: string) => `/farmers/${id}` as const,
+  producers: "/producers",
+  producer: (id: string) => `/producers/${id}` as const,
 
   // Auth
   signIn: "/sign-in",

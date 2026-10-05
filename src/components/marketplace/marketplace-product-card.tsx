@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { CURRENCY } from "@/lib/constants";
 import { getProductImageUrl } from "@/lib/supabase/storage";
 import { ProductImage } from "@/components/ui/product-image";
+import { routes } from "@/platform/routes";
 import type { Product } from "@/lib/types";
 
 export interface MarketplaceProductCardProps {
@@ -50,7 +51,7 @@ export function MarketplaceProductCard({
     "Local Producer";
 
   const imageUrl = getProductImageUrl(product.image_path, product.image_url);
-  const targetHref = href || (variant === "business" ? `/business/products/${product.id}` : `/products/${product.id}`);
+  const targetHref = href || (variant === "business" ? `/business/products/${product.id}` : routes.product(product.id));
   const farmerClerkId = product.farmer?.clerk_id || product.farmer_clerk_id;
 
   return (
@@ -111,7 +112,7 @@ export function MarketplaceProductCard({
           <RiPlantLine className="size-3.5 text-primary shrink-0" />
           {farmerClerkId ? (
             <Link
-              href={`/farmers/${farmerClerkId}`}
+              href={routes.producer(farmerClerkId)}
               className="truncate font-medium flex-1 hover:text-primary transition-colors group/farmer"
             >
               <span className="text-muted-foreground font-normal">From </span>
