@@ -22,6 +22,7 @@
     "verify:overview-aggregation": "tsx scripts/verify-overview-aggregation.ts",
     "verify:overview-format": "tsx scripts/verify-overview-format.ts",
     "verify:guards": "tsx scripts/verify-safety-guards.ts",
+    "verify:v4-phase1": "tsx scripts/verify-v4-phase1-security.ts",
     "test:browser": "playwright test",
     "test:browser:install": "playwright install chromium"
   },

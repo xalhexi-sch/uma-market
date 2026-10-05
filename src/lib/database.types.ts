@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -300,6 +300,7 @@ export type Database = {
           image_path: string | null
           image_url: string | null
           min_order_quantity: number
+          moderation_status: string
           name: string
           price_per_unit: number
           quantity_available: number
@@ -318,6 +319,7 @@ export type Database = {
           image_path?: string | null
           image_url?: string | null
           min_order_quantity?: number
+          moderation_status?: string
           name: string
           price_per_unit: number
           quantity_available?: number
@@ -336,6 +338,7 @@ export type Database = {
           image_path?: string | null
           image_url?: string | null
           min_order_quantity?: number
+          moderation_status?: string
           name?: string
           price_per_unit?: number
           quantity_available?: number

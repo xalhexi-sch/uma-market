@@ -53,6 +53,7 @@ const GUARDED_SUITES = [
   "scripts/verify-search-category-filter.ts",
   "scripts/verify-smart-search.ts",
   "scripts/verify-verified-reviews.ts",
+  "scripts/verify-v4-phase1-security.ts",
 ];
 
 /**
