@@ -50,8 +50,10 @@ export function RecentOrderList({
 
   return (
     <div className="rounded-xl border border-border divide-y divide-border overflow-hidden bg-card">
-      {/* Desktop Column Header */}
-      <div className="hidden sm:grid sm:grid-cols-[minmax(180px,1.2fr)_minmax(180px,1.5fr)_minmax(110px,0.8fr)_minmax(100px,0.8fr)_auto] items-center gap-4 px-4 py-2.5 text-xs font-medium text-muted-foreground bg-muted/40">
+      {/* Desktop Column Header — the 5-column grid needs ~730px, which the
+          dashboard content area only reaches at xl (1280). Below that the
+          compact layout is used, otherwise Total/Status are silently cut. */}
+      <div className="hidden xl:grid xl:grid-cols-[minmax(180px,1.2fr)_minmax(180px,1.5fr)_minmax(110px,0.8fr)_minmax(100px,0.8fr)_auto] items-center gap-4 px-4 py-2.5 text-xs font-medium text-muted-foreground bg-muted/40">
         <div>{role === "business" ? "Farmer" : "Business"}</div>
         <div>Items</div>
         <div>Fulfillment</div>
@@ -81,8 +83,8 @@ export function RecentOrderList({
             href={targetHref}
             className="block px-4 py-3 hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {/* Desktop / Tablet Layout (sm+) */}
-            <div className="hidden sm:grid sm:grid-cols-[minmax(180px,1.2fr)_minmax(180px,1.5fr)_minmax(110px,0.8fr)_minmax(100px,0.8fr)_auto] items-center gap-4">
+            {/* Desktop / Wide Layout (xl+) */}
+            <div className="hidden xl:grid xl:grid-cols-[minmax(180px,1.2fr)_minmax(180px,1.5fr)_minmax(110px,0.8fr)_minmax(100px,0.8fr)_auto] items-center gap-4">
               {/* Counterparty */}
               <div className="min-w-0">
                 <p className="font-medium text-foreground truncate">
@@ -120,8 +122,8 @@ export function RecentOrderList({
               </div>
             </div>
 
-            {/* Mobile Layout (< sm): 2-Row Compact */}
-            <div className="sm:hidden flex flex-col gap-1.5">
+            {/* Compact Layout (< xl): 2-Row */}
+            <div className="xl:hidden flex flex-col gap-1.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium text-foreground truncate">

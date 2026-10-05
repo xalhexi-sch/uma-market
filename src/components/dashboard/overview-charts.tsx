@@ -11,6 +11,8 @@ import {
   Cell,
   Label,
 } from "recharts";
+import { RiLineChartLine } from "@remixicon/react";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import {
   ChartContainer,
   ChartTooltip,
@@ -38,10 +40,32 @@ const salesChartConfig = {
 } satisfies ChartConfig;
 
 export function SalesAreaChart({ data, activeKey }: SalesChartProps) {
+  // An all-zero window is a real state, not a rendering failure — say so
+  // instead of drawing a flat line along the baseline.
+  if (data.every((point) => (activeKey === "sales" ? point.sales : point.orders) === 0)) {
+    return (
+      <Empty className="h-[200px] border sm:h-[260px] lg:h-[280px]">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <RiLineChartLine />
+          </EmptyMedia>
+          <EmptyTitle>
+            {activeKey === "sales" ? "No completed sales" : "No orders"} in this range
+          </EmptyTitle>
+          <EmptyDescription>
+            {activeKey === "sales"
+              ? "Revenue is counted when an order is completed."
+              : "Orders appear here as soon as a buyer places one."}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
   return (
     <ChartContainer
       config={salesChartConfig}
-      className="aspect-auto h-[220px] w-full sm:h-[260px]"
+      className="aspect-auto h-[200px] w-full sm:h-[260px] lg:h-[280px]"
     >
       <AreaChart
         data={data}
@@ -63,6 +87,7 @@ export function SalesAreaChart({ data, activeKey }: SalesChartProps) {
           tickLine={false}
           axisLine={false}
           tickMargin={8}
+          minTickGap={16}
           tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
         />
         <YAxis
@@ -195,7 +220,7 @@ export function OrderStatusDonut({ data, total }: OrderStatusDonutProps) {
                       y={(viewBox.cy ?? 0) + 14}
                       className="fill-muted-foreground text-[10px]"
                     >
-                      Total Orders
+                      Orders
                     </tspan>
                   </text>
                 );
