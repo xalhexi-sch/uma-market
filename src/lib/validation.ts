@@ -114,6 +114,13 @@ export const SendMessageSchema = z.object({
   body: z.string().trim().min(1, "Message cannot be empty.").max(2000),
 });
 
+export const SendV4MessageSchema = z.object({
+  conversationId: z.string().uuid("Invalid conversation ID."),
+  body: z.string().trim().min(1, "Message cannot be empty.").max(2000, "Message cannot exceed 2000 characters."),
+  productId: z.string().uuid("Invalid product ID.").optional().nullable(),
+  orderId: z.string().uuid("Invalid order ID.").optional().nullable(),
+});
+
 // ── Admin ────────────────────────────────────────────
 export const ModerateProductSchema = z.object({
   productId: z.string().uuid("Invalid product ID."),

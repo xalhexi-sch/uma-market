@@ -497,7 +497,7 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                   )}
                   {!isOwnListing && (
                     <div className="sm:flex-1">
-                      <MessageProducerAction producerName={producerName} />
+                      <MessageProducerAction producerName={producerName} productId={product.id} />
                     </div>
                   )}
                 </div>

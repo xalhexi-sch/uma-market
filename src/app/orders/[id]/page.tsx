@@ -17,11 +17,10 @@ import {
   getV4BuyerOrderById,
   getOrderPlacerProfile,
 } from "@/lib/supabase/queries/orders";
-import { getOrderMessages } from "@/lib/supabase/queries/messages";
 import { getOrderReviewStatus } from "@/lib/supabase/queries/reviews";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { OrderProgress } from "@/components/dashboard/order-progress";
-import { OrderChat } from "@/components/dashboard/order-chat";
+import { OrderMessageAction } from "@/components/orders/order-message-action";
 import { OrderReviewPanel } from "@/components/reviews/order-review-panel";
 import { V4OrderStatusBanner } from "@/components/orders/v4-order-status-banner";
 import { V4CancelOrderButton } from "@/components/orders/v4-cancel-order-button";
@@ -82,8 +81,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
     ? await getOrderPlacerProfile(order.placed_by_user_id)
     : null;
 
-  // Messages and review status
-  const messages = await getOrderMessages(order.id);
+  // Review status
   const reviewStatus = order.status === "completed"
     ? await getOrderReviewStatus(order.id, context.user.userId)
     : { sellerReviewed: false, reviewedProductItemIds: [] };
@@ -328,22 +326,26 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                 </div>
               </div>
 
-              {/* Order Chat */}
+              {/* Order Coordination */}
               <div className="rounded-xl border border-border overflow-hidden bg-card shadow-2xs">
                 <div className="border-b border-border bg-muted/30 px-4 py-3">
                   <h2 className="text-sm font-semibold text-foreground">
                     Coordinate with {farmerName}
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    Send real-time updates and messages regarding this order.
+                    Direct relationship messaging with order context attached.
                   </p>
                 </div>
-                <div className="p-4">
-                  <OrderChat
+                <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Have questions about pickup times, delivery notes, or order adjustments? Open your direct conversation with the producer.
+                  </p>
+                  <OrderMessageAction
                     orderId={order.id}
-                    currentUserId={context.user.userId}
-                    initialMessages={messages}
-                    counterpartyName={farmerName}
+                    label={`Message ${farmerName}`}
+                    variant="default"
+                    size="sm"
+                    className="shrink-0 gap-1.5"
                   />
                 </div>
               </div>

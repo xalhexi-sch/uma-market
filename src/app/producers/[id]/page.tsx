@@ -205,7 +205,7 @@ export default async function PublicProducerProfilePage({ params }: PageProps) {
 
               {/* Message Producer Action */}
               <div className="w-full lg:w-72 shrink-0 border-t border-border/60 pt-5 lg:border-t-0 lg:pt-0">
-                <MessageProducerAction producerName={displayName} />
+                <MessageProducerAction producerName={displayName} producerId={producer.clerk_id} />
               </div>
             </div>
           </div>

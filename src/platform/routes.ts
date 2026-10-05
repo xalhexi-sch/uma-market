@@ -67,6 +67,16 @@ export const routes = {
     // Shared
     messages: "/messages",
     message: (orderId: string) => `/messages/${orderId}` as const,
+    conversation: (
+      conversationId: string,
+      params?: { productId?: string; orderId?: string }
+    ) => {
+      const sp = new URLSearchParams();
+      if (params?.productId) sp.set("productId", params.productId);
+      if (params?.orderId) sp.set("orderId", params.orderId);
+      const qs = sp.toString();
+      return (qs ? `/messages/${conversationId}?${qs}` : `/messages/${conversationId}`) as string;
+    },
     profile: "/profile",
     notifications: "/notifications",
   },

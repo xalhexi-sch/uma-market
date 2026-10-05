@@ -106,9 +106,11 @@ export async function getUserConversations(
   // Group messages by orderId
   const messagesByOrder = new Map<string, typeof allMessages>();
   allMessages?.forEach((m) => {
-    const list = messagesByOrder.get(m.order_id) ?? [];
-    list.push(m);
-    messagesByOrder.set(m.order_id, list);
+    if (m.order_id) {
+      const list = messagesByOrder.get(m.order_id) ?? [];
+      list.push(m);
+      messagesByOrder.set(m.order_id, list);
+    }
   });
 
   return orders.map((order) => {

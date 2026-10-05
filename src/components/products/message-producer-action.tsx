@@ -1,34 +1,89 @@
-import { RiChat3Line } from "@remixicon/react";
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { RiChat3Line, RiLoader4Line } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
+import { resolveProductConversation, resolveProducerConversation } from "@/app/messages/actions";
+
+interface MessageProducerActionProps {
+  producerName: string;
+  productId?: string;
+  producerId?: string;
+}
 
 /**
- * "Message producer" entry point on the product page.
+ * "Message producer" entry point on product and producer profile pages.
  *
- * V4 messaging is ONE conversation per business relationship, with the product
- * attached only as optional context. That relationship-based conversation model
- * does not exist yet (migration-plan: unified messaging phase); today messages
- * are order-threaded only. We deliberately do NOT create a product-specific chat
- * or a placeholder route. Until unified messaging ships, the action is shown
- * disabled with an honest explanation. When it ships, wire `href` here to the
- * relationship conversation and pass `productId` as context.
+ * Resolves or creates the canonical relationship conversation between the
+ * active buyer business and the producer business, passing the product context.
  */
-export function MessageProducerAction({ producerName }: { producerName: string }) {
+export function MessageProducerAction({
+  producerName,
+  productId,
+  producerId,
+}: MessageProducerActionProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleMessage() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (productId) {
+        const res = await resolveProductConversation(productId);
+        if (!res.success) {
+          setError(res.error);
+          setLoading(false);
+          return;
+        }
+        router.push(`/messages/${res.conversationId}?productId=${productId}`);
+      } else if (producerId) {
+        const res = await resolveProducerConversation(producerId);
+        if (!res.success) {
+          setError(res.error);
+          setLoading(false);
+          return;
+        }
+        router.push(`/messages/${res.conversationId}`);
+      } else {
+        router.push("/messages");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to open conversation.");
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5 w-full">
       <Button
         type="button"
         variant="outline"
-        disabled
-        aria-describedby="message-producer-note"
+        onClick={handleMessage}
+        disabled={loading}
+        data-testid="message-producer-button"
+        aria-label={`Message ${producerName}`}
         className="w-full justify-center gap-2"
       >
-        <RiChat3Line className="size-4" aria-hidden="true" />
+        {loading ? (
+          <RiLoader4Line className="size-4 animate-spin" aria-hidden="true" />
+        ) : (
+          <RiChat3Line className="size-4" aria-hidden="true" />
+        )}
         Message producer
       </Button>
-      <p id="message-producer-note" className="text-xs leading-relaxed text-muted-foreground">
-        Direct messaging with {producerName} is coming soon. For now, place an order and
-        coordinate pickup or delivery in the order thread.
-      </p>
+      {error ? (
+        <p className="text-xs text-destructive leading-relaxed" role="alert">
+          {error}
+        </p>
+      ) : (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Direct messaging with {producerName}. Inquiries and order coordination are organized in your business inbox.
+        </p>
+      )}
     </div>
   );
 }

@@ -160,10 +160,38 @@ export interface CartItem {
 // ── Message ────────────────────────────────────────
 export interface Message {
   id: string;
-  order_id: string;
+  order_id?: string | null;
+  conversation_id?: string | null;
   sender_clerk_id: string;
+  sender_business_id?: string | null;
+  product_id?: string | null;
   body: string;
   created_at: string;
   // Joined
   sender?: Pick<Profile, "clerk_id" | "full_name" | "avatar_url">;
+  product?: {
+    id: string;
+    name: string;
+    price_per_unit: number;
+    unit: string;
+    image_url?: string | null;
+  } | null;
+  order?: {
+    id: string;
+    status: string;
+    total_amount: number;
+  } | null;
+}
+
+// ── V4 Conversation ────────────────────────────────
+export interface V4Conversation {
+  id: string;
+  business_a_id: string;
+  business_b_id: string;
+  last_message_at: string;
+  created_at: string;
+  updated_at: string;
+  counterpartyBusiness?: Business;
+  lastMessage?: Message;
+  totalMessages?: number;
 }

@@ -154,26 +154,77 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          business_a_id: string
+          business_b_id: string
+          created_at: string
+          id: string
+          last_message_at: string
+          updated_at: string
+        }
+        Insert: {
+          business_a_id: string
+          business_b_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          updated_at?: string
+        }
+        Update: {
+          business_a_id?: string
+          business_b_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_business_a_id_fkey"
+            columns: ["business_a_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_business_b_id_fkey"
+            columns: ["business_b_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           body: string
+          conversation_id: string | null
           created_at: string
           id: string
-          order_id: string
+          order_id: string | null
+          product_id: string | null
+          sender_business_id: string | null
           sender_clerk_id: string
         }
         Insert: {
           body: string
+          conversation_id?: string | null
           created_at?: string
           id?: string
-          order_id: string
+          order_id?: string | null
+          product_id?: string | null
+          sender_business_id?: string | null
           sender_clerk_id: string
         }
         Update: {
           body?: string
+          conversation_id?: string | null
           created_at?: string
           id?: string
-          order_id?: string
+          order_id?: string | null
+          product_id?: string | null
+          sender_business_id?: string | null
           sender_clerk_id?: string
         }
         Relationships: [

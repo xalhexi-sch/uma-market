@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   RiTruckLine,
   RiStore2Line,
   RiMapPinLine,
   RiCalendarLine,
-  RiMessage2Line,
   RiCheckLine,
   RiCloseLine,
   RiTimeLine,
@@ -18,7 +16,7 @@ import {
 } from "@remixicon/react";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +26,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
+import { OrderMessageAction } from "@/components/orders/order-message-action";
 import { updateSellerOrderStatus } from "@/app/dashboard/orders/actions";
 import type { Order } from "@/lib/types";
 
@@ -249,13 +248,12 @@ export function V4SellerOrderCard({ order }: V4SellerOrderCardProps) {
 
         {/* Action Controls Bar */}
         <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-border/60">
-          <Link
-            href={`/messages/${order.id}`}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-          >
-            <RiMessage2Line className="mr-1.5 size-3.5 text-muted-foreground" aria-hidden="true" />
-            Message Buyer
-          </Link>
+          <OrderMessageAction
+            orderId={order.id}
+            label="Message Buyer"
+            variant="ghost"
+            size="sm"
+          />
 
           {/* Forward State Machine Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
