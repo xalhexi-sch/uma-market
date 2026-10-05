@@ -331,7 +331,7 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                     <div className="flex items-center justify-between gap-2">
                       <SectionHeading id="order-heading">Place an order</SectionHeading>
                       <Link
-                        href="/business/cart"
+                        href={routes.cart}
                         className="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         View cart

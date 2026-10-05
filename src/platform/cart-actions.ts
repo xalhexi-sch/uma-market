@@ -13,7 +13,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireCanBuy } from "@/platform/business-context";
+import {
+  requireCanBuy,
+  requireBusinessMembership,
+  setActiveBusinessCookie,
+} from "@/platform/business-context";
 
 /**
  * Add a product to the active business's cart.
@@ -91,6 +95,47 @@ export async function updateBusinessCartItemQuantity(
 
   const supabase = await createClient();
 
+  // Validate product constraints
+  const { data: item } = await supabase
+    .from("cart_items")
+    .select(`
+      id,
+      product:products(id, name, status, quantity_available, min_order_quantity, unit)
+    `)
+    .eq("id", cartItemId)
+    .eq("business_id", context.business.id)
+    .maybeSingle();
+
+  if (!item) {
+    return { success: false, error: "Cart item not found." };
+  }
+
+  if (item.product) {
+    const prod = item.product as {
+      id: string;
+      name: string;
+      status: string;
+      quantity_available: number;
+      min_order_quantity: number;
+      unit: string;
+    };
+    if (prod.status !== "active") {
+      return { success: false, error: "Product is no longer available." };
+    }
+    if (quantity < prod.min_order_quantity) {
+      return {
+        success: false,
+        error: `Minimum order is ${prod.min_order_quantity} ${prod.unit}.`,
+      };
+    }
+    if (quantity > prod.quantity_available) {
+      return {
+        success: false,
+        error: `Only ${prod.quantity_available} ${prod.unit} available in stock.`,
+      };
+    }
+  }
+
   const { error } = await supabase
     .from("cart_items")
     .update({ quantity })
@@ -128,4 +173,17 @@ export async function removeFromBusinessCart(
 
   revalidatePath("/cart");
   return { success: true };
+}
+
+/**
+ * Server action to switch the active business.
+ * Verifies membership before writing the cookie.
+ */
+export async function switchActiveBusiness(
+  businessId: string
+): Promise<{ success: boolean; businessId: string }> {
+  await requireBusinessMembership(businessId);
+  await setActiveBusinessCookie(businessId);
+  revalidatePath("/cart");
+  return { success: true, businessId };
 }

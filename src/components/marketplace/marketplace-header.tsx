@@ -5,6 +5,7 @@ import { UserButton } from "@clerk/nextjs";
 import { RiShoppingCart2Line, RiArrowRightLine } from "@remixicon/react";
 import { APP_NAME } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
+import { routes } from "@/platform/routes";
 import { MarketplaceMobileNav } from "./marketplace-mobile-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -63,7 +64,7 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
             <>
               {isBusiness && (
                 <Link
-                  href="/business/cart"
+                  href={routes.cart}
                   className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
                   title="View Shopping Cart"
                 >

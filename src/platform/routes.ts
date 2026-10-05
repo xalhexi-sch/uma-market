@@ -25,6 +25,8 @@ export const routes = {
   product: (id: string) => `/products/${id}` as const,
   producers: "/producers",
   producer: (id: string) => `/producers/${id}` as const,
+  cart: "/cart",
+  checkout: "/checkout",
 
   // Auth
   signIn: "/sign-in",

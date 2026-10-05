@@ -7,6 +7,7 @@ import { RiMenuLine, RiShoppingCart2Line, RiArrowRightLine } from "@remixicon/re
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { APP_NAME } from "@/lib/constants";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { routes } from "@/platform/routes";
 
 interface MarketplaceMobileNavProps {
   isAuthenticated: boolean;
@@ -92,7 +93,7 @@ export function MarketplaceMobileNav({
             <>
               {isBusiness && (
                 <Link
-                  href="/business/cart"
+                  href={routes.cart}
                   onClick={() => setOpen(false)}
                   className="flex items-center justify-center gap-2 rounded-md border border-border py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
                 >
