@@ -12,10 +12,17 @@ import { ThemeToggle } from "@/components/theme-toggle";
 interface LandingNavbarProps {
   isAuthenticated: boolean;
   dashboardHref: string;
+  /** True when the navbar sits over a dark photo hero (white text until scrolled). */
+  overHero?: boolean;
 }
 
-export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarProps) {
-  const [isScrolled, setIsScrolled] = useState(false);
+export function LandingNavbar({
+  isAuthenticated,
+  dashboardHref,
+  overHero = true,
+}: LandingNavbarProps) {
+  const [scrolled, setIsScrolled] = useState(false);
+  const isScrolled = scrolled || !overHero;
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -37,7 +44,7 @@ export function LandingNavbar({ isAuthenticated, dashboardHref }: LandingNavbarP
     <>
       <header
         className={`fixed top-0 inset-x-0 w-full z-50 transition-all duration-300 ${
-          isScrolled
+          scrolled
             ? "bg-background/95 backdrop-blur-md border-b border-border/60 shadow-xs py-3"
             : "bg-transparent border-b border-transparent py-4 sm:py-5"
         }`}
