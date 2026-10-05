@@ -199,7 +199,7 @@ export default async function V4DashboardPage() {
                     </div>
                     <div className="mt-4 pt-3 border-t border-amber-500/15 flex justify-end">
                       <Link
-                        href={routes.orders}
+                        href={routes.dashboardOrders}
                         className={buttonVariants({ size: "sm", variant: "default" })}
                       >
                         Review Orders
@@ -347,7 +347,7 @@ export default async function V4DashboardPage() {
               )}
 
               <Link
-                href={routes.orders}
+                href={canSell && !canBuy ? routes.dashboardOrders : routes.orders}
                 className="group flex items-start gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:bg-muted/30 shadow-2xs"
               >
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
@@ -432,7 +432,7 @@ export default async function V4DashboardPage() {
                 </p>
               </div>
               <Link
-                href={routes.orders}
+                href={canSell && !canBuy ? routes.dashboardOrders : routes.orders}
                 className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
               >
                 View all orders

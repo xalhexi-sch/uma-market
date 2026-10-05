@@ -406,6 +406,113 @@ export async function getOrderPlacerProfile(
 }
 
 /**
+ * Fetch all incoming wholesale orders directed to a V4 seller/producer business,
+ * with optional tab status filtering, database-level sorting, and pagination.
+ *
+ * Scoped strictly to the seller Clerk IDs belonging to the active business.
+ */
+export async function getV4SellerOrders(
+  sellerClerkIds: string | string[],
+  optionsOrLimit?: OrderQueryOptions | number
+): Promise<Order[]> {
+  const options: OrderQueryOptions =
+    typeof optionsOrLimit === "number"
+      ? { limit: optionsOrLimit }
+      : optionsOrLimit ?? {};
+
+  const supabase = await createClient();
+
+  const ids = Array.isArray(sellerClerkIds)
+    ? sellerClerkIds.filter(Boolean)
+    : [sellerClerkIds].filter(Boolean);
+
+  if (ids.length === 0) return [];
+
+  let query = supabase
+    .from("orders")
+    .select(
+      `
+      id, business_id, placed_by_user_id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
+      total_amount, notes, delivery_address, pickup_date,
+      created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
+      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone, address),
+      farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
+      items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
+    `
+    );
+
+  if (ids.length === 1) {
+    query = query.eq("farmer_clerk_id", ids[0]);
+  } else {
+    query = query.in("farmer_clerk_id", ids);
+  }
+
+  // Status filtering: push filter to database
+  if (options.statusGroup) {
+    const statuses = ORDER_TAB_STATUSES[options.statusGroup];
+    if (statuses && statuses.length === 1) {
+      query = query.eq("status", statuses[0]);
+    } else if (statuses && statuses.length > 1) {
+      query = query.in("status", statuses);
+    }
+  } else if (options.statuses && options.statuses.length > 0) {
+    if (options.statuses.length === 1) {
+      query = query.eq("status", options.statuses[0]);
+    } else {
+      query = query.in("status", options.statuses);
+    }
+  }
+
+  // Ordering: needs/progress oldest-first (longest waiting); completed/cancelled newest-first
+  const ascending =
+    options.sortDirection !== undefined
+      ? options.sortDirection === "asc"
+      : options.statusGroup === "needs" || options.statusGroup === "progress";
+
+  query = query.order("created_at", { ascending });
+
+  // Pagination / Limit — always bounded (default 50)
+  const effectiveLimit = options.limit && options.limit > 0 ? options.limit : 50;
+  if (options.offset !== undefined && options.offset > 0) {
+    query = query.range(options.offset, options.offset + effectiveLimit - 1);
+  } else {
+    query = query.limit(effectiveLimit);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(mapOrderRow);
+}
+
+/**
+ * Fetch lightweight status counts across all order tabs for a V4 seller business.
+ */
+export async function getV4SellerOrderTabCounts(
+  sellerClerkIds: string | string[]
+): Promise<OrderTabCounts> {
+  const supabase = await createClient();
+  const ids = Array.isArray(sellerClerkIds)
+    ? sellerClerkIds.filter(Boolean)
+    : [sellerClerkIds].filter(Boolean);
+
+  if (ids.length === 0) return computeTabCounts(null);
+
+  let query = supabase.from("orders").select("status");
+  if (ids.length === 1) {
+    query = query.eq("farmer_clerk_id", ids[0]);
+  } else {
+    query = query.in("farmer_clerk_id", ids);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("[orders] getV4SellerOrderTabCounts error:", error.message);
+    return computeTabCounts(null);
+  }
+  return computeTabCounts(data);
+}
+
+/**
  * Fetch all orders directed to a farmer, with optional tab status filtering,
  * database-level sorting, and pagination.
  */
