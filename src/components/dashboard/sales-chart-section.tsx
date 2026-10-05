@@ -7,28 +7,32 @@ import { CURRENCY } from "@/lib/constants";
 
 interface SalesChartSectionProps {
   data: Array<{ date: string; sales: number; orders: number }>;
+  /** Farmer sells, business buys — the series labels follow the role. */
+  seriesLabel?: { sales: string; orders: string };
 }
 
-export function SalesChartSection({ data }: SalesChartSectionProps) {
+export function SalesChartSection({
+  data,
+  seriesLabel = { sales: "Sales", orders: "Orders" },
+}: SalesChartSectionProps) {
   const [activeKey, setActiveKey] = useState<"sales" | "orders">("sales");
 
   return (
     <div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <Tabs
-          defaultValue="sales"
-          onValueChange={(v) => setActiveKey(v as "sales" | "orders")}
-        >
-          <TabsList>
-            <TabsTrigger value="sales">
-              Sales ({CURRENCY})
-            </TabsTrigger>
-            <TabsTrigger value="orders">
-              Orders
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+      <Tabs
+        value={activeKey}
+        onValueChange={(value) => setActiveKey(value as "sales" | "orders")}
+        className="mb-4"
+      >
+        <TabsList>
+          <TabsTrigger value="sales" className="text-xs">
+            {seriesLabel.sales} ({CURRENCY})
+          </TabsTrigger>
+          <TabsTrigger value="orders" className="text-xs">
+            {seriesLabel.orders}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
       <SalesAreaChart data={data} activeKey={activeKey} />
     </div>
   );
