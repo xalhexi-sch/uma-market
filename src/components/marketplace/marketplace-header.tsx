@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
-import { UserButton } from "@clerk/nextjs";
+import { MarketplaceUserButton } from "./marketplace-user-button";
 import { RiShoppingCart2Line, RiArrowRightLine } from "@remixicon/react";
 import { APP_NAME } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
@@ -77,7 +77,7 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
               >
                 Dashboard
               </Link>
-              <UserButton />
+              <MarketplaceUserButton />
             </>
           ) : (
             <>
@@ -102,7 +102,7 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
         {/* Mobile Nav Toggle */}
         <div className="flex items-center gap-2 sm:hidden">
           <ThemeToggle />
-          {isAuthenticated && <UserButton />}
+          {isAuthenticated && <MarketplaceUserButton />}
           <MarketplaceMobileNav
             isAuthenticated={!!isAuthenticated}
             dashboardHref={dashboardHref}

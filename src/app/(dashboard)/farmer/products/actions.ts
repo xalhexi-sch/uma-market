@@ -183,10 +183,9 @@ export async function updateProduct(productId: string, data: Partial<ProductForm
     updates.price_per_unit = data.price_per_unit;
   }
   if (data.unit !== undefined) updates.unit = data.unit;
-  if (data.quantity_available !== undefined) {
-    if (data.quantity_available < 0) return { success: false, error: "Quantity cannot be negative." };
-    updates.quantity_available = data.quantity_available;
-  }
+  // Stock is intentionally not editable here: it changes only through
+  // adjust_business_inventory (/dashboard/inventory), which is atomic and
+  // recorded in inventory_movements. The database rejects direct stock writes.
   if (data.min_order_quantity !== undefined) {
     if (data.min_order_quantity <= 0) return { success: false, error: "Minimum order must be greater than 0." };
     updates.min_order_quantity = data.min_order_quantity;

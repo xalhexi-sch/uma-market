@@ -48,6 +48,7 @@ let admin: SupabaseClient;
 let buyer: Persona;
 let farmerA: Persona;
 let farmerB: Persona;
+let buyerBusinessId: string | null = null;
 
 /** Records any request that reaches a production host. Must stay empty. */
 function trackProductionRequests(page: Page): string[] {
@@ -161,6 +162,15 @@ test.beforeAll(async () => {
   await upsertTestProfile(admin, farmerA.clerkUserId, "farmer", "E2E-005 Farmer A");
   await upsertTestProfile(admin, farmerB.clerkUserId, "farmer", "E2E-005 Farmer B");
 
+  const { data: bMember } = await admin
+    .from("business_members")
+    .select("business_id")
+    .eq("user_id", buyer.clerkUserId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  buyerBusinessId = bMember?.business_id ?? null;
+
   await provisionProduct(admin, {
     id: CHECKOUT_PRODUCTS.a,
     farmerClerkId: farmerA.clerkUserId,
@@ -210,10 +220,12 @@ test("REG-E2E-005a: two simultaneous same-account checkout tabs commit exactly o
     minOrderQuantity: 1,
   });
 
-  const { error: cartErr } = await admin.from("cart_items").upsert(
-    { business_clerk_id: buyer.clerkUserId, product_id: CHECKOUT_PRODUCTS.a, quantity: 10 },
-    { onConflict: "business_clerk_id,product_id" },
-  );
+  const { error: cartErr } = await admin.from("cart_items").insert({
+    business_id: buyerBusinessId,
+    business_clerk_id: buyer.clerkUserId,
+    product_id: CHECKOUT_PRODUCTS.a,
+    quantity: 10,
+  });
   expect(cartErr, "cart fixture insert").toBeNull();
 
   const stockBefore = await readStock(admin, CHECKOUT_PRODUCTS.a);
@@ -337,13 +349,20 @@ test("REG-E2E-005c: a multi-farmer checkout stays atomic when one cart component
     minOrderQuantity: 1,
   });
 
-  const { error: cartErr } = await admin.from("cart_items").upsert(
-    [
-      { business_clerk_id: buyer.clerkUserId, product_id: CHECKOUT_PRODUCTS.a, quantity: 2 },
-      { business_clerk_id: buyer.clerkUserId, product_id: CHECKOUT_PRODUCTS.b, quantity: 2 },
-    ],
-    { onConflict: "business_clerk_id,product_id" },
-  );
+  const { error: cartErr } = await admin.from("cart_items").insert([
+    {
+      business_id: buyerBusinessId,
+      business_clerk_id: buyer.clerkUserId,
+      product_id: CHECKOUT_PRODUCTS.a,
+      quantity: 2,
+    },
+    {
+      business_id: buyerBusinessId,
+      business_clerk_id: buyer.clerkUserId,
+      product_id: CHECKOUT_PRODUCTS.b,
+      quantity: 2,
+    },
+  ]);
   expect(cartErr, "two-farmer cart fixture insert").toBeNull();
 
   const stockABefore = await readStock(admin, CHECKOUT_PRODUCTS.a);

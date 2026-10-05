@@ -64,6 +64,12 @@ export const routes = {
       favorites: "/business/favorites",
     },
 
+    // V4 producer operations (SELL capability)
+    listings: "/dashboard/listings",
+    newListing: "/dashboard/listings/new",
+    editListing: (id: string) => `/dashboard/listings/${id}/edit` as const,
+    inventory: "/dashboard/inventory",
+
     // Shared
     messages: "/messages",
     message: (orderId: string) => `/messages/${orderId}` as const,

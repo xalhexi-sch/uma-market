@@ -27,6 +27,100 @@ export const ProductFormSchema = z.object({
 
 export type ProductFormInput = z.infer<typeof ProductFormSchema>;
 
+// ── V4 Listings & Inventory ──────────────────────────
+// Mirrors the SQL rules in create/update_business_listing and
+// adjust_business_inventory; the database re-validates every field.
+const MAX_STOCK_QUANTITY = 99_999_999.99;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function hasAtMostTwoDecimals(value: number): boolean {
+  return Number.isFinite(value) && Math.abs(Math.round(value * 100) - value * 100) < 1e-6;
+}
+
+const listingQuantity = (label: string) =>
+  z
+    .number({ error: `Enter a ${label}.` })
+    .max(MAX_STOCK_QUANTITY, `That ${label} is too large.`)
+    .refine(hasAtMostTwoDecimals, `Enter a ${label} with up to 2 decimal places.`);
+
+export const ListingInputSchema = z
+  .object({
+    name: z
+      .string({ error: "Listing name is required." })
+      .trim()
+      .min(1, "Listing name is required.")
+      .max(200, "Listing name must be 200 characters or fewer."),
+    category_id: z.string().uuid("Choose a valid category.").nullable(),
+    description: z
+      .string()
+      .trim()
+      .max(5000, "Description must be 5000 characters or fewer."),
+    price_per_unit: listingQuantity("price").refine((v) => v > 0, "Price must be greater than 0."),
+    unit: z.string({ error: "Choose a unit." }).min(1, "Choose a unit.").max(50, "Choose a valid unit."),
+    min_order_quantity: listingQuantity("minimum order").refine(
+      (v) => v > 0,
+      "Minimum order must be greater than 0."
+    ),
+    quantity_available: listingQuantity("stock quantity").refine(
+      (v) => v >= 0,
+      "Opening stock cannot be negative."
+    ),
+    harvest_date: z.string().regex(ISO_DATE, "Enter a valid harvest date.").nullable(),
+    available_until: z.string().regex(ISO_DATE, "Enter a valid available-until date.").nullable(),
+    status: z.enum(["active", "draft"], { error: "Choose to publish or save as a draft." }),
+    image_paths: z
+      .array(z.string().min(1, "Invalid photo.").max(300, "Invalid photo."))
+      .max(5, "A listing can have up to 5 photos."),
+  })
+  .refine(
+    (v) => !v.harvest_date || !v.available_until || v.available_until >= v.harvest_date,
+    { message: "Available-until date cannot be before the harvest date.", path: ["available_until"] }
+  );
+
+export type ListingInput = z.infer<typeof ListingInputSchema>;
+
+export const ListingStatusSchema = z.object({
+  productId: z.string().uuid("Invalid listing."),
+  status: z.enum(["active", "draft", "archived"], { error: "Choose a valid listing status." }),
+});
+
+const stockQuantity = z
+  .number({ error: "Enter a quantity." })
+  .min(0, "Quantity cannot be negative.")
+  .max(MAX_STOCK_QUANTITY, "That quantity is too large.")
+  .refine(hasAtMostTwoDecimals, "Enter a quantity with up to 2 decimal places.");
+
+const stockReason = z.string().trim().max(500, "Note must be 500 characters or fewer.").optional();
+
+export const InventoryAdjustmentSchema = z.discriminatedUnion(
+  "type",
+  [
+    z.object({
+      type: z.literal("RECEIVED"),
+      productId: z.string().uuid("Invalid listing."),
+      quantity: stockQuantity.refine((v) => v > 0, "Quantity must be greater than 0."),
+      reason: stockReason,
+    }),
+    z.object({
+      type: z.literal("SPOILAGE"),
+      productId: z.string().uuid("Invalid listing."),
+      quantity: stockQuantity.refine((v) => v > 0, "Quantity must be greater than 0."),
+      reason: stockReason,
+    }),
+    z.object({
+      type: z.literal("ADJUSTMENT"),
+      productId: z.string().uuid("Invalid listing."),
+      // The counted stock, applied only if the balance still equals expectedQuantity.
+      quantity: stockQuantity,
+      expectedQuantity: stockQuantity,
+      reason: stockReason,
+    }),
+  ],
+  { error: "Choose a valid stock action." }
+);
+
+export type InventoryAdjustmentInput = z.infer<typeof InventoryAdjustmentSchema>;
+
 // ── Cart ─────────────────────────────────────────────
 export const AddToCartSchema = z.object({
   productId: z.string().uuid("Invalid product ID."),

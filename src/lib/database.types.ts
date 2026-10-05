@@ -433,6 +433,7 @@ export type Database = {
       products: {
         Row: {
           available_until: string | null
+          business_id: string | null
           category_id: string | null
           created_at: string
           description: string | null
@@ -452,6 +453,7 @@ export type Database = {
         }
         Insert: {
           available_until?: string | null
+          business_id?: string | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -471,6 +473,7 @@ export type Database = {
         }
         Update: {
           available_until?: string | null
+          business_id?: string | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -489,6 +492,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_category_id_fkey"
             columns: ["category_id"]
@@ -509,6 +519,63 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_farmer_profiles"
             referencedColumns: ["clerk_id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          balance_after: number
+          business_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          movement_type: string
+          product_id: string
+          quantity_delta: number
+          reason: string | null
+          reference_id: string | null
+          reference_type: string | null
+        }
+        Insert: {
+          balance_after: number
+          business_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          movement_type: string
+          product_id: string
+          quantity_delta: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Update: {
+          balance_after?: number
+          business_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          movement_type?: string
+          product_id?: string
+          quantity_delta?: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -708,6 +775,56 @@ export type Database = {
       }
     }
     Functions: {
+      adjust_business_inventory: {
+        Args: {
+          p_business_id: string
+          p_expected_quantity?: number | null
+          p_movement_type: string
+          p_product_id: string
+          p_quantity: number
+          p_reason?: string | null
+        }
+        Returns: Json
+      }
+      create_business_listing: {
+        Args: {
+          p_available_until: string | null
+          p_business_id: string
+          p_category_id: string | null
+          p_description: string | null
+          p_harvest_date: string | null
+          p_image_paths?: string[]
+          p_min_order_quantity: number
+          p_name: string
+          p_opening_quantity: number
+          p_price_per_unit: number
+          p_status: string
+          p_unit: string
+        }
+        Returns: string
+      }
+      current_seller_business_ids: { Args: never; Returns: string[] }
+      set_business_listing_status: {
+        Args: { p_business_id: string; p_product_id: string; p_status: string }
+        Returns: string
+      }
+      update_business_listing: {
+        Args: {
+          p_available_until: string | null
+          p_business_id: string
+          p_category_id: string | null
+          p_description: string | null
+          p_harvest_date: string | null
+          p_image_paths?: string[] | null
+          p_min_order_quantity: number
+          p_name: string
+          p_price_per_unit: number
+          p_product_id: string
+          p_status?: string | null
+          p_unit: string
+        }
+        Returns: undefined
+      }
       get_business_overview_metrics: {
         Args: { p_end: string; p_prev_start: string; p_start: string }
         Returns: Json

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { RiImageAddLine, RiDeleteBinLine, RiStarFill, RiAddLine } from "@remixicon/react";
+import { RiImageAddLine, RiDeleteBinLine, RiStarFill, RiAddLine, RiArrowRightLine } from "@remixicon/react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,17 +17,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { createProduct, updateProduct, archiveProduct } from "@/app/(dashboard)/farmer/products/actions";
+import {
+  createProduct,
+  updateProduct,
+  archiveProduct,
+  type ProductFormData,
+} from "@/app/(dashboard)/farmer/products/actions";
 import { useSupabase } from "@/hooks/use-supabase";
 import { getProductImageUrl, validateProductImageFile, PRODUCT_IMAGES_BUCKET } from "@/lib/supabase/storage";
 import type { Category, Product } from "@/lib/types";
 import { PRODUCT_UNITS } from "@/lib/constants";
+import { routes } from "@/platform/routes";
+import { formatQuantity } from "@/lib/inventory";
 import { toast } from "@/components/ui/toast";
+
+type ProductFormResult = { success: boolean; error?: string };
+
+/** Server actions the form submits to. Defaults to the legacy farmer actions. */
+export interface ProductFormActions {
+  create: (data: ProductFormData) => Promise<ProductFormResult>;
+  update: (productId: string, data: ProductFormData) => Promise<ProductFormResult>;
+  archive: (productId: string) => Promise<ProductFormResult>;
+}
+
+const LEGACY_ACTIONS: ProductFormActions = {
+  create: createProduct,
+  update: updateProduct,
+  archive: archiveProduct,
+};
 
 interface ProductFormProps {
   categories: Category[];
   mode: "create" | "edit";
   product?: Product;
+  actions?: ProductFormActions;
+  /** Where to go after a successful save or archive. */
+  successHref?: string;
 }
 
 interface FormPhoto {
@@ -36,7 +62,13 @@ interface FormPhoto {
   imagePath?: string;
 }
 
-export function ProductForm({ categories, mode, product }: ProductFormProps) {
+export function ProductForm({
+  categories,
+  mode,
+  product,
+  actions = LEGACY_ACTIONS,
+  successHref = routes.dashboard.farmer.products,
+}: ProductFormProps) {
   const { user } = useUser();
   const supabase = useSupabase();
   const router = useRouter();
@@ -142,7 +174,9 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
     setUploadError(null);
 
     startTransition(async () => {
-      if (!user?.id) {
+      // The Clerk user id is only needed to build upload paths; the server
+      // action authenticates on its own, so don't block saves while Clerk loads.
+      if (!user?.id && photos.some((photo) => photo.file)) {
         setError("User session not found. Please refresh and try again.");
         return;
       }
@@ -155,7 +189,7 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
         if (photo.file) {
           const ext = photo.file.name.split(".").pop()?.toLowerCase() || "webp";
           const fileId = crypto.randomUUID();
-          const objectPath = `products/${user.id}/${fileId}.${ext}`;
+          const objectPath = `products/${user!.id}/${fileId}.${ext}`;
 
           const { error: uploadErr } = await supabase.storage
             .from(PRODUCT_IMAGES_BUCKET)
@@ -196,12 +230,12 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
 
       const result =
         mode === "create"
-          ? await createProduct(data)
-          : await updateProduct(product!.id, data);
+          ? await actions.create(data)
+          : await actions.update(product!.id, data);
 
       if (result.success) {
         toast.success(mode === "create" ? "Product created successfully." : "Product updated successfully.");
-        router.push("/farmer/products");
+        router.push(successHref);
       } else {
         toast.error(result.error ?? "Something went wrong.");
         setError(result.error ?? "Something went wrong.");
@@ -212,10 +246,10 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
   function handleArchive() {
     if (!product) return;
     startArchive(async () => {
-      const result = await archiveProduct(product.id);
+      const result = await actions.archive(product.id);
       if (result.success) {
         toast.success("Product archived.");
-        router.push("/farmer/products");
+        router.push(successHref);
       } else {
         toast.error(result.error ?? "Could not archive.");
         setError(result.error ?? "Could not archive.");
@@ -476,18 +510,38 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
             </Select>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="qty">Available Quantity</Label>
-            <Input
-              id="qty"
-              type="number"
-              min={0}
-              step={0.5}
-              value={form.quantity_available}
-              onChange={(e) => set("quantity_available", Number(e.target.value))}
-              required
-            />
-          </div>
+          {mode === "create" ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="qty">Available Quantity</Label>
+              <Input
+                id="qty"
+                type="number"
+                min={0}
+                step={0.5}
+                value={form.quantity_available}
+                onChange={(e) => set("quantity_available", Number(e.target.value))}
+                required
+              />
+            </div>
+          ) : (
+            // Stock changes go through Inventory so every change is atomic and recorded.
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium leading-none">Available Quantity</span>
+              <div
+                data-testid="product-form-stock-readonly"
+                className="flex h-9 items-center rounded-md border border-dashed border-border bg-muted/30 px-3 text-sm tabular-nums text-foreground"
+              >
+                {formatQuantity(product?.quantity_available ?? 0)} {form.unit}
+              </div>
+              <Link
+                href={routes.dashboard.inventory}
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                Update stock in Inventory
+                <RiArrowRightLine className="size-3" aria-hidden="true" />
+              </Link>
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="min-order">Minimum Order</Label>

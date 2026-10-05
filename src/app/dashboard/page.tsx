@@ -35,6 +35,7 @@ import { getUserConversations, type Conversation } from "@/lib/supabase/queries/
 import type { Order, Product } from "@/lib/types";
 import { routes } from "@/platform/routes";
 import { AppError } from "@/platform/errors";
+import { getStockState } from "@/lib/inventory";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -116,16 +117,17 @@ export default async function V4DashboardPage() {
   const sellerPendingOrders = sellerOrders.filter((o) => o.status === "pending");
 
   const activeProducts = sellerProducts.filter((p) => p.status === "active");
-  const lowStockProducts = sellerProducts.filter(
-    (p) =>
-      p.status === "active" &&
-      p.quantity_available > 0 &&
-      p.quantity_available <= Math.max(10, p.min_order_quantity)
+  const lowStockProducts = sellerProducts.filter((p) => {
+    if (p.status !== "active") return false;
+    const state = getStockState(p.quantity_available, p.min_order_quantity);
+    return state === "low" || state === "below_moq";
+  });
+  const outOfStockProducts = sellerProducts.filter((p) => {
+    return p.status === "out_of_stock" || getStockState(p.quantity_available, p.min_order_quantity) === "out";
+  });
+  const inventoryWarningItems = sellerProducts.filter(
+    (p) => getStockState(p.quantity_available, p.min_order_quantity) !== "ok"
   );
-  const outOfStockProducts = sellerProducts.filter(
-    (p) => p.quantity_available === 0 || p.status === "out_of_stock"
-  );
-  const inventoryWarningItems = [...outOfStockProducts, ...lowStockProducts];
 
   const buyerNeedsCount = buyerTabCounts?.needs ?? buyerOrders.filter((o) => o.status === "pending").length;
   const buyerProgressCount = buyerTabCounts?.progress ?? buyerOrders.filter((o) =>
@@ -229,13 +231,13 @@ export default async function V4DashboardPage() {
                       </div>
                     </div>
                     <div className="mt-4 pt-3 border-t border-red-500/15 flex justify-end">
-                      <a
-                        href="#inventory-warnings"
+                      <Link
+                        href={routes.dashboard.inventory}
                         className={buttonVariants({ size: "sm", variant: "outline" })}
                       >
-                        Inspect Inventory
+                        Manage Inventory
                         <RiArrowRightLine className="ml-1.5 size-3.5" aria-hidden="true" />
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -384,7 +386,7 @@ export default async function V4DashboardPage() {
 
               {canSell && (
                 <Link
-                  href={routes.products}
+                  href={routes.dashboard.listings}
                   className="group flex items-start gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:bg-muted/30 shadow-2xs"
                 >
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
@@ -392,10 +394,29 @@ export default async function V4DashboardPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                      Market Catalog
+                      Produce Listings
                     </h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      Inspect listed wholesale crops and market rates.
+                      Manage harvests, prices, and available catalog.
+                    </p>
+                  </div>
+                </Link>
+              )}
+
+              {canSell && (
+                <Link
+                  href={routes.dashboard.inventory}
+                  className="group flex items-start gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:bg-muted/30 shadow-2xs"
+                >
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
+                    <RiInboxLine className="size-5" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                      Inventory Operations
+                    </h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Track stock balances, log received harvests, and adjust counts.
                     </p>
                   </div>
                 </Link>
@@ -583,13 +604,21 @@ export default async function V4DashboardPage() {
                     Active wholesale inventory and market visibility.
                   </p>
                 </div>
-                <Link
-                  href={routes.products}
-                  className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
-                >
-                  View catalog
-                  <RiArrowRightLine className="ml-1 size-3.5" aria-hidden="true" />
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={routes.dashboard.inventory}
+                    className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Inventory
+                  </Link>
+                  <Link
+                    href={routes.dashboard.listings}
+                    className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
+                  >
+                    Manage listings
+                    <RiArrowRightLine className="ml-1 size-3.5" aria-hidden="true" />
+                  </Link>
+                </div>
               </div>
 
               {/* Produce metrics */}
@@ -673,11 +702,20 @@ export default async function V4DashboardPage() {
               data-testid="inventory-warnings-section"
               className="space-y-3"
             >
-              <div className="flex items-center gap-2">
-                <RiAlertLine className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-                <h2 className="text-base font-semibold tracking-tight text-foreground">
-                  Inventory Alerts
-                </h2>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <RiAlertLine className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                  <h2 className="text-base font-semibold tracking-tight text-foreground">
+                    Inventory Alerts
+                  </h2>
+                </div>
+                <Link
+                  href={routes.dashboard.inventory}
+                  className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
+                >
+                  Manage inventory
+                  <RiArrowRightLine className="ml-1 size-3.5" aria-hidden="true" />
+                </Link>
               </div>
 
               <div className="divide-y divide-border rounded-xl border border-amber-500/20 bg-card overflow-hidden shadow-2xs">
@@ -709,10 +747,10 @@ export default async function V4DashboardPage() {
 
                       <div className="flex items-center gap-2">
                         <Link
-                          href={routes.product(product.id)}
+                          href={routes.dashboard.inventory}
                           className={buttonVariants({ size: "sm", variant: "outline" })}
                         >
-                          View Listing
+                          Adjust Stock
                         </Link>
                       </div>
                     </div>
