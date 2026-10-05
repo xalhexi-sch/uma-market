@@ -38,3 +38,27 @@ export { log } from "./logging";
 
 // Routes
 export { routes, dashboardRoot } from "./routes";
+
+// Business context & membership authorization (V4)
+export {
+  ACTIVE_BUSINESS_COOKIE,
+  getActiveBusinessCookie,
+  setActiveBusinessCookie,
+  getUserBusinessMemberships,
+  resolveActiveBusinessContext,
+  requireActiveBusiness,
+  requireBusinessMembership,
+  requireBusinessRole,
+  requireCanBuy,
+  requireCanSell,
+  switchActiveBusiness,
+  type ActiveBusinessContext,
+} from "./business-context";
+
+// V4 Business Cart Actions
+export {
+  addToBusinessCart,
+  updateBusinessCartItemQuantity,
+  removeFromBusinessCart,
+} from "./cart-actions";
+

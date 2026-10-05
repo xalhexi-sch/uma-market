@@ -23,6 +23,31 @@ export interface Profile {
   updated_at: string;
 }
 
+// ── Business (V4) ──────────────────────────────────
+export type BusinessRole = "OWNER" | "STAFF";
+export type BusinessStatus = "active" | "suspended" | "revoked";
+
+export interface Business {
+  id: string;
+  name: string;
+  can_buy: boolean;
+  can_sell: boolean;
+  status: BusinessStatus;
+  legacy_clerk_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BusinessMember {
+  id: string;
+  business_id: string;
+  user_id: string;
+  role: BusinessRole;
+  created_at: string;
+  updated_at: string;
+  business?: Business;
+}
+
 // ── Category ───────────────────────────────────────
 export interface Category {
   id: string;
@@ -120,7 +145,8 @@ export interface ReviewSummary {
 // ── Cart Item ──────────────────────────────────────
 export interface CartItem {
   id: string;
-  business_clerk_id: string;
+  business_clerk_id?: string;
+  business_id?: string | null;
   product_id: string;
   quantity: number;
   created_at: string;

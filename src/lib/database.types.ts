@@ -14,9 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      businesses: {
+        Row: {
+          can_buy: boolean
+          can_sell: boolean
+          created_at: string
+          id: string
+          legacy_clerk_id: string | null
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          can_buy?: boolean
+          can_sell?: boolean
+          created_at?: string
+          id?: string
+          legacy_clerk_id?: string | null
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          can_buy?: boolean
+          can_sell?: boolean
+          created_at?: string
+          id?: string
+          legacy_clerk_id?: string | null
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      business_members: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_members_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart_items: {
         Row: {
           business_clerk_id: string
+          business_id: string | null
           created_at: string
           id: string
           product_id: string
@@ -25,6 +94,7 @@ export type Database = {
         }
         Insert: {
           business_clerk_id: string
+          business_id?: string | null
           created_at?: string
           id?: string
           product_id: string
@@ -33,6 +103,7 @@ export type Database = {
         }
         Update: {
           business_clerk_id?: string
+          business_id?: string | null
           created_at?: string
           id?: string
           product_id?: string
@@ -40,6 +111,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cart_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cart_items_product_id_fkey"
             columns: ["product_id"]
