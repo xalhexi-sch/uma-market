@@ -12,6 +12,7 @@ import { ProductFilters } from "@/components/products/product-filters";
 import { CategoryPills } from "@/components/products/category-pills";
 import { ProductSearchProvider } from "@/components/products/product-search-context";
 import { LiveProductGrid } from "@/components/products/live-product-grid";
+import { ProductsErrorState } from "@/components/products/products-error-state";
 import { CategoryIcon } from "@/components/marketplace/category-icon";
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from "@/components/ui/empty";
 import { getActiveProducts, searchActiveProducts, getCategories } from "@/lib/supabase/queries/products";
@@ -21,7 +22,7 @@ import type { Category } from "@/lib/types";
 export const metadata: Metadata = {
   title: "Produce Marketplace",
   description:
-    "Source fresh local produce directly from verified farmers in Butuan City. In-stock availability, direct farm-gate pricing, and transparent procurement.",
+    "Source fresh local produce directly from verified producers in Butuan City. In-stock availability, direct farm-gate pricing, and transparent procurement.",
 };
 
 export const dynamic = "force-dynamic";
@@ -96,17 +97,26 @@ async function CuratedDiscovery({
   categories: Category[];
 }) {
   // Run Available Now (in-stock) and complete catalog queries concurrently
-  const [availableNow, allProducts] = await Promise.all([
+  // A failed query must not look like an empty marketplace.
+  const [availableNowResult, allProductsResult] = await Promise.allSettled([
     getActiveProducts({
       inStockOnly: true,
       sort: "newest",
       limit: 6,
-    }).catch(() => []),
+    }),
     getActiveProducts({
       sort: "newest",
       limit: 24,
-    }).catch(() => []),
+    }),
   ]);
+
+  if (allProductsResult.status === "rejected") {
+    console.error("Products catalog query failed:", allProductsResult.reason);
+    return <ProductsErrorState retryHref="/products" />;
+  }
+
+  const availableNow = availableNowResult.status === "fulfilled" ? availableNowResult.value : [];
+  const allProducts = allProductsResult.value;
 
   return (
     <div className="flex flex-col gap-14 sm:gap-18">
@@ -165,7 +175,7 @@ async function CuratedDiscovery({
               </EmptyMedia>
               <EmptyTitle>No active produce listed yet</EmptyTitle>
               <EmptyDescription>
-                Farmers are preparing upcoming seasonal harvests. Check back soon.
+                Producers are preparing upcoming seasonal harvests. Check back soon.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -192,7 +202,11 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
   const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
 
   const isFiltering =
-    !!q || !!category || in_stock === "false" || (!!sort && sort !== "newest" && sort !== "relevance");
+    !!q ||
+    !!category ||
+    in_stock === "false" ||
+    in_stock === "true" ||
+    (!!sort && sort !== "newest" && sort !== "relevance");
   const inStockOnly = in_stock !== "false";
   const activeSort: ProductSort = VALID_SORTS.includes(sort as ProductSort)
     ? (sort as ProductSort)
@@ -204,10 +218,10 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
   const isCatalogMode = isFiltering || currentPage > 1;
 
   // Run independent category and catalog queries concurrently
-  const [categories, searchResult] = await Promise.all([
+  const [categories, catalog] = await Promise.all([
     getCategories().catch(() => []),
     (async () => {
-      if (!isCatalogMode) return null;
+      if (!isCatalogMode) return { result: null, failed: false };
       return await searchActiveProducts({
         search: q,
         categorySlug: category,
@@ -215,10 +229,17 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
         inStockOnly,
         page: currentPage,
         limit: 24,
-      }).catch(() => null);
+      })
+        .then((result) => ({ result, failed: false }))
+        .catch((err) => {
+          console.error("Products search failed:", err);
+          return { result: null, failed: true };
+        });
     })(),
   ]);
 
+  const searchResult = catalog.result;
+  const loadError = catalog.failed;
   const initialProducts = searchResult?.products ?? [];
   const totalCount = searchResult?.totalCount ?? 0;
   const totalPages = searchResult?.totalPages ?? 1;
@@ -288,6 +309,7 @@ export default async function ProductsMarketplacePage({ searchParams }: PageProp
               totalPages={totalPages}
               currentPage={currentPage}
               totalCount={totalCount}
+              loadError={loadError}
               searchParams={{ q, category, sort, in_stock }}
             />
           </section>

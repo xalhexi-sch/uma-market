@@ -22,6 +22,8 @@ interface ProductSearchContextValue {
   liveProducts: Product[] | null;
   liveTotalCount: number | null;
   hasSearched: boolean;
+  searchError: boolean;
+  retrySearch: () => void;
   clearSearch: () => void;
   commitSearch: (queryToCommit?: string) => void;
   activeCategory: string;
@@ -57,6 +59,7 @@ export function ProductSearchProvider({
   const [liveProducts, setLiveProducts] = useState<Product[] | null>(null);
   const [liveTotalCount, setLiveTotalCount] = useState<number | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState(false);
 
   // References for debounce, aborting, and racing-response protection
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -88,6 +91,7 @@ export function ProductSearchProvider({
     setLiveTotalCount(null);
     setHasSearched(false);
     setIsSearching(false);
+    setSearchError(false);
   }
 
   // Clean up timers & abort controller on unmount
@@ -113,6 +117,7 @@ export function ProductSearchProvider({
         }
         lastRequestIdRef.current += 1;
         setIsSearching(false);
+        setSearchError(false);
         setLiveProducts(null);
         setLiveTotalCount(null);
         setHasSearched(false);
@@ -125,7 +130,13 @@ export function ProductSearchProvider({
             params.delete("sort");
           }
           const qs = params.toString();
-          window.history.replaceState(null, "", `${basePath}${qs ? `?${qs}` : ""}`);
+          const targetUrl = `${basePath}${qs ? `?${qs}` : ""}`;
+          if (initialSearch) {
+            setIsSearching(true);
+            router.push(targetUrl);
+          } else {
+            window.history.replaceState(null, "", targetUrl);
+          }
         }
         return;
       }
@@ -140,6 +151,7 @@ export function ProductSearchProvider({
       // Monotonic request ID guard to prevent stale responses from overwriting newer ones
       const requestId = ++lastRequestIdRef.current;
       setIsSearching(true);
+      setSearchError(false);
 
       try {
         const queryParams = new URLSearchParams();
@@ -181,10 +193,11 @@ export function ProductSearchProvider({
         }
         if (requestId === lastRequestIdRef.current) {
           setIsSearching(false);
+          setSearchError(true);
         }
       }
     },
-    [basePath, initialCategory, initialSort, initialInStockOnly]
+    [basePath, initialCategory, initialSort, initialInStockOnly, initialSearch, router]
   );
 
   const setSearchQuery = useCallback(
@@ -213,6 +226,7 @@ export function ProductSearchProvider({
     lastRequestIdRef.current += 1;
     setSearchQueryState("");
     setIsSearching(false);
+    setSearchError(false);
     setLiveProducts(null);
     setLiveTotalCount(null);
     setHasSearched(false);
@@ -225,9 +239,19 @@ export function ProductSearchProvider({
         params.delete("sort");
       }
       const qs = params.toString();
-      window.history.replaceState(null, "", `${basePath}${qs ? `?${qs}` : ""}`);
+      const targetUrl = `${basePath}${qs ? `?${qs}` : ""}`;
+      if (initialSearch) {
+        setIsSearching(true);
+        router.push(targetUrl);
+      } else {
+        window.history.replaceState(null, "", targetUrl);
+      }
     }
-  }, [basePath]);
+  }, [basePath, initialSearch, router]);
+
+  const retrySearch = useCallback(() => {
+    executeSearch(searchQuery);
+  }, [executeSearch, searchQuery]);
 
   const commitSearch = useCallback(
     (queryToCommit?: string) => {
@@ -271,6 +295,8 @@ export function ProductSearchProvider({
         liveProducts,
         liveTotalCount,
         hasSearched,
+        searchError,
+        retrySearch,
         clearSearch,
         commitSearch,
         activeCategory: initialCategory,

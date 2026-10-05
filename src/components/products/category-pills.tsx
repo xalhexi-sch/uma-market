@@ -43,7 +43,7 @@ export function CategoryPills({
     ) {
       params.set("sort", searchParams.sort);
     }
-    if (searchParams?.in_stock === "false") params.set("in_stock", "false");
+    if (searchParams?.in_stock) params.set("in_stock", searchParams.in_stock);
     if (catSlug) params.set("category", catSlug);
     // Page is intentionally omitted to reset pagination to page 1
     const qs = params.toString();
@@ -61,6 +61,7 @@ export function CategoryPills({
     >
       <Link
         href={buildCategoryHref()}
+        aria-current={!activeCategory ? "page" : undefined}
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs",
           !activeCategory
@@ -75,6 +76,7 @@ export function CategoryPills({
         <Link
           key={cat.slug}
           href={buildCategoryHref(cat.slug)}
+          aria-current={activeCategory === cat.slug ? "page" : undefined}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs",
             activeCategory === cat.slug

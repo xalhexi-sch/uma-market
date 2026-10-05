@@ -71,6 +71,9 @@ export function ProductFilters({
   const [draftCategory, setDraftCategory] = useState<string>(initialCategory);
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // Derive the active search value: when searchContext is active, it is the source of truth
+  const activeSearchValue = searchContext ? searchContext.searchQuery : draftSearch;
+
   // Adjust state during render when props change
   const [prevProps, setPrevProps] = useState({
     initialSearch,
@@ -80,7 +83,7 @@ export function ProductFilters({
   });
 
   if (
-    (prevProps.initialSearch !== initialSearch && !searchContext) ||
+    prevProps.initialSearch !== initialSearch ||
     prevProps.initialSort !== initialSort ||
     prevProps.initialInStockOnly !== initialInStockOnly ||
     prevProps.initialCategory !== initialCategory
@@ -91,9 +94,7 @@ export function ProductFilters({
       initialInStockOnly,
       initialCategory,
     });
-    if (!searchContext) {
-      setDraftSearch(initialSearch);
-    }
+    setDraftSearch(initialSearch);
     setDraftSort(initialSort);
     setDraftInStock(initialInStockOnly ? "true" : "false");
     setDraftCategory(initialCategory);
@@ -155,10 +156,11 @@ export function ProductFilters({
 
   return (
     <div className="w-full">
-      {/* ─── Desktop & Tablet Layout (>= sm) ─── */}
-      <div className="hidden sm:flex items-center gap-3 w-full">
+      {/* ─── Unified Responsive Search & Filter Bar ─── */}
+      <div className="flex items-center gap-2 sm:gap-3 w-full">
+        {/* Single responsive Search input with live autocomplete */}
         <SearchAutocomplete
-          value={draftSearch}
+          value={activeSearchValue}
           onChange={(val) => {
             setDraftSearch(val);
             if (searchContext) {
@@ -181,12 +183,13 @@ export function ProductFilters({
           basePath={basePath}
           variant={variant}
           isSearchingContext={searchContext?.isSearching}
-          className={cn("flex-1", variant === "business" && "max-w-sm")}
+          className={cn("flex-1 min-w-0", variant === "business" && "sm:max-w-sm")}
         />
 
+        {/* Desktop Controls (>= sm) */}
         <div
           className={cn(
-            "flex items-center gap-2.5",
+            "hidden sm:flex items-center gap-2.5",
             variant === "business" && "gap-2"
           )}
         >
@@ -279,61 +282,29 @@ export function ProductFilters({
             <span className="hidden lg:inline">Search</span>
           </button>
         </div>
-      </div>
 
-      {/* ─── Small Mobile Layout (< sm) ─── */}
-      <div className="flex sm:hidden items-center gap-2 w-full">
-        {/* Immediately visible Search input with live autocomplete */}
-        <SearchAutocomplete
-          value={draftSearch}
-          onChange={(val) => {
-            setDraftSearch(val);
-            if (searchContext) {
-              searchContext.setSearchQuery(val);
-            }
-          }}
-          onSubmit={(val) => {
-            handleApply({ search: val });
-          }}
-          onClear={() => {
-            setDraftSearch("");
-            const nextSort = draftSort === "relevance" ? "newest" : draftSort;
-            if (draftSort === "relevance") setDraftSort("newest");
-            if (searchContext) {
-              searchContext.clearSearch();
-            } else {
-              handleApply({ search: "", sort: nextSort });
-            }
-          }}
-          basePath={basePath}
-          variant={variant}
-          placeholder={
-            variant === "marketplace" ? "Search produce…" : "Search products…"
-          }
-          isSearchingContext={searchContext?.isSearching}
-          className="min-w-0"
-        />
-
-        {/* Compact Filter Trigger button */}
-        <button
-          type="button"
-          onClick={() => setSheetOpen(true)}
-          className={cn(
-            "h-10 px-3 inline-flex items-center justify-center gap-1.5 rounded-md border text-sm font-medium transition-colors shadow-xs cursor-pointer shrink-0 bg-background hover:bg-muted/50",
-            activeFilterCount > 0
-              ? "border-primary text-primary font-semibold bg-primary/5"
-              : "border-input text-foreground"
-          )}
-          aria-label="Open product filters"
-        >
-          <RiFilter3Line className="size-4" />
-          <span>Filters</span>
-          {activeFilterCount > 0 && (
-            <span className="flex size-4.5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
+        {/* Small Mobile Filter Trigger (< sm) */}
+        <div className="flex sm:hidden shrink-0">
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className={cn(
+              "h-10 px-3 inline-flex items-center justify-center gap-1.5 rounded-md border text-sm font-medium transition-colors shadow-xs cursor-pointer shrink-0 bg-background hover:bg-muted/50",
+              activeFilterCount > 0
+                ? "border-primary text-primary font-semibold bg-primary/5"
+                : "border-input text-foreground"
+            )}
+            aria-label="Open product filters"
+          >
+            <RiFilter3Line className="size-4" />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="flex size-4.5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ─── shadcn Mobile Filter Sheet (< sm) ─── */}

@@ -67,7 +67,7 @@ export function ProductPagination({
     ) {
       params.set("sort", searchParams.sort);
     }
-    if (searchParams?.in_stock === "false") params.set("in_stock", "false");
+    if (searchParams?.in_stock) params.set("in_stock", searchParams.in_stock);
     // Page 1 omits the page query parameter for clean canonical URLs
     if (pageNumber > 1) params.set("page", pageNumber.toString());
 
