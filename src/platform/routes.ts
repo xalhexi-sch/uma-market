@@ -27,6 +27,8 @@ export const routes = {
   producer: (id: string) => `/producers/${id}` as const,
   cart: "/cart",
   checkout: "/checkout",
+  checkoutConfirmation: (orderId?: string) =>
+    (orderId ? `/checkout/confirmation/${orderId}` : "/checkout/confirmation") as string,
 
   // Auth
   signIn: "/sign-in",

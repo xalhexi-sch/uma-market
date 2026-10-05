@@ -115,6 +115,20 @@ export function mapCheckoutDatabaseError(raw: string | null | undefined): Checko
     return checkoutError("ACCOUNT_INACTIVE");
   }
 
+  // V4 business-context guards
+  if (msg.includes("not a member of the specified business")) {
+    return checkoutError("UNAUTHORIZED");
+  }
+  if (msg.includes("does not have buying capability")) {
+    return checkoutError("UNAUTHORIZED");
+  }
+  if (msg.includes("business is") && msg.includes("cannot place orders")) {
+    return checkoutError("ACCOUNT_INACTIVE");
+  }
+  if (msg.includes("business not found")) {
+    return checkoutError("UNAUTHORIZED");
+  }
+
   // Catalogue / stock rules.
   if (msg.includes("is not available for ordering") || msg.includes("product not found")) {
     return checkoutError("PRODUCT_UNAVAILABLE");

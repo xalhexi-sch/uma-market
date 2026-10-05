@@ -509,9 +509,9 @@ async function runAnonRLSChecks(): Promise<void> {
     throw new Error(`D-20 privileged fixture verification failed: ${verifiedItemFixtureError?.message ?? "order item missing or mismatched"}`);
   }
 
-  const { data: cartFixture, error: cartFixtureError } = await adminClient.from("cart_items").upsert(
-    { business_clerk_id: T.buyerA_id, product_id: T.productA1, quantity: 5 },
-    { onConflict: "business_clerk_id,product_id" }
+  await adminClient.from("cart_items").delete().eq("business_clerk_id", T.buyerA_id).eq("product_id", T.productA1);
+  const { data: cartFixture, error: cartFixtureError } = await adminClient.from("cart_items").insert(
+    { business_clerk_id: T.buyerA_id, product_id: T.productA1, quantity: 5 }
   ).select("id, business_clerk_id, product_id").single();
   if (cartFixtureError || !cartFixture) {
     throw new Error(`D-21 cart fixture setup failed: ${cartFixtureError?.message ?? "no row returned"}`);
