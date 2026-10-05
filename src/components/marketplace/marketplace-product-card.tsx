@@ -47,7 +47,7 @@ export function MarketplaceProductCard({
   const farmerName =
     product.farmer?.business_name ||
     product.farmer?.full_name ||
-    "Local Farm";
+    "Local Producer";
 
   const imageUrl = getProductImageUrl(product.image_path, product.image_url);
   const targetHref = href || (variant === "business" ? `/business/products/${product.id}` : `/products/${product.id}`);
@@ -134,8 +134,12 @@ export function MarketplaceProductCard({
             </span>
           )}
           {product.farmer?.is_verified && (
-            <span title="Verified Local Producer" className="inline-flex items-center shrink-0">
-              <RiCheckboxCircleFill className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span
+              title="Verified local producer"
+              className="inline-flex items-center gap-0.5 shrink-0 text-[11px] font-medium text-emerald-700 dark:text-emerald-400"
+            >
+              <RiCheckboxCircleFill className="size-3.5 shrink-0" aria-hidden="true" />
+              Verified
             </span>
           )}
         </div>

@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MarketplaceProductCard } from "@/components/marketplace/marketplace-product-card";
 import { useProductSearchOptional } from "@/components/products/product-search-context";
 import { ProductPagination } from "@/components/products/product-pagination";
+import { ProductsErrorState } from "@/components/products/products-error-state";
 import type { Product } from "@/lib/types";
 
 interface LiveProductGridProps {
@@ -20,6 +21,8 @@ interface LiveProductGridProps {
   totalPages?: number;
   currentPage?: number;
   totalCount?: number;
+  /** Server-side catalog query failed (distinct from an empty result). */
+  loadError?: boolean;
   searchParams?: {
     q?: string;
     category?: string;
@@ -54,12 +57,14 @@ export function LiveProductGrid({
   totalPages,
   currentPage,
   totalCount,
+  loadError = false,
   searchParams,
 }: LiveProductGridProps) {
   const searchContext = useProductSearchOptional();
 
   const isSearching = searchContext?.isSearching ?? false;
   const hasSearched = searchContext?.hasSearched ?? false;
+  const searchError = searchContext?.searchError ?? false;
   const currentQuery = searchContext ? searchContext.searchQuery : initialSearch;
   const activeProducts = hasSearched && searchContext?.liveProducts !== null
     ? (searchContext?.liveProducts ?? [])
@@ -84,6 +89,10 @@ export function LiveProductGrid({
     totalPages > 0 &&
     currentPage > totalPages;
 
+  const retryParams = new URLSearchParams();
+  for (const [k, v] of Object.entries(searchParams ?? {})) if (v) retryParams.set(k, v);
+  const retryHref = `/products${retryParams.size ? `?${retryParams}` : ""}`;
+
   return (
     <div className="flex flex-col gap-6">
       {/* Dynamic Results Status Bar */}
@@ -92,7 +101,7 @@ export function LiveProductGrid({
           <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
             {headerTitle}
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p role="status" aria-live="polite" className="text-xs text-muted-foreground mt-0.5">
             {isSearching ? (
               <span className="inline-flex items-center gap-1.5 animate-pulse text-primary font-medium">
                 Searching produce…
@@ -130,6 +139,14 @@ export function LiveProductGrid({
       {/* Loading Skeleton during pending live search */}
       {isSearching ? (
         <ProductGridSkeleton count={8} />
+      ) : searchError ? (
+        <ProductsErrorState
+          title="Search is unavailable right now"
+          description="We couldn't reach the marketplace. Check your connection and try again."
+          onRetry={searchContext?.retrySearch}
+        />
+      ) : loadError && !hasSearched ? (
+        <ProductsErrorState retryHref={retryHref} />
       ) : isPageOutOfRange ? (
         /* Out-of-bounds Page State */
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center bg-card">
