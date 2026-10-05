@@ -93,6 +93,8 @@ export interface Product {
 // ── Order ──────────────────────────────────────────
 export interface Order {
   id: string;
+  business_id?: string | null;
+  placed_by_user_id?: string | null;
   business_clerk_id: string;
   farmer_clerk_id: string;
   status: OrderStatus;

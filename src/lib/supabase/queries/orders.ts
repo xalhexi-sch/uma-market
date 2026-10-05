@@ -28,6 +28,8 @@ export interface OrderTabCounts {
 
 function mapOrderRow(row: {
   id: string;
+  business_id?: string | null;
+  placed_by_user_id?: string | null;
   business_clerk_id: string;
   farmer_clerk_id: string;
   status: string;
@@ -71,6 +73,8 @@ function mapOrderRow(row: {
 }): Order {
   return {
     id: row.id,
+    business_id: row.business_id ?? null,
+    placed_by_user_id: row.placed_by_user_id ?? null,
     business_clerk_id: row.business_clerk_id,
     farmer_clerk_id: row.farmer_clerk_id,
     status: row.status as Order["status"],
@@ -139,7 +143,7 @@ export async function getBusinessOrders(
     .from("orders")
     .select(
       `
-      id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
+      id, business_id, placed_by_user_id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
       total_amount, notes, delivery_address, pickup_date,
       created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
       farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
@@ -199,7 +203,7 @@ export async function getBusinessOrderById(
     .from("orders")
     .select(
       `
-      id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
+      id, business_id, placed_by_user_id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
       total_amount, notes, delivery_address, pickup_date,
       created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
       farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
@@ -230,7 +234,7 @@ export async function getBusinessOrdersByIds(
     .from("orders")
     .select(
       `
-      id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
+      id, business_id, placed_by_user_id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
       total_amount, notes, delivery_address, pickup_date,
       created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
       farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
@@ -244,6 +248,161 @@ export async function getBusinessOrdersByIds(
 
   if (error) throw error;
   return (data ?? []).map(mapOrderRow);
+}
+
+/**
+ * Fetch all orders for a V4 buyer business, with optional tab status filtering,
+ * database-level sorting, and pagination.
+ *
+ * Scoped strictly to the active business_id (with optional legacy_clerk_id fallback).
+ */
+export async function getV4BuyerOrders(
+  businessId: string,
+  optionsOrLimit?: OrderQueryOptions | number,
+  legacyClerkId?: string | null
+): Promise<Order[]> {
+  const options: OrderQueryOptions =
+    typeof optionsOrLimit === "number"
+      ? { limit: optionsOrLimit }
+      : optionsOrLimit ?? {};
+
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("orders")
+    .select(
+      `
+      id, business_id, placed_by_user_id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
+      total_amount, notes, delivery_address, pickup_date,
+      created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
+      farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
+      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone, address),
+      items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
+    `
+    );
+
+  if (legacyClerkId) {
+    query = query.or(`business_id.eq.${businessId},business_clerk_id.eq.${legacyClerkId}`);
+  } else {
+    query = query.eq("business_id", businessId);
+  }
+
+  // Status filtering: push filter to database
+  if (options.statusGroup) {
+    const statuses = ORDER_TAB_STATUSES[options.statusGroup];
+    if (statuses && statuses.length === 1) {
+      query = query.eq("status", statuses[0]);
+    } else if (statuses && statuses.length > 1) {
+      query = query.in("status", statuses);
+    }
+  } else if (options.statuses && options.statuses.length > 0) {
+    if (options.statuses.length === 1) {
+      query = query.eq("status", options.statuses[0]);
+    } else {
+      query = query.in("status", options.statuses);
+    }
+  }
+
+  // Ordering: needs/progress oldest-first (longest waiting); completed/cancelled newest-first
+  const ascending =
+    options.sortDirection !== undefined
+      ? options.sortDirection === "asc"
+      : options.statusGroup === "needs" || options.statusGroup === "progress";
+
+  query = query.order("created_at", { ascending });
+
+  // Pagination / Limit — always bounded (default 50)
+  const effectiveLimit = options.limit && options.limit > 0 ? options.limit : 50;
+  if (options.offset !== undefined && options.offset > 0) {
+    query = query.range(options.offset, options.offset + effectiveLimit - 1);
+  } else {
+    query = query.limit(effectiveLimit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+  return (data ?? []).map(mapOrderRow);
+}
+
+/**
+ * Fetch a single order for a V4 buyer business.
+ * Scoped strictly to the active business_id (with optional legacy_clerk_id fallback).
+ */
+export async function getV4BuyerOrderById(
+  orderId: string,
+  businessId: string,
+  legacyClerkId?: string | null
+): Promise<Order | null> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("orders")
+    .select(
+      `
+      id, business_id, placed_by_user_id, business_clerk_id, farmer_clerk_id, status, fulfillment_type,
+      total_amount, notes, delivery_address, pickup_date,
+      created_at, updated_at, accepted_at, completed_at, cancelled_at, cancellation_reason,
+      farmer:profiles!orders_farmer_clerk_id_fkey(clerk_id, full_name, business_name, city, phone),
+      business:profiles!orders_business_clerk_id_fkey(clerk_id, full_name, business_name, city, phone, address),
+      items:order_items(id, order_id, product_id, product_name, unit, quantity, unit_price, subtotal, created_at)
+    `
+    )
+    .eq("id", orderId);
+
+  if (legacyClerkId) {
+    query = query.or(`business_id.eq.${businessId},business_clerk_id.eq.${legacyClerkId}`);
+  } else {
+    query = query.eq("business_id", businessId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return mapOrderRow(data);
+}
+
+/**
+ * Fetch lightweight status counts across all order tabs for a V4 buyer business.
+ */
+export async function getV4BuyerOrderTabCounts(
+  businessId: string,
+  legacyClerkId?: string | null
+): Promise<OrderTabCounts> {
+  const supabase = await createClient();
+  let query = supabase.from("orders").select("status");
+
+  if (legacyClerkId) {
+    query = query.or(`business_id.eq.${businessId},business_clerk_id.eq.${legacyClerkId}`);
+  } else {
+    query = query.eq("business_id", businessId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("[orders] getV4BuyerOrderTabCounts error:", error.message);
+    return computeTabCounts(null);
+  }
+  return computeTabCounts(data);
+}
+
+/**
+ * Fetch member profile for order audit trail (placed_by_user_id).
+ */
+export async function getOrderPlacerProfile(
+  clerkUserId: string
+): Promise<{ full_name: string | null; business_name: string | null } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("full_name, business_name")
+    .eq("clerk_id", clerkUserId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data;
 }
 
 /**

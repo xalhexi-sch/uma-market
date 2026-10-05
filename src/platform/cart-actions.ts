@@ -185,5 +185,6 @@ export async function switchActiveBusiness(
   await requireBusinessMembership(businessId);
   await setActiveBusinessCookie(businessId);
   revalidatePath("/cart");
+  revalidatePath("/orders");
   return { success: true, businessId };
 }

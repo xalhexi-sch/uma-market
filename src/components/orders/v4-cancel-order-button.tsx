@@ -1,0 +1,80 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { RiCloseCircleLine } from "@remixicon/react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/components/ui/toast";
+import { cancelBuyerOrder } from "@/app/orders/actions";
+
+interface V4CancelOrderButtonProps {
+  orderId: string;
+}
+
+export function V4CancelOrderButton({ orderId }: V4CancelOrderButtonProps) {
+  const router = useRouter();
+  const [isPending, setIsPending] = useState(false);
+
+  async function handleCancel() {
+    setIsPending(true);
+    const result = await cancelBuyerOrder(orderId);
+    setIsPending(false);
+
+    if (result.success) {
+      toast.success("Order cancelled successfully.");
+      router.refresh();
+    } else {
+      toast.error(result.error ?? "Could not cancel order.");
+    }
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="cancel-order-button"
+            className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5 hover:text-destructive min-h-[44px] sm:min-h-[36px] px-3 text-xs sm:text-sm"
+          />
+        }
+      >
+        <RiCloseCircleLine className="size-4" />
+        Cancel Order
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will cancel order #{orderId.slice(0, 8).toUpperCase()} and notify the producer.
+            This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="gap-2 sm:gap-0">
+          <AlertDialogCancel className="min-h-[44px] sm:min-h-[38px]">
+            Keep Order
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleCancel}
+            disabled={isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-[44px] sm:min-h-[38px]"
+          >
+            {isPending ? "Cancelling…" : "Yes, Cancel Order"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}

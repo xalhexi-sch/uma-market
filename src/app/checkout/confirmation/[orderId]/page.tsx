@@ -147,7 +147,7 @@ export default async function V4OrderConfirmationPage({ params }: PageProps) {
         {/* Actions */}
         <div className="flex flex-col gap-3 mt-6 sm:flex-row">
           <Link
-            href={routes.dashboard.business.orders}
+            href={routes.orders}
             className={buttonVariants({ size: "lg", className: "flex-1 justify-center" })}
           >
             <RiShoppingBagLine className="size-4 mr-2" />

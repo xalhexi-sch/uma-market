@@ -255,6 +255,7 @@ export type Database = {
         Row: {
           accepted_at: string | null
           business_clerk_id: string
+          business_id: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
           completed_at: string | null
@@ -265,13 +266,15 @@ export type Database = {
           id: string
           notes: string | null
           pickup_date: string | null
+          placed_by_user_id: string | null
           status: string
           total_amount: number | null
           updated_at: string
         }
         Insert: {
           accepted_at?: string | null
-          business_clerk_id: string
+          business_clerk_id?: string
+          business_id?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
@@ -282,6 +285,7 @@ export type Database = {
           id?: string
           notes?: string | null
           pickup_date?: string | null
+          placed_by_user_id?: string | null
           status?: string
           total_amount?: number | null
           updated_at?: string
@@ -289,6 +293,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           business_clerk_id?: string
+          business_id?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
@@ -299,11 +304,19 @@ export type Database = {
           id?: string
           notes?: string | null
           pickup_date?: string | null
+          placed_by_user_id?: string | null
           status?: string
           total_amount?: number | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_business_clerk_id_fkey"
             columns: ["business_clerk_id"]
