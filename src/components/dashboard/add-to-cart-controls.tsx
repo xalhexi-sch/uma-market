@@ -45,13 +45,14 @@ export function AddToCartControls({ product }: AddToCartControlsProps) {
     });
   }
 
-  const isOutOfStock = product.quantity_available <= 0;
+  const isOutOfStock =
+    product.quantity_available <= 0 || product.quantity_available < product.min_order_quantity;
 
   return (
     <div className="flex flex-col gap-4">
       {/* Quantity selector */}
       {!isOutOfStock && (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5" role="group" aria-label={`Quantity in ${product.unit}`}>
           <span className="text-sm font-medium text-foreground">Quantity ({product.unit})</span>
           <div className="flex items-center gap-3">
             <div className="flex items-center rounded-lg border border-border">
@@ -59,7 +60,7 @@ export function AddToCartControls({ product }: AddToCartControlsProps) {
                 type="button"
                 onClick={decrement}
                 disabled={quantity <= min}
-                className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
                 aria-label="Decrease quantity"
               >
                 <RiSubtractLine className="size-4" />
@@ -71,7 +72,7 @@ export function AddToCartControls({ product }: AddToCartControlsProps) {
                 type="button"
                 onClick={increment}
                 disabled={quantity >= max}
-                className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
                 aria-label="Increase quantity"
               >
                 <RiAddLine className="size-4" />
@@ -118,6 +119,8 @@ export function AddToCartControls({ product }: AddToCartControlsProps) {
 
       {message && (
         <p
+          role="status"
+          aria-live="polite"
           className={`text-sm ${
             message.type === "success" ? "text-primary" : "text-destructive"
           }`}

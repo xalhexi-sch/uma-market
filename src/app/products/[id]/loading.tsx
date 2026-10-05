@@ -10,10 +10,10 @@ export default function PublicProductDetailLoading() {
         </div>
       </div>
 
-      <main className="flex-1">
+      <main className="flex-1" aria-busy="true" aria-label="Loading product">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-            <div className="lg:col-span-5 flex flex-col gap-6">
+            <div className="lg:col-span-6 flex flex-col gap-6">
               <Skeleton className="aspect-[4/3] w-full rounded-xl" />
               <div className="rounded-xl border border-border bg-card p-5 space-y-3">
                 <Skeleton className="h-4 w-24" />
@@ -22,7 +22,7 @@ export default function PublicProductDetailLoading() {
               </div>
             </div>
 
-            <div className="lg:col-span-7 flex flex-col gap-6">
+            <div className="lg:col-span-6 flex flex-col gap-6">
               <div className="space-y-3">
                 <Skeleton className="h-8 w-2/3" />
                 <Skeleton className="h-10 w-1/3" />

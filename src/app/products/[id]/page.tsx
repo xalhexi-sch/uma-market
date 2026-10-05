@@ -4,95 +4,161 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   RiArrowLeftLine,
-  RiMapPinLine,
-  RiTruckLine,
-  RiStore2Line,
-  RiCalendarEventLine,
-  RiShieldCheckLine,
-  RiInformationLine,
   RiArrowRightLine,
+  RiCalendarEventLine,
+  RiCheckboxCircleFill,
+  RiInformationLine,
+  RiMapPinLine,
+  RiShieldCheckLine,
+  RiShoppingCart2Line,
+  RiStore2Line,
 } from "@remixicon/react";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { buttonVariants } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
 import { MarketplaceFooter } from "@/components/marketplace/marketplace-footer";
+import { MarketplaceProductCard } from "@/components/marketplace/marketplace-product-card";
 import { AddToCartControls } from "@/components/dashboard/add-to-cart-controls";
 import { ProductGallery } from "@/components/marketplace/product-gallery";
+import { MessageProducerAction } from "@/components/products/message-producer-action";
 import { getProductById } from "@/lib/supabase/queries/products";
-import { getProductReviewSummary, getProductReviews, getSellerReviewSummary } from "@/lib/supabase/queries/reviews";
+import { getActiveProductsByFarmer } from "@/lib/supabase/queries/public-profiles";
+import {
+  getProductReviewSummary,
+  getProductReviews,
+  getSellerReviewSummary,
+} from "@/lib/supabase/queries/reviews";
 import { ReviewList } from "@/components/reviews/review-list";
 import { ReviewSummary } from "@/components/reviews/review-summary";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+const LOW_STOCK_THRESHOLD = 10;
+
+function formatPrice(value: number) {
+  return `${CURRENCY}${value.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "PR";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const product = await getProductById(id).catch(() => null);
-  if (!product) return { title: "Produce Not Found" };
+  if (!product) return { title: "Product Not Found — UMA Market" };
 
   const imageUrl = product.image_url || product.image_path || "";
+  const title = `${product.name} — UMA Market`;
+  const description =
+    product.description ||
+    `Source ${product.name} directly from local producers in Butuan City.`;
 
   return {
-    title: `${product.name} — Butuan Produce Marketplace`,
-    description:
-      product.description ||
-      `Source fresh ${product.name} directly from local producers in Butuan City.`,
-    alternates: {
-      canonical: `/products/${id}`,
-    },
+    title,
+    description,
+    alternates: { canonical: `/products/${id}` },
     openGraph: {
-      title: `${product.name} — Butuan Produce Marketplace`,
-      description:
-        product.description ||
-        `Source fresh ${product.name} directly from local producers in Butuan City.`,
+      title,
+      description,
       type: "website",
       images: imageUrl ? [{ url: imageUrl }] : [],
     },
     twitter: {
       card: "summary_large_image",
-      title: `${product.name} — Butuan Produce Marketplace`,
-      description:
-        product.description ||
-        `Source fresh ${product.name} directly from local producers in Butuan City.`,
+      title,
+      description,
       images: imageUrl ? [imageUrl] : [],
     },
   };
 }
 
+function SectionHeading({ children, id }: { children: React.ReactNode; id?: string }) {
+  return (
+    <h2 id={id} className="text-sm font-semibold tracking-tight text-foreground">
+      {children}
+    </h2>
+  );
+}
+
+function Spec({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="flex items-center gap-1 text-xs text-muted-foreground">
+        {icon}
+        {label}
+      </dt>
+      <dd className="text-sm font-semibold text-foreground tabular-nums">{value}</dd>
+    </div>
+  );
+}
+
 export default async function PublicProductDetailPage({ params }: PageProps) {
-  const { sessionClaims } = await auth();
+  const { userId, sessionClaims } = await auth();
   const role = sessionClaims?.user_role as UserRole | undefined;
 
   const { id } = await params;
   const product = await getProductById(id);
 
-  // Only active products are accessible on public marketplace
+  // Only active products are accessible on the public marketplace
   if (!product || product.status !== "active") {
     notFound();
   }
 
-  const farmerName =
-    product.farmer?.business_name ||
-    product.farmer?.full_name ||
-    "Local Producer";
+  const producerName =
+    product.farmer?.business_name || product.farmer?.full_name || "Local Producer";
+  const producerId = product.farmer?.clerk_id || product.farmer_clerk_id;
+  const isOwnListing = Boolean(userId) && userId === producerId;
 
-  const farmerClerkId = product.farmer?.clerk_id || product.farmer_clerk_id;
-  const isAvailable = product.quantity_available > 0;
-  const [productReviewSummary, productReviews, sellerReviewSummary] = await Promise.all([
-    getProductReviewSummary(product.id),
-    getProductReviews(product.id),
-    getSellerReviewSummary(farmerClerkId),
-  ]);
+  const stock = product.quantity_available;
+  const moq = product.min_order_quantity > 0 ? product.min_order_quantity : null;
+  // Out of stock, or less stock than the minimum order, means it cannot be ordered
+  const isAvailable = stock > 0 && (moq === null || stock >= moq);
+  const isLowStock = isAvailable && stock <= LOW_STOCK_THRESHOLD;
+
+  const [productReviewSummary, productReviews, sellerReviewSummary, producerProducts] =
+    await Promise.all([
+      getProductReviewSummary(product.id),
+      getProductReviews(product.id),
+      getSellerReviewSummary(producerId),
+      getActiveProductsByFarmer(producerId).catch(() => []),
+    ]);
+
+  const moreFromProducer = producerProducts
+    .filter((p) => p.id !== product.id && p.quantity_available > 0)
+    .slice(0, 4)
+    .map((p) => ({ ...p, farmer: p.farmer ?? product.farmer }));
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    description: product.description || `Fresh ${product.name} from Butuan City`,
+    description: product.description || `${product.name} from Butuan City`,
     image: product.image_url || product.image_path || undefined,
     offers: {
       "@type": "Offer",
@@ -101,12 +167,35 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
       availability: isAvailable
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
-      seller: {
-        "@type": "Organization",
-        name: farmerName,
-      },
+      seller: { "@type": "Organization", name: producerName },
     },
   };
+
+  const availabilityBadge = isAvailable ? (
+    <span
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium",
+        isLowStock
+          ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+          : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-1.5 rounded-full",
+          isLowStock ? "bg-amber-600" : "bg-emerald-600"
+        )}
+      />
+      {isLowStock ? "Low stock" : "In stock"} · {stock} {product.unit} available
+    </span>
+  ) : (
+    <Badge variant="secondary" className="px-3 py-1 text-xs">
+      {stock > 0 ? "Below minimum order" : "Out of stock"}
+    </Badge>
+  );
+
+  const producerLocation = product.farmer?.city ? `${product.farmer.city}, Philippines` : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -114,406 +203,385 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {/* Shared Minimal Public Header */}
       <MarketplaceHeader activeRoute="products" />
 
       <main className="flex-1">
-        {/* Navigation Breadcrumb */}
+        {/* Breadcrumb */}
         <div className="border-b border-border/60 bg-muted/20">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-              <Link href="/" className="hover:text-foreground transition-colors">
-                Home
-              </Link>
-              <span>/</span>
-              <Link href="/products" className="hover:text-foreground transition-colors">
-                Products
-              </Link>
-              {product.category && (
-                <>
-                  <span>/</span>
-                  <Link
-                    href={`/products?category=${product.category.slug}`}
-                    className="hover:text-foreground transition-colors"
-                  >
-                    {product.category.name}
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+            <nav aria-label="Breadcrumb" className="min-w-0">
+              <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                <li>
+                  <Link href="/" className="rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    Home
                   </Link>
-                </>
-              )}
-              <span>/</span>
-              <span className="font-medium text-foreground truncate max-w-[200px]">
-                {product.name}
-              </span>
-            </div>
-
+                </li>
+                <li aria-hidden="true">/</li>
+                <li>
+                  <Link href="/products" className="rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    Products
+                  </Link>
+                </li>
+                {product.category && (
+                  <>
+                    <li aria-hidden="true">/</li>
+                    <li>
+                      <Link
+                        href={`/products?category=${product.category.slug}`}
+                        className="rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {product.category.name}
+                      </Link>
+                    </li>
+                  </>
+                )}
+                <li aria-hidden="true">/</li>
+                <li aria-current="page" className="max-w-[12rem] truncate font-medium text-foreground">
+                  {product.name}
+                </li>
+              </ol>
+            </nav>
             <Link
               href="/products"
-              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden shrink-0 items-center gap-1 rounded-sm text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-flex"
             >
-              <RiArrowLeftLine className="size-3.5" />
-              <span>Back to Marketplace</span>
+              <RiArrowLeftLine className="size-3.5" aria-hidden="true" />
+              Back to marketplace
             </Link>
           </div>
         </div>
 
-        {/* Product Details Section */}
-        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-            {/* Left Column: Produce Imagery & Guarantee */}
-            <div className="lg:col-span-5 flex flex-col gap-6">
-              <ProductGallery
-                images={product.images}
-                productName={product.name}
-                fallbackImagePath={product.image_path}
-                fallbackImageUrl={product.image_url}
-                categoryName={product.category?.name}
-              />
-
-              {/* Provenance Card */}
-              <div className="rounded-xl border border-border bg-card p-5 shadow-2xs">
-                <div className="flex items-center justify-between pb-3 border-b border-border/60">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Producer Provenance
-                  </span>
-                  {product.farmer?.is_verified && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                      ✓ Verified Producer
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-4 flex flex-col gap-2">
-                  {farmerClerkId ? (
-                    <Link
-                      href={`/farmers/${farmerClerkId}`}
-                      className="group/farmer block"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover/farmer:bg-primary group-hover/farmer:text-primary-foreground transition-colors">
-                          <RiStore2Line className="size-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-sm font-semibold text-foreground group-hover/farmer:text-primary transition-colors">
-                              {farmerName}
-                            </p>
-                            <RiArrowRightLine className="size-3 text-muted-foreground opacity-0 -translate-x-1 group-hover/farmer:opacity-100 group-hover/farmer:translate-x-0 transition-all shrink-0" />
-                          </div>
-                          {product.farmer?.city && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <RiMapPinLine className="size-3" />
-                              {product.farmer.city}, Philippines
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                  ) : (
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <RiStore2Line className="size-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{farmerName}</p>
-                        {product.farmer?.city && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <RiMapPinLine className="size-3" />
-                            {product.farmer.city}, Philippines
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {product.farmer?.bio && (
-                    <p className="mt-2 text-xs text-muted-foreground leading-relaxed pl-12">
-                      &ldquo;{product.farmer.bio}&rdquo;
-                    </p>
-                  )}
-
-                  <div className="mt-3 flex items-center gap-2 border-t border-border/40 pt-3">
-                    <span className="text-xs text-muted-foreground">Producer reputation</span>
-                    <ReviewSummary summary={sellerReviewSummary} />
-                  </div>
-
-                  {farmerClerkId && (
-                    <div className="mt-2 pt-2 border-t border-border/40 pl-12">
-                      <Link
-                        href={`/farmers/${farmerClerkId}`}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                      >
-                        <span>View producer profile & listings</span>
-                        <RiArrowRightLine className="size-3" />
-                      </Link>
-                    </div>
-                  )}
-                </div>
+        <div className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pt-10 lg:pb-12">
+          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-12">
+            {/* Media */}
+            <div className="lg:col-span-6">
+              <div className="lg:sticky lg:top-24">
+                <ProductGallery
+                  images={product.images}
+                  productName={product.name}
+                  fallbackImagePath={product.image_path}
+                  fallbackImageUrl={product.image_url}
+                  categoryName={product.category?.name}
+                />
               </div>
             </div>
 
-            {/* Right Column: Pricing, Attributes & Purchasing */}
-            <div className="lg:col-span-7 flex flex-col gap-6">
-              {/* Product Identity */}
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                  {product.name}
-                </h1>
-
-                {/* Price Display — NEVER HIDDEN */}
-                <div className="mt-3 flex items-baseline gap-2">
-                  <p className="text-3xl font-bold text-foreground">
-                    {CURRENCY}
-                    {product.price_per_unit.toLocaleString("en-PH", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </p>
-                  <span className="text-base font-normal text-muted-foreground">
-                    per {product.unit}
-                  </span>
-                  <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                    Farm-Gate Price
-                  </span>
-                </div>
-              </div>
-
-              {/* Availability Indicator */}
-              <div className="flex items-center gap-3">
-                {isAvailable ? (
-                  <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                    <span>In Stock · {product.quantity_available} {product.unit} available</span>
-                  </div>
-                ) : (
-                  <Badge variant="secondary" className="px-3 py-1 text-xs">
-                    Out of Stock
-                  </Badge>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Key Harvest Specifications */}
-              <div className="grid grid-cols-2 gap-4 rounded-xl border border-border/80 bg-muted/20 p-4 text-sm sm:grid-cols-3">
-                <div>
-                  <span className="text-xs font-medium text-muted-foreground block">
-                    Available Supply
-                  </span>
-                  <span className="mt-0.5 font-semibold text-foreground">
-                    {product.quantity_available} {product.unit}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-xs font-medium text-muted-foreground block">
-                    Minimum Order
-                  </span>
-                  <span className="mt-0.5 font-semibold text-foreground">
-                    {product.min_order_quantity != null && product.min_order_quantity > 0
-                      ? `${product.min_order_quantity} ${product.unit}`
-                      : "No minimum"}
-                  </span>
-                </div>
-
-                {product.harvest_date && (
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                      <RiCalendarEventLine className="size-3" />
-                      Harvest Date
-                    </span>
-                    <span className="mt-0.5 font-semibold text-foreground">
-                      {new Date(product.harvest_date).toLocaleDateString("en-PH", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                )}
-
-                {product.available_until && (
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground block">
-                      Available Until
-                    </span>
-                    <span className="mt-0.5 font-semibold text-foreground">
-                      {new Date(product.available_until).toLocaleDateString("en-PH", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Product Description */}
-              {product.description && (
-                <div>
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Produce Description
-                  </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {product.description}
+            {/* Decision column: identity → price → purchase → details */}
+            <div className="flex flex-col gap-8 lg:col-span-6">
+              <section aria-labelledby="product-title" className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  {product.category && (
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      {product.category.name}
+                    </p>
+                  )}
+                  <h1
+                    id="product-title"
+                    className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+                  >
+                    {product.name}
+                  </h1>
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                    <span>Sold by</span>
+                    {producerId ? (
+                      <Link
+                        href={`/farmers/${producerId}`}
+                        className="rounded-sm font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {producerName}
+                      </Link>
+                    ) : (
+                      <span className="font-semibold text-foreground">{producerName}</span>
+                    )}
+                    {product.farmer?.is_verified && (
+                      <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                        <RiCheckboxCircleFill className="size-4" aria-hidden="true" />
+                        Verified producer
+                      </span>
+                    )}
                   </p>
                 </div>
-              )}
 
-              <div className="rounded-xl border border-border/80 bg-card p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
-                  <div>
-                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Verified buyer reviews</h2>
-                    <div className="mt-1"><ReviewSummary summary={productReviewSummary} /></div>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground">Completed UMA orders only</span>
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <p className="text-3xl font-bold tabular-nums text-foreground sm:text-4xl">
+                    {formatPrice(product.price_per_unit)}
+                  </p>
+                  <span className="text-base text-muted-foreground">per {product.unit}</span>
                 </div>
-                <div className="pt-4">
-                  <ReviewList reviews={productReviews} emptyText="No verified reviews for this produce yet." />
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {availabilityBadge}
+                  {moq !== null && (
+                    <span className="inline-flex items-center rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium tabular-nums text-muted-foreground">
+                      Min. order {moq} {product.unit}
+                    </span>
+                  )}
                 </div>
-              </div>
+              </section>
 
-              {/* Fulfillment Options */}
-              <div className="rounded-xl border border-border/80 bg-card p-4">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                  Wholesale Fulfillment Options
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="flex items-start gap-2.5 p-2 rounded-lg bg-muted/30">
-                    <RiStore2Line className="size-4 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-semibold text-foreground block">Farm Pickup</span>
-                      <span className="text-muted-foreground">
-                        Collect directly from the producer&apos;s site in Butuan City.
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5 p-2 rounded-lg bg-muted/30">
-                    <RiTruckLine className="size-4 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-semibold text-foreground block">Seller Delivery</span>
-                      <span className="text-muted-foreground">
-                        Direct commercial drop-off to your registered business location.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* ROLE-AWARE PURCHASING & CALL TO ACTION */}
-              <div className="pt-2">
-                {role === "business" ? (
-                  // Business User: Full Ordering Flow
+              {/* Purchase panel */}
+              <section
+                id="order"
+                aria-labelledby="order-heading"
+                className="scroll-mt-24 rounded-xl border border-border bg-card p-5 shadow-2xs"
+              >
+                {role === "business" && !isOwnListing ? (
                   <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-                        Commercial Buyer Order
-                      </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <SectionHeading id="order-heading">Place an order</SectionHeading>
                       <Link
                         href="/business/cart"
-                        className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
+                        className="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        <span>View Cart</span>
-                        <RiArrowRightLine className="size-3.5" />
+                        View cart
+                        <RiArrowRightLine className="size-3.5" aria-hidden="true" />
                       </Link>
                     </div>
+                    {!isAvailable && (
+                      <p className="flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                        <RiInformationLine className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                        {stock > 0
+                          ? `Only ${stock} ${product.unit} left, which is below the ${moq} ${product.unit} minimum order.`
+                          : "This product is out of stock right now. Check back later or browse similar produce below."}
+                      </p>
+                    )}
                     <AddToCartControls product={product} />
                   </div>
-                ) : role === "farmer" ? (
-                  // Farmer User: Informational Only
-                  <div className="rounded-xl border border-border bg-muted/30 p-5 flex flex-col gap-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      <RiInformationLine className="size-4" />
-                      <span>Farmer View</span>
-                    </div>
-                    <p className="text-sm text-foreground font-medium">
-                      You are signed in with a Farmer account.
+                ) : isOwnListing || role === "farmer" ? (
+                  <div className="flex flex-col gap-3">
+                    <SectionHeading id="order-heading">
+                      {isOwnListing ? "This is your listing" : "Producer account"}
+                    </SectionHeading>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {isOwnListing
+                        ? "Buyers see this page when they discover your product. Manage stock and details from your dashboard."
+                        : "Ordering is available to business buyer accounts. Producers can manage their own listings from the dashboard."}
                     </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Wholesale purchasing is reserved for registered commercial business buyers.
-                      You can manage your own harvest inventory and view incoming orders in your
-                      farmer dashboard.
-                    </p>
-                    <div className="pt-1">
-                      <Link
-                        href="/farmer/products"
-                        className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
-                      >
-                        Manage My Products
-                      </Link>
-                    </div>
+                    <Link
+                      href="/farmer/products"
+                      className={buttonVariants({ variant: "outline", className: "w-full sm:w-auto" })}
+                    >
+                      Manage my products
+                    </Link>
                   </div>
                 ) : role === "admin" ? (
-                  // Admin User: Direct Moderation Shortcut
-                  <div className="rounded-xl border border-border bg-muted/30 p-5 flex flex-col gap-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
-                      <RiShieldCheckLine className="size-4" />
-                      <span>Platform Administrator</span>
-                    </div>
-                    <p className="text-sm text-foreground font-medium">
-                      Active Marketplace Produce Listing
+                  <div className="flex flex-col gap-3">
+                    <SectionHeading id="order-heading">
+                      <span className="inline-flex items-center gap-1.5">
+                        <RiShieldCheckLine className="size-4 text-primary" aria-hidden="true" />
+                        Platform administrator
+                      </span>
+                    </SectionHeading>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      This listing is active and visible to buyers. Review or moderate it from the admin catalog.
                     </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      This listing is active and discoverable by commercial buyers. You can review,
-                      moderate, or update producer verification from the admin panel.
-                    </p>
-                    <div className="pt-1">
-                      <Link
-                        href="/admin/products"
-                        className="inline-flex items-center justify-center gap-2 rounded-md bg-secondary px-4 py-2 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors"
-                      >
-                        Open Admin Catalog
-                      </Link>
-                    </div>
+                    <Link
+                      href="/admin/products"
+                      className={buttonVariants({ variant: "outline", className: "w-full sm:w-auto" })}
+                    >
+                      Open admin catalog
+                    </Link>
                   </div>
                 ) : (
-                  // Visitor (Unauthenticated): Sign In to Order CTA
-                  <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-6 flex flex-col gap-4">
+                  <div className="flex flex-col gap-4">
                     <div>
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
-                        <RiStore2Line className="size-4" />
-                        Commercial Procurement
-                      </span>
-                      <h3 className="mt-1 text-lg font-bold text-foreground">
-                        Ready to source this produce?
-                      </h3>
-                      <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                        Commercial wholesale ordering is available to verified business accounts.
-                        Sign in to configure order quantities, view live subtotals, and arrange farm
-                        fulfillment.
+                      <SectionHeading id="order-heading">Order this product</SectionHeading>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                        {isAvailable
+                          ? "Sign in with a business account to choose a quantity and add this to your cart."
+                          : "This product can’t be ordered right now. Sign in to browse and order other produce."}
                       </p>
                     </div>
-
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row">
                       <Link
                         href={`/sign-in?redirect_url=/products/${product.id}`}
-                        className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"
+                        className={buttonVariants({ size: "lg", className: "w-full sm:w-auto" })}
                       >
-                        Sign in to Order
+                        <RiShoppingCart2Line className="size-4" aria-hidden="true" />
+                        Sign in to order
                       </Link>
                       <Link
                         href={`/sign-up?redirect_url=/products/${product.id}`}
-                        className="inline-flex items-center justify-center rounded-md border border-border bg-background px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
+                        className={buttonVariants({
+                          variant: "outline",
+                          size: "lg",
+                          className: "w-full sm:w-auto",
+                        })}
                       >
-                        Create Business Account
+                        Create a business account
                       </Link>
                     </div>
-
-                    <p className="text-[11px] text-muted-foreground pt-1 border-t border-border/50">
-                      Are you a local producer in Butuan?{" "}
-                      <Link href="/sign-up" className="text-primary hover:underline font-medium">
-                        Sell your produce on UMA
-                      </Link>
-                    </p>
                   </div>
                 )}
-              </div>
+              </section>
+
+              {/* Product details */}
+              <section aria-labelledby="details-heading" className="flex flex-col gap-4">
+                <SectionHeading id="details-heading">Product details</SectionHeading>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:grid-cols-3">
+                  <Spec label="Price" value={`${formatPrice(product.price_per_unit)} / ${product.unit}`} />
+                  <Spec label="Available" value={`${stock} ${product.unit}`} />
+                  <Spec label="Minimum order" value={moq !== null ? `${moq} ${product.unit}` : "No minimum"} />
+                  {product.category && <Spec label="Category" value={product.category.name} />}
+                  {product.harvest_date && (
+                    <Spec
+                      label="Harvest date"
+                      icon={<RiCalendarEventLine className="size-3" aria-hidden="true" />}
+                      value={formatDate(product.harvest_date)}
+                    />
+                  )}
+                  {product.available_until && (
+                    <Spec label="Available until" value={formatDate(product.available_until)} />
+                  )}
+                </dl>
+                {product.description && (
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                    {product.description}
+                  </p>
+                )}
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Pickup or delivery is chosen at checkout.
+                </p>
+              </section>
+
+              {/* Producer */}
+              <section
+                aria-labelledby="producer-heading"
+                className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-2xs"
+              >
+                <SectionHeading id="producer-heading">About the producer</SectionHeading>
+                <div className="flex items-start gap-3">
+                  <Avatar className="size-11">
+                    {product.farmer?.avatar_url && (
+                      <AvatarImage src={product.farmer.avatar_url} alt="" />
+                    )}
+                    <AvatarFallback>{getInitials(producerName)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-foreground">
+                      {producerName}
+                      {product.farmer?.is_verified && (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                          <RiCheckboxCircleFill className="size-3.5" aria-hidden="true" />
+                          Verified
+                        </span>
+                      )}
+                    </p>
+                    {producerLocation && (
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <RiMapPinLine className="size-3" aria-hidden="true" />
+                        {producerLocation}
+                      </p>
+                    )}
+                    <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Producer reviews</span>
+                      <ReviewSummary summary={sellerReviewSummary} />
+                    </div>
+                  </div>
+                </div>
+                {product.farmer?.bio && (
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {product.farmer.bio}
+                  </p>
+                )}
+                <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-start">
+                  {producerId && (
+                    <Link
+                      href={`/farmers/${producerId}`}
+                      className={buttonVariants({ variant: "secondary", className: "w-full gap-2 sm:w-auto" })}
+                    >
+                      <RiStore2Line className="size-4" aria-hidden="true" />
+                      View producer profile
+                    </Link>
+                  )}
+                  {!isOwnListing && (
+                    <div className="sm:flex-1">
+                      <MessageProducerAction producerName={producerName} />
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Reviews (verified, from completed UMA orders) */}
+              <section
+                aria-labelledby="reviews-heading"
+                className="rounded-xl border border-border bg-card p-5"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+                  <div>
+                    <SectionHeading id="reviews-heading">Verified buyer reviews</SectionHeading>
+                    <div className="mt-1">
+                      <ReviewSummary summary={productReviewSummary} />
+                    </div>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Completed UMA orders only</span>
+                </div>
+                <div className="pt-4">
+                  <ReviewList
+                    reviews={productReviews}
+                    emptyText="No verified reviews for this product yet."
+                  />
+                </div>
+              </section>
             </div>
           </div>
+
+          {/* More from this producer */}
+          {moreFromProducer.length > 0 && (
+            <section aria-labelledby="more-heading" className="mt-14 flex flex-col gap-5">
+              <div className="flex items-end justify-between gap-4">
+                <h2 id="more-heading" className="text-xl font-bold tracking-tight text-foreground">
+                  More from {producerName}
+                </h2>
+                {producerId && (
+                  <Link
+                    href={`/farmers/${producerId}`}
+                    className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    View all
+                    <RiArrowRightLine className="size-4" aria-hidden="true" />
+                  </Link>
+                )}
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {moreFromProducer.map((p) => (
+                  <MarketplaceProductCard key={p.id} product={p} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
+
+        {/* Mobile sticky purchase bar: price + jump to the order panel */}
+        {!isOwnListing && role !== "farmer" && role !== "admin" && (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-background/85 lg:hidden">
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-tight tabular-nums text-foreground">
+                  {formatPrice(product.price_per_unit)}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">/ {product.unit}</span>
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {isAvailable ? `${stock} ${product.unit} available` : "Unavailable"}
+                </p>
+              </div>
+              {isAvailable ? (
+                <a
+                  href="#order"
+                  className={buttonVariants({ size: "lg", className: "shrink-0" })}
+                >
+                  {role === "business" ? "Order now" : "Order"}
+                </a>
+              ) : (
+                <Badge variant="secondary" className="shrink-0 px-3 py-1 text-xs">
+                  Out of stock
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Shared Editorial Footer */}
       <MarketplaceFooter />
     </div>
   );
