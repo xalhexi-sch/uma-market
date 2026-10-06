@@ -34,6 +34,7 @@ import { ReviewSummary } from "@/components/reviews/review-summary";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 import { routes } from "@/platform/routes";
+import { serializeJsonLd } from "@/lib/json-ld";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -202,7 +203,7 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <MarketplaceHeader activeRoute="products" />
 
