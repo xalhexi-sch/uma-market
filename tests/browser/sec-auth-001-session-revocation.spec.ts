@@ -18,8 +18,10 @@
 //                     repeated navigations, with no revocation redirect.
 //
 //   REG-SEC-AUTH-001c  A revoked profile cannot execute the protected checkout
-//                     mutation: the database refuses place_checkout_orders and no
-//                     order is committed.
+//                     mutation: against a V4 business-owned cart (an active,
+//                     BUY-capable business the buyer is a member of), the database
+//                     refuses place_v4_checkout_orders on the caller's profile
+//                     status, no order is committed and the cart is untouched.
 //
 //   REG-SEC-AUTH-001d  The propagation path itself: a real Clerk session
 //                     revocation followed by a properly svix-signed
@@ -29,6 +31,17 @@
 //                     untouched, so the state change can only come from the
 //                     verified webhook. The final leg checks that the
 //                     webhook-revoked profile is denied the protected route.
+//
+//   REG-SEC-AUTH-001e  The V4 buyer routes (/orders, /cart, /checkout) apply the
+//                     same gate: an active buyer stays on the requested route,
+//                     a revoked buyer gets a real 307 to /sign-in?revoked=true
+//                     (never /onboarding), and that target terminates without a
+//                     redirect loop.
+//
+// Every denial is asserted as a real HTTP 307 with a Location header. The gate
+// lives in each segment's layout.tsx, outside the segment's loading.tsx Suspense
+// boundary; a redirect() issued after streaming starts could only produce a 200
+// with an in-page meta refresh, which these probes deliberately reject.
 //
 // The fallback documented in REMEDIATION-RESULTS.md §7.1 (Clerk webhook delivery
 // delay, bounded by the ~60s JWT lifetime) is asserted structurally by the
@@ -49,6 +62,7 @@ import {
   authenticatedContext,
   createSessionToken,
   deliverClerkWebhook,
+  fixtureUuid,
   manilaTomorrow,
   provisionProduct,
   readClerkSession,
@@ -63,15 +77,30 @@ import {
   type Persona,
 } from "./harness";
 
-const FARMER_PROTECTED_ROUTE = "/farmer/orders";
-const FARMER_HEADING = "Incoming Orders";
+// Canonical V4 seller orders workspace. The legacy V2 /farmer/orders route is now
+// only a next.config.ts redirect to this page, so probing it would observe the
+// static 307 to /dashboard/orders instead of the server-side revocation gate.
+const FARMER_PROTECTED_ROUTE = "/dashboard/orders";
+const FARMER_HEADING = "Wholesale Order Operations";
 const REVOCATION_DENIAL_BUDGET_MS = 5_000;
+
+/** The exact server-side revocation target; a real redirect carries it as Location. */
+const REVOKED_SIGN_IN_LOCATION = /^\/sign-in\?revoked=true$/;
+
+/** V4 buyer routes guarded by the same account-status layout gate. */
+const BUYER_PROTECTED_ROUTES = ["/orders", "/cart", "/checkout"] as const;
+
+/** Deterministic V4 buyer business, created only if the buyer has no usable one. */
+const SEC_AUTH_BUSINESS_ID = fixtureUuid("secauth", 2);
+const SEC_AUTH_MEMBER_ID = fixtureUuid("secauth", 3);
 
 let admin: SupabaseClient;
 let buyer: Persona;
 let farmer: Persona;
 let originalFarmerStatus: string | null = null;
 let originalBuyerStatus: string | null = null;
+let buyerBusinessId: string;
+let createdBuyerBusiness = false;
 
 function trackProductionRequests(page: Page): string[] {
   const offenders: string[] = [];
@@ -112,9 +141,66 @@ function decodeJwtExp(jwt: string): number {
  * immediately bounce an already-signed-in visitor away from `/sign-in`, so the
  * final browser URL is not a stable signal.
  */
-async function probeProtectedRoute(context: BrowserContext): Promise<SsrProbe> {
-  const response = await context.request.get(FARMER_PROTECTED_ROUTE, { maxRedirects: 0 });
+async function probeProtectedRoute(
+  context: BrowserContext,
+  route: string = FARMER_PROTECTED_ROUTE,
+): Promise<SsrProbe> {
+  const response = await context.request.get(route, { maxRedirects: 0 });
   return { status: response.status(), location: response.headers()["location"] ?? null };
+}
+
+/**
+ * Asserts the real server-side revocation redirect: HTTP 307 plus a Location of
+ * exactly /sign-in?revoked=true. A 200 carrying an in-page meta refresh (what a
+ * redirect() after streaming has begun produces) fails here on purpose.
+ */
+function expectRevocationRedirect(probe: SsrProbe, label: string): void {
+  expect(probe.status, `${label}: a revoked profile must get a real 307, not a streamed page`).toBe(307);
+  expect(probe.location ?? "", `${label}: the 307 must target the revocation sign-in route`).toMatch(
+    REVOKED_SIGN_IN_LOCATION,
+  );
+}
+
+/**
+ * Resolves an active, BUY-capable V4 business the buyer is a member of. When the
+ * seeded buyer has none, a deterministic fixture business + OWNER membership is
+ * created and removed again in afterAll. Existing seed rows are never mutated.
+ */
+async function ensureBuyerBusiness(): Promise<string> {
+  const { data, error } = await admin
+    .from("business_members")
+    .select("business_id, created_at, businesses(id, status, can_buy)")
+    .eq("user_id", buyer.clerkUserId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`buyer membership lookup failed: ${error.message}`);
+
+  const usable = (data ?? []).find((row) => {
+    const biz = Array.isArray(row.businesses) ? row.businesses[0] : row.businesses;
+    return biz?.status === "active" && biz?.can_buy === true;
+  });
+  if (usable) return usable.business_id as string;
+
+  const { error: bizErr } = await admin.from("businesses").upsert(
+    { id: SEC_AUTH_BUSINESS_ID, name: "SEC-AUTH-001 Buyer Co", can_buy: true, can_sell: false, status: "active" },
+    { onConflict: "id" },
+  );
+  if (bizErr) throw new Error(`SEC-AUTH-001 business fixture failed: ${bizErr.message}`);
+  const { error: memberErr } = await admin.from("business_members").upsert(
+    { id: SEC_AUTH_MEMBER_ID, business_id: SEC_AUTH_BUSINESS_ID, user_id: buyer.clerkUserId, role: "OWNER" },
+    { onConflict: "id" },
+  );
+  if (memberErr) throw new Error(`SEC-AUTH-001 membership fixture failed: ${memberErr.message}`);
+  createdBuyerBusiness = true;
+  return SEC_AUTH_BUSINESS_ID;
+}
+
+async function countBusinessOrders(businessId: string): Promise<number> {
+  const { count, error } = await admin
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId);
+  if (error) throw new Error(`countBusinessOrders failed: ${error.message}`);
+  return count ?? 0;
 }
 
 test.describe.configure({ mode: "serial" });
@@ -129,6 +215,7 @@ test.beforeAll(async () => {
 
   await upsertTestProfile(admin, farmer.clerkUserId, "farmer", "SEC-AUTH-001 Farmer");
   await upsertTestProfile(admin, buyer.clerkUserId, "business", "SEC-AUTH-001 Buyer");
+  buyerBusinessId = await ensureBuyerBusiness();
 
   await provisionProduct(admin, {
     id: REVOCATION_PRODUCT,
@@ -161,6 +248,24 @@ test.afterAll(async () => {
     { label: "clear buyer orders", run: () => clearBuyerOrders(admin, buyer.clerkUserId) },
     { label: "reset buyer cart", run: () => resetCart(admin, buyer.clerkUserId) },
     { label: "remove SEC-AUTH-001 product fixture", run: () => cleanupProduct(admin, REVOCATION_PRODUCT) },
+    ...(createdBuyerBusiness
+      ? [
+          {
+            label: "remove SEC-AUTH-001 business membership fixture",
+            run: async () => {
+              const { error } = await admin.from("business_members").delete().eq("id", SEC_AUTH_MEMBER_ID);
+              if (error) throw new Error(error.message);
+            },
+          },
+          {
+            label: "remove SEC-AUTH-001 business fixture",
+            run: async () => {
+              const { error } = await admin.from("businesses").delete().eq("id", SEC_AUTH_BUSINESS_ID);
+              if (error) throw new Error(error.message);
+            },
+          },
+        ]
+      : []),
   ]);
 });
 
@@ -214,12 +319,7 @@ test("REG-SEC-AUTH-001a: revocation denies the next protected navigation immedia
   const deniedProbe = await probeProtectedRoute(context);
   const denialMs = Date.now() - startedAt;
 
-  expect(deniedProbe.status, "a revoked profile must be redirected off the protected route").toBeGreaterThanOrEqual(300);
-  expect(deniedProbe.status, "a revoked profile must be redirected off the protected route").toBeLessThan(400);
-  expect(
-    deniedProbe.location ?? "",
-    "the redirect target must be the sign-in route flagged as a revocation",
-  ).toMatch(/^\/sign-in\?revoked=true/);
+  expectRevocationRedirect(deniedProbe, FARMER_PROTECTED_ROUTE);
   expect(
     denialMs,
     `denial must be immediate, not deferred to the JWT TTL (took ${denialMs}ms)`,
@@ -239,10 +339,10 @@ test("REG-SEC-AUTH-001a: revocation denies the next protected navigation immedia
   const freshPage = await freshContext.newPage();
   offenders.push(...trackProductionRequests(freshPage));
   const freshProbe = await probeProtectedRoute(freshContext);
-  expect(
-    freshProbe.location ?? "",
-    "a fresh, unexpired session must still be denied while the profile is revoked",
-  ).toMatch(/^\/sign-in\?revoked=true/);
+  expectRevocationRedirect(
+    freshProbe,
+    `${FARMER_PROTECTED_ROUTE} (fresh, unexpired session while the profile is revoked)`,
+  );
   await freshPage.goto(FARMER_PROTECTED_ROUTE, { waitUntil: "domcontentloaded" });
   await expect(freshPage.getByRole("heading", { name: FARMER_HEADING })).toHaveCount(0);
   await freshContext.close();
@@ -306,18 +406,45 @@ test("REG-SEC-AUTH-001c: a revoked profile cannot execute the protected checkout
     minOrderQuantity: 1,
   });
 
-  const { error: cartErr } = await admin.from("cart_items").upsert(
-    { business_clerk_id: buyer.clerkUserId, product_id: REVOCATION_PRODUCT, quantity: 3 },
-    { onConflict: "business_clerk_id,product_id" },
-  );
-  expect(cartErr, "cart fixture insert").toBeNull();
+  // V4 business-owned cart: the row belongs to the buyer's business, not to the
+  // buyer's Clerk id. business_clerk_id is still NOT NULL on the table, so it is
+  // populated, but place_v4_checkout_orders locks and consumes by business_id.
+  const { data: business, error: bizErr } = await admin
+    .from("businesses")
+    .select("id, status, can_buy")
+    .eq("id", buyerBusinessId)
+    .single();
+  expect(bizErr, "buyer business lookup").toBeNull();
+  expect(business?.status, "pre-condition: the buyer business is active").toBe("active");
+  expect(business?.can_buy, "pre-condition: the buyer business can BUY").toBe(true);
+  const { count: membershipCount } = await admin
+    .from("business_members")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", buyerBusinessId)
+    .eq("user_id", buyer.clerkUserId);
+  expect(membershipCount, "pre-condition: the buyer is a member of the business").toBe(1);
+
+  await admin.from("cart_items").delete().eq("business_id", buyerBusinessId);
+  const { error: cartErr } = await admin.from("cart_items").insert({
+    business_id: buyerBusinessId,
+    business_clerk_id: buyer.clerkUserId,
+    product_id: REVOCATION_PRODUCT,
+    quantity: 3,
+  });
+  expect(cartErr, "V4 cart fixture insert").toBeNull();
 
   await setProfileStatus(admin, buyer.clerkUserId, "revoked");
   try {
-    const ordersBefore = await countBuyerOrders(admin, buyer.clerkUserId);
+    const ordersBefore = await countBusinessOrders(buyerBusinessId);
+    const legacyOrdersBefore = await countBuyerOrders(admin, buyer.clerkUserId);
     const { jwt } = await createSessionToken(buyer.clerkUserId);
 
-    const response = await fetch(`${TEST_SUPABASE_URL}/rest/v1/rpc/place_checkout_orders`, {
+    // place_v4_checkout_orders checks, in order: identity, business membership,
+    // business status + BUY capability, THEN the caller's profile status. The
+    // "Account is revoked" refusal below is therefore only reachable once the
+    // V4 fixture has passed every business check — it is the revocation, not a
+    // broken fixture, that blocks the mutation.
+    const response = await fetch(`${TEST_SUPABASE_URL}/rest/v1/rpc/place_v4_checkout_orders`, {
       method: "POST",
       headers: {
         apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
@@ -325,6 +452,7 @@ test("REG-SEC-AUTH-001c: a revoked profile cannot execute the protected checkout
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        p_business_id: buyerBusinessId,
         p_orders: [
           {
             farmer_clerk_id: farmer.clerkUserId,
@@ -343,9 +471,21 @@ test("REG-SEC-AUTH-001c: a revoked profile cannot execute the protected checkout
       /account is revoked and cannot place orders/i,
     );
     expect(
-      await countBuyerOrders(admin, buyer.clerkUserId),
-      "no order may be committed by a revoked profile",
+      await countBusinessOrders(buyerBusinessId),
+      "no order may be committed for the business by a revoked profile",
     ).toBe(ordersBefore);
+    expect(
+      await countBuyerOrders(admin, buyer.clerkUserId),
+      "no order may be committed under the buyer's Clerk id either",
+    ).toBe(legacyOrdersBefore);
+
+    const { data: cartRow } = await admin
+      .from("cart_items")
+      .select("quantity")
+      .eq("business_id", buyerBusinessId)
+      .eq("product_id", REVOCATION_PRODUCT)
+      .maybeSingle();
+    expect(cartRow?.quantity, "the refused checkout must leave the business cart untouched").toBe(3);
   } finally {
     await setProfileStatus(admin, buyer.clerkUserId, "active");
   }
@@ -420,12 +560,87 @@ test("REG-SEC-AUTH-001d: a signed session.revoked webhook propagates from Clerk 
   //    route, exactly as in REG-SEC-AUTH-001a.
   const { context } = await signInContext(browser, farmer);
   const probe = await probeProtectedRoute(context);
-  expect(
-    probe.location ?? "",
-    "a webhook-revoked profile must be denied the protected route",
-  ).toMatch(/^\/sign-in\?revoked=true/);
+  expectRevocationRedirect(probe, `${FARMER_PROTECTED_ROUTE} (webhook-revoked profile)`);
   await context.close();
 
   await setProfileStatus(admin, farmer.clerkUserId, "active");
   expect(await readProfileStatus(admin, farmer.clerkUserId), "farmer profile restored to active").toBe("active");
+});
+// -----------------------------------------------------------------------------
+// REG-SEC-AUTH-001e — V4 buyer routes.
+//
+// /orders, /cart and /checkout each stream behind a loading.tsx boundary, so a
+// page-level redirect() could only ever emit a 200 + in-page meta refresh. The
+// account-status gate in each segment's layout.tsx must instead answer with a
+// real 307 before anything streams, and must never route an inactive account
+// to /onboarding.
+// -----------------------------------------------------------------------------
+test("REG-SEC-AUTH-001e: V4 buyer routes keep an active buyer in place and give a revoked buyer a real 307", async ({
+  browser,
+}) => {
+  await setProfileStatus(admin, buyer.clerkUserId, "active");
+
+  const { context } = await signInContext(browser, buyer);
+  const page = await context.newPage();
+  const offenders = trackProductionRequests(page);
+
+  try {
+    // --- Active buyer: every route renders where it was requested. ---
+    for (const route of BUYER_PROTECTED_ROUTES) {
+      const probe = await probeProtectedRoute(context, route);
+      expect(probe.status, `${route}: an active buyer must receive the route`).toBe(200);
+      expect(probe.location, `${route}: an active buyer must not be redirected`).toBeNull();
+
+      const response = await page.goto(route, { waitUntil: "domcontentloaded" });
+      expect(response?.status(), `${route}: browser navigation must succeed`).toBe(200);
+      const landed = new URL(page.url());
+      expect(landed.pathname, `${route}: an active buyer stays on the requested route`).toBe(route);
+      expect(landed.searchParams.get("revoked"), `${route}: no revocation flag`).toBeNull();
+    }
+
+    // --- Revoked buyer: a real 307 to the revocation sign-in, on every route. ---
+    await setProfileStatus(admin, buyer.clerkUserId, "revoked");
+
+    for (const route of BUYER_PROTECTED_ROUTES) {
+      const startedAt = Date.now();
+      const probe = await probeProtectedRoute(context, route);
+      const denialMs = Date.now() - startedAt;
+      expectRevocationRedirect(probe, route);
+      expect(denialMs, `${route}: denial must be immediate (took ${denialMs}ms)`).toBeLessThanOrEqual(
+        REVOCATION_DENIAL_BUDGET_MS,
+      );
+
+      // The browser must receive that same HTTP redirect as part of the
+      // navigation (not a client-side hop after a 200 document).
+      const response = await page.goto(route, { waitUntil: "domcontentloaded" });
+      const redirectedFrom = response?.request().redirectedFrom();
+      expect(redirectedFrom, `${route}: the navigation must have been an HTTP redirect`).toBeTruthy();
+      expect(new URL(redirectedFrom!.url()).pathname, `${route}: the redirect must originate at the route`).toBe(
+        route,
+      );
+      const target = new URL(response!.url());
+      expect(target.pathname, `${route}: the redirect must land on sign-in`).toBe("/sign-in");
+      expect(target.searchParams.get("revoked"), `${route}: the landing must be flagged as a revocation`).toBe(
+        "true",
+      );
+      expect(response!.status(), `${route}: the sign-in landing must render`).toBe(200);
+    }
+
+    // --- No redirect loop: the revocation target itself is not gated. ---
+    const landing = await context.request.get("/sign-in?revoked=true", { maxRedirects: 0 });
+    expect(landing.status(), "the revocation sign-in page must terminate the chain with a 200").toBe(200);
+    expect(landing.headers()["location"], "the revocation sign-in page must not redirect again").toBeUndefined();
+    for (const route of BUYER_PROTECTED_ROUTES) {
+      // Following redirects throws on a loop (Playwright caps the chain).
+      const followed = await context.request.get(route);
+      expect(followed.status(), `${route}: the followed chain must terminate`).toBe(200);
+      expect(new URL(followed.url()).pathname, `${route}: the followed chain must end on sign-in`).toBe("/sign-in");
+    }
+  } finally {
+    await setProfileStatus(admin, buyer.clerkUserId, "active");
+    await context.close();
+  }
+
+  expect(offenders, "no production host may ever be contacted").toEqual([]);
+  expect(await readProfileStatus(admin, buyer.clerkUserId), "buyer profile restored to active").toBe("active");
 });

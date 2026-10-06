@@ -31,6 +31,7 @@ import {
 import type { Order } from "@/lib/types";
 import { routes } from "@/platform/routes";
 import { AppError } from "@/platform/errors";
+import { redirectIfAccountInactive } from "@/platform/account-gate";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -86,6 +87,10 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         redirect(`/sign-in?redirect_url=${encodeURIComponent(routes.orders)}`);
       }
       if (error.code === "ACCOUNT_INACTIVE") {
+        // Revoked/suspended accounts are denied by the layout gate; this re-check
+        // keeps them off /onboarding if it is ever bypassed. Only a missing
+        // profile falls through to finish setup.
+        await redirectIfAccountInactive();
         redirect(routes.onboarding);
       }
       if (error.code === "UNAUTHORIZED" && error.message.includes("No active business")) {

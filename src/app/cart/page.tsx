@@ -26,6 +26,7 @@ import type { ActiveBusinessContext } from "@/platform";
 import { getBusinessCartItems } from "@/lib/supabase/queries/cart";
 import { routes } from "@/platform/routes";
 import { AppError } from "@/platform/errors";
+import { redirectIfAccountInactive } from "@/platform/account-gate";
 
 export const metadata: Metadata = {
   title: "Shopping Cart — UMA Market",
@@ -45,6 +46,10 @@ export default async function CartPage() {
         redirect(`/sign-in?redirect_url=${encodeURIComponent(routes.cart)}`);
       }
       if (error.code === "ACCOUNT_INACTIVE") {
+        // Revoked/suspended accounts are denied by the layout gate; this re-check
+        // keeps them off /onboarding if it is ever bypassed. Only a missing
+        // profile falls through to finish setup.
+        await redirectIfAccountInactive();
         redirect(routes.onboarding);
       }
       if (error.code === "UNAUTHORIZED" && error.message.includes("No active business")) {

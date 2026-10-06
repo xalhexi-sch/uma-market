@@ -85,9 +85,9 @@ export async function requireRole(expected: UserRole | UserRole[]): Promise<Auth
 /**
  * Fetch the profile for a clerk_id using the user's own RLS-scoped client.
  * Cached per request via React cache() to avoid duplicate DB calls when
- * both a layout and a page call requireActiveUser().
+ * both a layout and a page call requireActiveUser() / redirectIfAccountInactive().
  */
-const getProfileForUser = cache(async (clerkId: string): Promise<Profile | null> => {
+export const getProfileForUser = cache(async (clerkId: string): Promise<Profile | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
