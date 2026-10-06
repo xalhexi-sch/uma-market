@@ -33,7 +33,7 @@ export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "My Products", href: "/farmer/products", icon: RiPlantLine },
     { label: "Orders", href: "/farmer/orders", icon: RiShoppingBagLine, badgeKey: "farmerOrders" },
     { label: "Messages", href: "/farmer/messages", icon: RiMessage2Line },
-    { label: "Profile", href: "/farmer/profile", icon: RiUserLine },
+    { label: "Profile", href: routes.dashboard.profile, icon: RiUserLine },
   ],
   // Canonical V4 buyer routes. The legacy /business/* tree only redirects here.
   business: [

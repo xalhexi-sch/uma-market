@@ -62,7 +62,6 @@ export async function updateProfile(data: ProfileUpdateData) {
     return { success: false, error: "Profile not found. Please complete onboarding." };
   }
 
-  revalidatePath("/business/profile");
-  revalidatePath("/farmer/profile");
+  revalidatePath("/profile");
   return { success: true };
 }
