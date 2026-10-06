@@ -576,8 +576,8 @@ function runCoverageGapReport(): void {
     "Buyer JWT calling update_order_status raises farmer-only error",
     "Real buyer JWT + update_order_status RPC → 'Only farmers can update order status'");
   coverageGap("GAP-08",
-    "Revoked profile blocked by assertActiveProfile before checkout (SEC-AUTH-001)",
-    "profile.status='revoked' + buyer JWT → placeMultiFarmerCheckout returns {success:false}; " +
+    "Revoked profile blocked by requireActiveUser before checkout (SEC-AUTH-001)",
+    "profile.status='revoked' + buyer JWT → placeV4Checkout returns {success:false}; " +
     "covered by tests/browser/sec-auth-001-session-revocation.spec.ts");
 }
 

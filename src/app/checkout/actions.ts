@@ -18,6 +18,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCanBuy } from "@/platform/business-context";
+import { routes } from "@/platform/routes";
 import { PlaceOrderSchema } from "@/lib/validation";
 import { checkoutRateLimit } from "@/lib/rate-limit";
 import {
@@ -39,7 +40,6 @@ export interface V4CheckoutOrderGroup {
 
 /**
  * Validates a pickup date and returns a stable error code.
- * Reuses the same logic as the legacy checkout.
  */
 function validatePickupDate(dateStr?: string): CheckoutError | null {
   if (!dateStr || typeof dateStr !== "string" || !dateStr.trim()) {
@@ -102,7 +102,7 @@ export async function placeV4Checkout(orders: V4CheckoutOrderGroup[]): Promise<{
     return { success: false, error: checkoutError("UNAUTHORIZED") };
   }
 
-  // 2. Rate limit (keyed by userId — shared budget with legacy checkout)
+  // 2. Rate limit (keyed by userId — one checkout budget per user)
   const rateResult = checkoutRateLimit(context.user.userId);
   if (!rateResult.success) {
     return { success: false, error: checkoutError("RATE_LIMITED") };
@@ -162,10 +162,9 @@ export async function placeV4Checkout(orders: V4CheckoutOrderGroup[]): Promise<{
     return { success: false, error: genericCheckoutError() };
   }
 
-  // 7. Revalidate V4 + legacy paths
-  revalidatePath("/cart");
-  revalidatePath("/checkout");
-  revalidatePath("/business/cart");
-  revalidatePath("/business/orders");
+  // 7. Revalidate the canonical V4 buyer paths
+  revalidatePath(routes.cart);
+  revalidatePath(routes.checkout);
+  revalidatePath(routes.orders);
   return { success: true, orderIds };
 }

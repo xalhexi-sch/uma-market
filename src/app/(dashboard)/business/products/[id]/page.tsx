@@ -25,6 +25,7 @@ import { ProductGallery } from "@/components/marketplace/product-gallery";
 import { getProductById } from "@/lib/supabase/queries/products";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
+import { routes } from "@/platform/routes";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -311,7 +312,7 @@ export default async function BusinessProductDetailPage({ params }: PageProps) {
                   Commercial Buyer Order
                 </span>
                 <Link
-                  href="/business/cart"
+                  href={routes.cart}
                   className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
                 >
                   <span>View Cart</span>

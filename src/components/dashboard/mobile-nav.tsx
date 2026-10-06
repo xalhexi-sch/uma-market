@@ -28,6 +28,7 @@ import { NAV_ITEMS, ROLE_LABELS } from "@/components/dashboard/sidebar";
 import { APP_NAME, type UserRole } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { routes } from "@/platform/routes";
 
 const BOTTOM_NAV_ITEMS: Record<
   UserRole,
@@ -45,12 +46,13 @@ const BOTTOM_NAV_ITEMS: Record<
     { label: "Messages", href: "/farmer/messages", icon: RiMessage2Line },
     { label: "Profile", href: "/farmer/profile", icon: RiUserLine },
   ],
+  // Canonical V4 buyer routes. The legacy /business/* tree only redirects here.
   business: [
-    { label: "Home", href: "/business", icon: RiDashboardLine },
-    { label: "Products", href: "/business/products", icon: RiStoreLine },
-    { label: "Orders", href: "/business/orders", icon: RiShoppingBagLine, badgeKey: "businessOrders" },
-    { label: "Messages", href: "/business/messages", icon: RiMessage2Line },
-    { label: "Profile", href: "/business/profile", icon: RiUserLine },
+    { label: "Home", href: routes.dashboardRoot, icon: RiDashboardLine },
+    { label: "Products", href: routes.products, icon: RiStoreLine },
+    { label: "Orders", href: routes.orders, icon: RiShoppingBagLine, badgeKey: "businessOrders" },
+    { label: "Messages", href: routes.dashboard.messages, icon: RiMessage2Line },
+    { label: "Profile", href: routes.dashboard.profile, icon: RiUserLine },
   ],
   admin: [
     { label: "Home", href: "/admin", icon: RiDashboardLine },
@@ -78,6 +80,8 @@ export function DashboardMobileNav({
   const pathname = usePathname();
   const navItems = NAV_ITEMS[role] ?? [];
   const bottomNavItems = BOTTOM_NAV_ITEMS[role] ?? [];
+  // The first nav item is the role's home; it only matches exactly.
+  const homeHref = navItems[0]?.href ?? routes.home;
 
   return (
     <>
@@ -95,7 +99,7 @@ export function DashboardMobileNav({
         </Button>
 
         <Link
-          href={`/${role}`}
+          href={homeHref}
           className="flex items-center gap-2"
           onClick={() => setOpen(false)}
         >
@@ -117,7 +121,7 @@ export function DashboardMobileNav({
 
         {role === "business" && (
           <Link
-            href="/business/cart"
+            href={routes.cart}
             className="relative flex items-center justify-center text-sidebar-foreground hover:text-primary transition-colors p-1"
             aria-label={`Shopping Cart (${cartCount} items)`}
           >
@@ -167,7 +171,7 @@ export function DashboardMobileNav({
             <ul className="flex flex-col gap-1">
               {navItems.map((item) => {
                 const isActive =
-                  item.href === `/${role}`
+                  item.href === homeHref
                     ? pathname === item.href
                     : pathname.startsWith(item.href);
 
@@ -256,7 +260,7 @@ export function DashboardMobileNav({
     >
       {bottomNavItems.map((item) => {
         const isActive =
-          item.href === `/${role}`
+          item.href === homeHref
             ? pathname === item.href
             : pathname.startsWith(item.href);
 

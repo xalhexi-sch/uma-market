@@ -318,7 +318,7 @@ import * as path from "path";
 
 const actionsSrc = fs
   .readFileSync(
-    path.resolve(process.cwd(), "src/app/(dashboard)/business/checkout/actions.ts"),
+    path.resolve(process.cwd(), "src/app/checkout/actions.ts"),
     "utf-8"
   )
   .replace(/\r\n/g, "\n");
@@ -366,7 +366,7 @@ check(
 
 // Checkout form integrity.
 const formSrc = fs
-  .readFileSync(path.resolve(process.cwd(), "src/components/dashboard/checkout-form.tsx"), "utf-8")
+  .readFileSync(path.resolve(process.cwd(), "src/components/checkout/v4-checkout-form.tsx"), "utf-8")
   .replace(/\r\n/g, "\n");
 
 check(

@@ -60,7 +60,7 @@ jobs:
       - name: Verify every destructive suite fails closed on production
         run: npm run verify:guards
 
-      - name: Verify placeOrder shares the checkout rate limit
+      - name: Verify the checkout mutation is rate limited
         run: npm run verify:checkout-rate-limit
 
       - name: Verify review and onboarding mutations are rate limited

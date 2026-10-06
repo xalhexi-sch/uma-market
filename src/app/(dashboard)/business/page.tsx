@@ -15,6 +15,7 @@ import {
   RiTruckLine,
 } from "@remixicon/react";
 import type { UserRole } from "@/lib/constants";
+import { routes } from "@/platform/routes";
 import { getBusinessOverview } from "@/lib/supabase/queries/overview";
 import {
   getBusinessOrders,
@@ -102,7 +103,7 @@ export default async function BusinessOverviewPage({
       id: "cart",
       label: `${cartCount} item${cartCount === 1 ? "" : "s"} still in your cart`,
       detail: "Checkout before the seller runs out.",
-      href: "/business/cart",
+      href: routes.cart,
       action: "Review cart",
       icon: <RiShoppingCart2Line className="size-4" />,
       tone: "info",
@@ -237,7 +238,7 @@ export default async function BusinessOverviewPage({
       <QuickActions
         items={[
           { href: "/business/products", label: "Browse products", icon: <RiStoreLine className="size-4" /> },
-          { href: "/business/cart", label: "View cart", icon: <RiShoppingCart2Line className="size-4" /> },
+          { href: routes.cart, label: "View cart", icon: <RiShoppingCart2Line className="size-4" /> },
           { href: "/business/orders", label: "View orders", icon: <RiFileListLine className="size-4" /> },
           { href: "/business/messages", label: "Messages", icon: <RiMessage2Line className="size-4" /> },
         ]}

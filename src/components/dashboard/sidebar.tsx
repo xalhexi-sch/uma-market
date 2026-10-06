@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { APP_NAME, type UserRole } from "@/lib/constants";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { routes } from "@/platform/routes";
 
 export interface NavItem {
   label: string;
@@ -34,13 +35,14 @@ export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Messages", href: "/farmer/messages", icon: RiMessage2Line },
     { label: "Profile", href: "/farmer/profile", icon: RiUserLine },
   ],
+  // Canonical V4 buyer routes. The legacy /business/* tree only redirects here.
   business: [
-    { label: "Dashboard", href: "/business", icon: RiDashboardLine },
-    { label: "Products", href: "/business/products", icon: RiStoreLine },
-    { label: "Cart", href: "/business/cart", icon: RiShoppingCart2Line, badgeKey: "cart" },
-    { label: "Orders", href: "/business/orders", icon: RiShoppingBagLine, badgeKey: "businessOrders" },
-    { label: "Messages", href: "/business/messages", icon: RiMessage2Line },
-    { label: "Profile", href: "/business/profile", icon: RiUserLine },
+    { label: "Dashboard", href: routes.dashboardRoot, icon: RiDashboardLine },
+    { label: "Products", href: routes.products, icon: RiStoreLine },
+    { label: "Cart", href: routes.cart, icon: RiShoppingCart2Line, badgeKey: "cart" },
+    { label: "Orders", href: routes.orders, icon: RiShoppingBagLine, badgeKey: "businessOrders" },
+    { label: "Messages", href: routes.dashboard.messages, icon: RiMessage2Line },
+    { label: "Profile", href: routes.dashboard.profile, icon: RiUserLine },
   ],
   admin: [
     { label: "Dashboard", href: "/admin", icon: RiDashboardLine },
@@ -94,9 +96,10 @@ export function DashboardSidebar({
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col justify-between">
         <ul className="flex flex-col gap-0.5">
-          {navItems.map((item) => {
+          {navItems.map((item, index) => {
+            // The first item is the role's home and only matches exactly.
             const isActive =
-              item.href === `/${role}`
+              index === 0
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
 

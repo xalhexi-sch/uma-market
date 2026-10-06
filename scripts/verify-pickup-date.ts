@@ -446,12 +446,12 @@ async function runTests(): Promise<void> {
 
     // The Server Action must reject the same input before it ever reaches the RPC.
     const checkoutActionsSrc = fs.readFileSync(
-      path.resolve(process.cwd(), "src/app/(dashboard)/business/checkout/actions.ts"),
+      path.resolve(process.cwd(), "src/app/checkout/actions.ts"),
       "utf-8",
     );
     assert(
       "TEST-C-ACTION",
-      "placeMultiFarmerCheckout validates pickup dates server-side before calling the RPC",
+      "placeV4Checkout validates pickup dates server-side before calling the RPC",
       checkoutActionsSrc.includes('checkoutError("PICKUP_DATE_PAST")') &&
         checkoutActionsSrc.includes('checkoutError("PICKUP_DATE_REQUIRED")') &&
         checkoutActionsSrc.includes('checkoutError("PICKUP_DATE_INVALID")'),
@@ -676,8 +676,8 @@ async function runTests(): Promise<void> {
   {
     const uiSurfaces = [
       "src/app/(dashboard)/admin/orders/[id]/page.tsx",
-      "src/app/(dashboard)/business/checkout/confirmation/[orderId]/page.tsx",
-      "src/app/(dashboard)/business/checkout/confirmation/page.tsx",
+      "src/app/checkout/confirmation/[orderId]/page.tsx",
+      "src/app/checkout/confirmation/page.tsx",
       "src/app/(dashboard)/business/orders/[id]/page.tsx",
       "src/app/(dashboard)/farmer/orders/[id]/page.tsx",
     ];

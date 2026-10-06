@@ -59,8 +59,6 @@ export const routes = {
       root: "/business",
       orders: "/business/orders",
       order: (id: string) => `/business/orders/${id}` as const,
-      cart: "/business/cart",
-      checkout: "/business/checkout",
       favorites: "/business/favorites",
     },
 

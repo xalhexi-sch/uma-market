@@ -154,7 +154,7 @@ const ALL_PERSONAS = [
 //
 // Pickup-order payloads below therefore carry a valid future date formatted
 // YYYY-MM-DD, matching the application rule in
-// src/app/(dashboard)/business/checkout/actions.ts :: validatePickupDate().
+// src/app/checkout/actions.ts :: validatePickupDate().
 // The value is resolved ONCE per run so every assertion observes the same date.
 // =============================================================================
 

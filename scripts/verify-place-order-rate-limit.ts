@@ -1,13 +1,15 @@
 // =============================================================================
-// UMA Market — placeOrder / checkout rate-limit verification suite
+// UMA Market — checkout rate-limit verification suite
 //
 // STATIC + PURE SUITE — no network, no database, no auth, no mutation.
 // Safe to run anywhere: npx tsx scripts/verify-place-order-rate-limit.ts
 //
 // Guards the mutation-level rate-limit bypass:
-//   1. `placeOrder` and `placeMultiFarmerCheckout` are BOTH public server
-//      mutations, so both must consume the SAME checkout budget
-//      (`checkoutRateLimit`, keyed `checkout:${userId}`).
+//   1. `placeV4Checkout` is the ONLY public server mutation that reaches a
+//      checkout RPC, and it consumes the checkout budget
+//      (`checkoutRateLimit`, keyed `checkout:${userId}`) before the RPC. The
+//      retired V2 mutations (`placeOrder`, `placeMultiFarmerCheckout`) must not
+//      reappear as a second, unthrottled entry point.
 //   2. The limiter's own semantics: exactly `limit` requests are admitted per
 //      window, the request after that is rejected, independent keys never
 //      share state, and a rejection never extends the window.
@@ -162,10 +164,10 @@ check("CL-3", "The generic rateLimit helper is still the single limiter implemen
   "Limiter implementation was replaced or duplicated");
 
 // =============================================================================
-section("SECTION 3 — placeOrder is protected at the mutation boundary (source)");
+section("SECTION 3 — checkout is protected at the mutation boundary (source)");
 // =============================================================================
 
-const ACTIONS = "src/app/(dashboard)/business/checkout/actions.ts";
+const ACTIONS = "src/app/checkout/actions.ts";
 const actionsSrc = fs
   .readFileSync(path.resolve(process.cwd(), ACTIONS), "utf-8")
   .replace(/\r\n/g, "\n");
@@ -217,51 +219,61 @@ function functionSource(src: string, name: string): string | null {
   return src.slice(header.index, end);
 }
 
-const placeOrderBody = functionSource(actionsSrc, "placeOrder");
-const multiBody = functionSource(actionsSrc, "placeMultiFarmerCheckout");
+const checkoutBody = functionSource(actionsSrc, "placeV4Checkout");
 
-check("PO-1", "actions.ts still defines both checkout mutations",
-  placeOrderBody !== null && multiBody !== null,
-  `placeOrder=${placeOrderBody !== null} placeMultiFarmerCheckout=${multiBody !== null}`);
+check("PO-1", "actions.ts defines the placeV4Checkout mutation",
+  checkoutBody !== null,
+  "export async function placeV4Checkout( not found");
 
-if (placeOrderBody && multiBody) {
-  const orderLimiterAt = placeOrderBody.indexOf("checkoutRateLimit(");
-  const orderRpcAt = placeOrderBody.indexOf('supabase.rpc("place_order"');
-  const multiLimiterAt = multiBody.indexOf("checkoutRateLimit(");
-  const multiRpcAt = multiBody.indexOf('supabase.rpc("place_checkout_orders"');
+if (checkoutBody) {
+  const limiterAt = checkoutBody.indexOf("checkoutRateLimit(");
+  const rpcAt = checkoutBody.indexOf('supabase.rpc("place_v4_checkout_orders"');
 
-  check("PO-2", "placeOrder invokes the shared checkoutRateLimit helper",
-    orderLimiterAt !== -1,
-    "checkoutRateLimit( not found inside placeOrder — mutation bypasses the checkout budget");
+  check("PO-2", "placeV4Checkout invokes the shared checkoutRateLimit helper",
+    limiterAt !== -1,
+    "checkoutRateLimit( not found inside placeV4Checkout — mutation bypasses the checkout budget");
 
-  check("PO-3", "placeOrder returns RATE_LIMITED when the limiter denies",
-    orderLimiterAt !== -1 &&
-      placeOrderBody.includes('checkoutError("RATE_LIMITED")'),
-    "RATE_LIMITED response missing from placeOrder");
+  check("PO-3", "placeV4Checkout returns RATE_LIMITED when the limiter denies",
+    limiterAt !== -1 &&
+      checkoutBody.includes('checkoutError("RATE_LIMITED")'),
+    "RATE_LIMITED response missing from placeV4Checkout");
 
-  check("PO-4", "The limiter runs BEFORE the place_order RPC (guard precedes mutation)",
-    orderLimiterAt !== -1 && orderRpcAt !== -1 && orderLimiterAt < orderRpcAt,
-    `limiterAt=${orderLimiterAt} rpcAt=${orderRpcAt}`);
+  check("PO-4", "The limiter runs BEFORE the place_v4_checkout_orders RPC (guard precedes mutation)",
+    limiterAt !== -1 && rpcAt !== -1 && limiterAt < rpcAt,
+    `limiterAt=${limiterAt} rpcAt=${rpcAt}`);
 
-  check("PO-5", "placeOrder does not inline its own limiter implementation",
-    !/\brateLimit\(/.test(placeOrderBody),
+  check("PO-5", "placeV4Checkout does not inline its own limiter implementation",
+    !/\brateLimit\(/.test(checkoutBody),
     "A bare rateLimit( call was inlined instead of reusing checkoutRateLimit");
-
-  check("PO-6", "placeMultiFarmerCheckout protection is preserved",
-    multiLimiterAt !== -1 && multiRpcAt !== -1 && multiLimiterAt < multiRpcAt &&
-      multiBody.includes('checkoutError("RATE_LIMITED")'),
-    `limiterAt=${multiLimiterAt} rpcAt=${multiRpcAt}`);
-
-  // Both mutations must draw from the SAME budget: one shared helper, one key.
-  check("PO-7", "Both mutations share one checkout budget (no second key/limiter)",
-    (actionsSrc.match(/checkoutRateLimit\(/g) ?? []).length === 2 &&
-      (actionsSrc.match(/checkoutError\("RATE_LIMITED"\)/g) ?? []).length === 2,
-    `checkoutRateLimit calls=${(actionsSrc.match(/checkoutRateLimit\(/g) ?? []).length}, RATE_LIMITED returns=${(actionsSrc.match(/checkoutError\("RATE_LIMITED"\)/g) ?? []).length}`);
 }
 
-check("PO-8", "actions.ts imports the shared helper from @/lib/rate-limit",
+check("PO-6", "actions.ts imports the shared helper from @/lib/rate-limit",
   actionsSrc.includes('import { checkoutRateLimit } from "@/lib/rate-limit"'),
   "Shared checkoutRateLimit import missing");
+
+// The retired V2 checkout must not come back as a second entry point. Every
+// application file that reaches a checkout RPC is a public mutation surface, so
+// exactly one file — the canonical V4 action — may do so.
+const CHECKOUT_RPC = /\.rpc\(\s*["'`](place_order|place_checkout_orders|place_v4_checkout_orders)["'`]/;
+function sourceFiles(dir: string): string[] {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) return sourceFiles(full);
+    return /\.(ts|tsx)$/.test(entry.name) ? [full] : [];
+  });
+}
+const rpcCallers = sourceFiles(path.resolve(process.cwd(), "src"))
+  .filter((file) => CHECKOUT_RPC.test(fs.readFileSync(file, "utf-8")))
+  .map((file) => path.relative(process.cwd(), file).replace(/\\/g, "/"));
+
+check("PO-7", "Only the canonical V4 action calls a checkout RPC (no second mutation)",
+  rpcCallers.length === 1 && rpcCallers[0] === ACTIONS,
+  `checkout RPC callers: ${rpcCallers.join(", ") || "<none>"}`);
+
+check("PO-8", "Retired V2 checkout mutations are not redefined",
+  !/export async function (placeOrder|placeMultiFarmerCheckout)\s*\(/.test(actionsSrc) &&
+    !fs.existsSync(path.resolve(process.cwd(), "src/app/(dashboard)/business/checkout/actions.ts")),
+  "Legacy placeOrder / placeMultiFarmerCheckout mutation is back");
 
 // =============================================================================
 section("SUMMARY");

@@ -145,19 +145,19 @@ The business buyer purchasing flow is fully functional end-to-end:
 
 ```mermaid
 flowchart LR
-    A[Browse Catalog<br/><code>/business/products</code>] --> B[Product Details<br/><code>/business/products/:id</code>]
-    B --> C[Add to Cart<br/><code>/business/cart</code>]
-    C --> D[Grouped Checkout<br/><code>/business/checkout</code>]
-    D --> E[Order Confirmation<br/><code>/business/checkout/confirmation/:id</code>]
-    E --> F[Order Tracking<br/><code>/business/orders/:id</code>]
+    A[Browse Catalog<br/><code>/products</code>] --> B[Product Details<br/><code>/products/:id</code>]
+    B --> C[Add to Cart<br/><code>/cart</code>]
+    C --> D[Grouped Checkout<br/><code>/checkout</code>]
+    D --> E[Order Confirmation<br/><code>/checkout/confirmation/:id</code>]
+    E --> F[Order Tracking<br/><code>/orders/:id</code>]
 ```
 
-1. **Browse Products (`/business/products`):** The buyer browses active produce listings, searches by keyword, or filters by agricultural categories.
-2. **Product Detail (`/business/products/[id]`):** Inspects produce specifications, farm location, available stock, and selects order quantity.
-3. **Cart Management (`/business/cart`):** Produce items are automatically sorted by farm. Quantities can be adjusted or removed with instant subtotal recalculation.
-4. **Checkout (`/business/checkout`):** The buyer selects the desired fulfillment method (**Pickup** or **Seller Delivery**), enters delivery details or pickup schedule notes, and submits the order.
-5. **Confirmation (`/business/checkout/confirmation/[orderId]`):** System generates an atomic order transaction, decrements inventory, clears relevant cart items, and displays order reference.
-6. **Order Lifecycle (`/business/orders/[id]`):** Buyer tracks order progression through an interactive status timeline.
+1. **Browse Products (`/products`):** The buyer browses active produce listings, searches by keyword, or filters by agricultural categories.
+2. **Product Detail (`/products/[id]`):** Inspects produce specifications, farm location, available stock, and selects order quantity.
+3. **Cart Management (`/cart`):** Produce items are automatically sorted by farm. Quantities can be adjusted or removed with instant subtotal recalculation.
+4. **Checkout (`/checkout`):** The buyer selects the desired fulfillment method (**Pickup** or **Seller Delivery**), enters delivery details or pickup schedule notes, and submits the order.
+5. **Confirmation (`/checkout/confirmation/[orderId]`):** System generates an atomic order transaction, decrements inventory, clears relevant cart items, and displays order reference.
+6. **Order Lifecycle (`/orders/[id]`):** Buyer tracks order progression through an interactive status timeline.
 
 ---
 

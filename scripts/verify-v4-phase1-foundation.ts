@@ -162,9 +162,9 @@ async function runTests(): Promise<void> {
   assert("FND-04c", "routes.dashboard.farmer.root is /farmer",
     routes.dashboard.farmer.root === "/farmer",
     `got=${routes.dashboard.farmer.root}`);
-  assert("FND-04d", "routes.dashboard.business.cart is /business/cart",
-    routes.dashboard.business.cart === "/business/cart",
-    `got=${routes.dashboard.business.cart}`);
+  assert("FND-04d", "routes.cart is the canonical V4 /cart",
+    routes.cart === "/cart",
+    `got=${routes.cart}`);
   assert("FND-04e", "routes.admin.root is /admin",
     routes.admin.root === "/admin",
     `got=${routes.admin.root}`);
