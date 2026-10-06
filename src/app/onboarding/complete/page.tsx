@@ -5,6 +5,7 @@ import { useSession } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Spinner } from "@/components/ui/spinner";
 import { APP_NAME } from "@/lib/constants";
+import { routes } from "@/platform/routes";
 
 /**
  * Onboarding completion page.
@@ -14,7 +15,7 @@ import { APP_NAME } from "@/lib/constants";
  * (~60 seconds). This page forces an immediate session token reload so that
  * all subsequent server renders see the updated claims without the delay.
  *
- * Flow: /onboarding → completeOnboarding() → /onboarding/complete → session.reload() → /farmer or /business
+ * Flow: /onboarding → completeOnboarding() → /onboarding/complete → session.reload() → /dashboard
  */
 export default function OnboardingCompletePage() {
   const { session, isLoaded } = useSession();
@@ -27,9 +28,11 @@ export default function OnboardingCompletePage() {
 
     // Force a session token refresh so the new role claim is available.
     session.reload().then(() => {
-      if (role === "farmer") router.replace("/farmer");
-      else if (role === "business") router.replace("/business");
-      else router.replace("/");
+      if (role === "farmer" || role === "business") {
+        router.replace(routes.dashboardRoot);
+      } else {
+        router.replace(routes.home);
+      }
     });
   }, [isLoaded, session, role, router]);
 

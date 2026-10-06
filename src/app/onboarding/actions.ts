@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROLES } from "@/lib/constants";
 import { onboardingRateLimit } from "@/lib/rate-limit";
+import { routes } from "@/platform/routes";
 
 const ONBOARDING_RATE_LIMIT_ERROR = "Too many attempts. Please wait a few minutes and try again.";
 
@@ -81,7 +82,7 @@ export async function completeOnboarding(formData: FormData) {
           error: "Your account role and profile do not match. Please contact support.",
         };
       }
-      redirect(`/${role}`);
+      redirect(routes.dashboardRoot);
     }
   } else {
     // Rate limit: 5 attempts per 5 minutes (first-time onboarding path).

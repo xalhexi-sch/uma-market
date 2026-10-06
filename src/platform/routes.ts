@@ -110,8 +110,8 @@ export const routes = {
 import type { UserRole } from "@/lib/constants";
 
 const DASHBOARD_ROOTS: Record<UserRole, string> = {
-  farmer: routes.dashboard.farmer.root,
-  business: routes.dashboard.business.root,
+  farmer: routes.dashboardRoot,
+  business: routes.dashboardRoot,
   admin: routes.admin.root,
 };
 

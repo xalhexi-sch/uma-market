@@ -67,7 +67,7 @@ export function ProductForm({
   mode,
   product,
   actions = LEGACY_ACTIONS,
-  successHref = routes.dashboard.farmer.products,
+  successHref = routes.dashboard.listings,
 }: ProductFormProps) {
   const { user } = useUser();
   const supabase = useSupabase();

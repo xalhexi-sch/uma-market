@@ -18,7 +18,8 @@ export default async function AdminBusinessesPage() {
   const role = sessionClaims?.user_role as UserRole | undefined;
 
   if (role !== "admin") {
-    redirect(role === "farmer" ? "/farmer" : role === "business" ? "/business" : "/onboarding");
+    if (role === "farmer" || role === "business") redirect("/dashboard");
+    redirect("/onboarding");
   }
 
   const businesses = await getAdminProfiles("business");

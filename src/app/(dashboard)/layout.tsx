@@ -113,7 +113,7 @@ export default async function DashboardLayout({
               </span>
             </div>
             <Link
-              href={`/${role}/profile`}
+              href="/profile"
               className="font-medium underline hover:text-amber-950 dark:hover:text-amber-100 shrink-0"
             >
               Complete Profile →

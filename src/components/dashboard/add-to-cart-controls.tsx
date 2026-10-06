@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/toast";
 import { addToCart } from "@/app/(dashboard)/business/cart/actions";
 import type { Product } from "@/lib/types";
 import { CURRENCY } from "@/lib/constants";
+import { routes } from "@/platform/routes";
 
 interface AddToCartControlsProps {
   product: Product;
@@ -110,7 +111,7 @@ export function AddToCartControls({ product }: AddToCartControlsProps) {
             variant="outline"
             size="lg"
             className="w-full sm:w-auto"
-            onClick={() => router.push("/business/cart")}
+            onClick={() => router.push(routes.cart)}
           >
             View Cart →
           </Button>

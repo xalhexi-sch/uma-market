@@ -137,7 +137,7 @@ async function settle(page: Page): Promise<Outcome> {
   try {
     await page.waitForFunction(
       () =>
-        window.location.pathname.startsWith("/business/checkout/confirmation") ||
+        window.location.pathname.includes("/checkout/confirmation") ||
         document.querySelector("form > [role=alert]") !== null,
       undefined,
       { timeout: 45_000 },
@@ -145,7 +145,7 @@ async function settle(page: Page): Promise<Outcome> {
   } catch {
     return "timeout";
   }
-  return page.url().includes("/business/checkout/confirmation") ? "confirmation" : "error";
+  return page.url().includes("/checkout/confirmation") ? "confirmation" : "error";
 }
 
 test.describe.configure({ mode: "serial" });
@@ -261,7 +261,7 @@ test("REG-E2E-005a: two simultaneous same-account checkout tabs commit exactly o
   await expect(
     winner,
     "the winning tab must land on the order confirmation screen",
-  ).toHaveURL(/\/business\/checkout\/confirmation\//);
+  ).toHaveURL(/\/(business\/)?checkout\/confirmation\//);
 
   // --- Conflict is handled safely and legibly ---
   const alert = loser.locator(FORM_ERROR_BANNER).first();
@@ -272,7 +272,7 @@ test("REG-E2E-005a: two simultaneous same-account checkout tabs commit exactly o
     "the losing tab must offer a route back to the cart",
   ).toBeVisible();
   await expect(loser, "the losing tab must NOT reach a confirmation screen").not.toHaveURL(
-    /\/business\/checkout\/confirmation\//,
+    /\/(business\/)?checkout\/confirmation\//,
   );
 
   // --- Database invariants: no duplicate order, no double deduction ---
@@ -386,7 +386,7 @@ test("REG-E2E-005c: a multi-farmer checkout stays atomic when one cart component
 
   expect(outcome, "the checkout must be rejected, not silently half-completed").toBe("error");
   await expect(page.locator(FORM_ERROR_BANNER).first()).toContainText(CART_CONFLICT_FRAGMENT);
-  await expect(page).not.toHaveURL(/\/business\/checkout\/confirmation/);
+  await expect(page).not.toHaveURL(/\/(business\/)?checkout\/confirmation/);
 
   expect(await countBuyerOrders(admin, buyer.clerkUserId), "the whole transaction must roll back").toBe(0);
   expect(await readStock(admin, CHECKOUT_PRODUCTS.a), "farmer A stock must be untouched").toBe(stockABefore);

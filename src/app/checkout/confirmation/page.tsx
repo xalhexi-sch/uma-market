@@ -46,21 +46,21 @@ export default async function V4MultiOrderConfirmationPage({ searchParams }: Pag
   }
 
   const { order_ids } = await searchParams;
-  if (!order_ids) redirect(routes.dashboard.business.orders);
+  if (!order_ids) redirect(routes.orders);
 
   const idList = order_ids
     .split(",")
     .map((id) => id.trim())
     .filter(Boolean);
 
-  if (idList.length === 0) redirect(routes.dashboard.business.orders);
+  if (idList.length === 0) redirect(routes.orders);
   if (idList.length === 1) {
     redirect(routes.checkoutConfirmation(idList[0]));
   }
 
   const userId = context.business.legacy_clerk_id ?? context.user.userId;
   const orders = await getBusinessOrdersByIds(idList, userId);
-  if (orders.length === 0) redirect(routes.dashboard.business.orders);
+  if (orders.length === 0) redirect(routes.orders);
 
   const grandTotal = orders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0);
 
@@ -195,7 +195,7 @@ export default async function V4MultiOrderConfirmationPage({ searchParams }: Pag
                         </span>
                       </div>
                       <Link
-                        href={routes.dashboard.business.order(order.id)}
+                        href={routes.order(order.id)}
                         className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-0.5"
                       >
                         <span>Details</span>

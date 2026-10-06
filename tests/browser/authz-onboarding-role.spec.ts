@@ -167,7 +167,7 @@ test.describe("AUTHZ-10 — onboarding role escalation", () => {
       // -----------------------------------------------------------------
       await page.locator("#role-farmer").check({ force: true });
       await page.getByRole("button", { name: "Continue" }).click();
-      await page.waitForURL(/\/(onboarding\/complete|farmer)/, { timeout: 30_000 });
+      await page.waitForURL(/\/(onboarding\/complete|dashboard|farmer)/, { timeout: 30_000 });
 
       const { data: farmerProfile, error: farmerProfileError } = await supabaseAdmin
         .from("profiles")
@@ -198,7 +198,7 @@ test.describe("AUTHZ-10 — onboarding role escalation", () => {
 
       await businessPage.locator("#role-business").check({ force: true });
       await businessPage.getByRole("button", { name: "Continue" }).click();
-      await businessPage.waitForURL(/\/(onboarding\/complete|business)/, { timeout: 30_000 });
+      await businessPage.waitForURL(/\/(onboarding\/complete|dashboard|business)/, { timeout: 30_000 });
 
       const { data: businessProfile, error: businessProfileError } = await supabaseAdmin
         .from("profiles")

@@ -74,7 +74,10 @@ export default async function V4SellerOrdersPage({ searchParams }: PageProps) {
   try {
     context = await requireActiveBusiness();
   } catch (err: unknown) {
-    if (err instanceof AppError && err.code === "UNAUTHORIZED") {
+    if (err instanceof AppError && err.code === "ACCOUNT_INACTIVE") {
+      redirect("/sign-in?revoked=true");
+    }
+    if (err instanceof AppError && (err.code === "UNAUTHORIZED" || err.code === "UNAUTHENTICATED")) {
       redirect(routes.signIn);
     }
     redirect(routes.onboarding);

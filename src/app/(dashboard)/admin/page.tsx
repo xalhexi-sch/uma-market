@@ -24,8 +24,7 @@ export default async function AdminDashboardPage() {
   const role = sessionClaims?.user_role as UserRole | undefined;
 
   if (role !== "admin") {
-    if (role === "farmer") redirect("/farmer");
-    if (role === "business") redirect("/business");
+    if (role === "farmer" || role === "business") redirect("/dashboard");
     redirect("/onboarding");
   }
 

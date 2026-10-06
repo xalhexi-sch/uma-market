@@ -12,6 +12,9 @@ export async function requireWorkspaceBusiness(): Promise<ActiveBusinessContext>
   try {
     return await requireActiveBusiness();
   } catch (err: unknown) {
+    if (err instanceof AppError && err.code === "ACCOUNT_INACTIVE") {
+      redirect("/sign-in?revoked=true");
+    }
     if (err instanceof AppError && (err.code === "UNAUTHENTICATED" || err.code === "UNAUTHORIZED")) {
       redirect(routes.signIn);
     }

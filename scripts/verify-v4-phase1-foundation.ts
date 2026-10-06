@@ -168,11 +168,11 @@ async function runTests(): Promise<void> {
   assert("FND-04e", "routes.admin.root is /admin",
     routes.admin.root === "/admin",
     `got=${routes.admin.root}`);
-  assert("FND-04f", "dashboardRoot('farmer') returns /farmer",
-    dashboardRoot("farmer") === "/farmer",
+  assert("FND-04f", "dashboardRoot('farmer') returns /dashboard",
+    dashboardRoot("farmer") === "/dashboard",
     `got=${dashboardRoot("farmer")}`);
-  assert("FND-04g", "dashboardRoot('business') returns /business",
-    dashboardRoot("business") === "/business",
+  assert("FND-04g", "dashboardRoot('business') returns /dashboard",
+    dashboardRoot("business") === "/dashboard",
     `got=${dashboardRoot("business")}`);
   assert("FND-04h", "dashboardRoot('admin') returns /admin",
     dashboardRoot("admin") === "/admin",
