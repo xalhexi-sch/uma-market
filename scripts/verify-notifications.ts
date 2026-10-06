@@ -552,9 +552,9 @@ async function run() {
         `${newOrder[0]?.entity_type}:${newOrder[0]?.entity_id}`,
       );
       assert(
-        "checkout notification dedupe key is correct",
-        newOrder[0]?.dedupe_key === `order:new:${checkoutOrderId}` && newOrder[0]?.action_url === `/farmer/orders/${checkoutOrderId}`,
-        String(newOrder[0]?.dedupe_key ?? "none"),
+        "checkout notification dedupe key and canonical seller URL are correct",
+        newOrder[0]?.dedupe_key === `order:new:${checkoutOrderId}` && newOrder[0]?.action_url === "/dashboard/orders",
+        `${newOrder[0]?.dedupe_key ?? "none"} ${newOrder[0]?.action_url ?? "none"}`,
       );
       const sameCommitWindow =
         newOrder[0] && order?.created_at
