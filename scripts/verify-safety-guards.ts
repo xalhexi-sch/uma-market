@@ -55,6 +55,7 @@ const GUARDED_SUITES = [
   "scripts/verify-verified-reviews.ts",
   "scripts/verify-v4-phase1-security.ts",
   "scripts/verify-v4-producer-ops-live.ts",
+  "scripts/verify-v4-business-owner-rls.ts",
 ];
 
 /**
