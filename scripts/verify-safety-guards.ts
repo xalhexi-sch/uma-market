@@ -284,6 +284,46 @@ for (const suite of ["scripts/verify-notifications.ts", "scripts/verify-verified
   );
 }
 
+section("G-10 — V4 migration parity verifier is read-only and target-checked");
+
+const parityVerifierSource = fs.readFileSync(
+  path.join(process.cwd(), "scripts/verify-v4-db-parity.ts"),
+  "utf8",
+);
+const parityCliCall = parityVerifierSource.indexOf('"migration",\n    "list",\n    "--linked",\n    "--output-format",\n    "json",');
+const linkedRefCheck = parityVerifierSource.indexOf("if (linkedRef !== expectedRef)");
+const remoteSpawn = parityVerifierSource.indexOf("spawnSync(process.execPath");
+const localIncomplete = parityVerifierSource.indexOf("Overall result: INCOMPLETE; production parity is unverified.");
+const localIncompleteExit = parityVerifierSource.indexOf("process.exitCode = 2;", localIncomplete);
+assert(
+  "G-10.1",
+  "parity verifier imports no Supabase data client and performs no RPC/table writes",
+  !/@supabase\/(?:supabase-js|ssr)|\.rpc\s*\(|\.(?:insert|upsert|update|delete)\s*\(/i.test(parityVerifierSource),
+);
+assert(
+  "G-10.2",
+  "the only remote command is the read-only linked migration list",
+  parityCliCall !== -1 &&
+    !/supabase\s+(?:db\s+push|migration\s+(?:up|repair|reset))\b/i.test(parityVerifierSource),
+);
+assert(
+  "G-10.3",
+  "linked project reference is checked before any remote CLI process starts",
+  linkedRefCheck !== -1 && remoteSpawn !== -1 && linkedRefCheck < remoteSpawn,
+);
+assert(
+  "G-10.4",
+  "remote target modes are explicit and unknown state fails closed",
+  /"--security-test"/.test(parityVerifierSource) &&
+  /"--production"/.test(parityVerifierSource) &&
+    /parity is unknown/.test(parityVerifierSource),
+);
+assert(
+  "G-10.5",
+  "local-only source checks exit incomplete instead of passing an unverified production gate",
+  localIncomplete !== -1 && localIncompleteExit > localIncomplete,
+);
+
 section("G-09 — cleanup runner: one failing step never prevents later steps");
 
 (async () => {

@@ -29,6 +29,7 @@
     "verify:v4-producer-ops-live": "tsx scripts/verify-v4-producer-ops-live.ts",
     "verify:v4-business-provisioning": "tsx scripts/verify-v4-business-provisioning.ts",
     "verify:v4-business-owner-rls": "tsx scripts/verify-v4-business-owner-rls.ts",
+    "verify:v4-db-parity": "tsx scripts/verify-v4-db-parity.ts",
     "test:browser": "playwright test",
     "test:browser:install": "playwright install chromium"
   },
