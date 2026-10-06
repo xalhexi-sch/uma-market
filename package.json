@@ -27,6 +27,7 @@
     "verify:v4-cart-foundation": "tsx scripts/verify-v4-business-cart-foundation.ts",
     "verify:v4-producer-ops-rules": "tsx scripts/verify-v4-producer-ops-rules.ts",
     "verify:v4-producer-ops-live": "tsx scripts/verify-v4-producer-ops-live.ts",
+    "verify:v4-business-provisioning": "tsx scripts/verify-v4-business-provisioning.ts",
     "test:browser": "playwright test",
     "test:browser:install": "playwright install chromium"
   },
