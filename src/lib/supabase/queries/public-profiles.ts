@@ -37,6 +37,23 @@ export const getPublicFarmerProfile = cache(
   }
 );
 
+/** Fetch the privacy-hardened public producer directory. */
+export async function getPublicFarmerProfiles(): Promise<PublicFarmerProfile[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("public_farmer_profiles")
+    .select("clerk_id, full_name, business_name, city, bio, avatar_url, is_verified")
+    .order("business_name", { ascending: true });
+
+  if (error) {
+    console.error("[public-profiles] getPublicFarmerProfiles error:", error.message);
+    throw new Error("Could not load the producer directory.");
+  }
+
+  return (data ?? []) as PublicFarmerProfile[];
+}
+
 /**
  * Fetch active produce listings owned by a farmer.
  * Strictly filters by status = 'active' to ensure draft or archived products are never exposed.
