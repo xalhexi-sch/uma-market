@@ -1,32 +1,6 @@
 import { z } from "zod";
 
 // ── Product ──────────────────────────────────────────
-export const ProductFormSchema = z.object({
-  name: z.string().trim().min(1, "Product name is required.").max(200),
-  category_id: z.string().uuid().nullable().optional(),
-  description: z.string().trim().max(5000).optional(),
-  price_per_unit: z.number().positive("Price must be greater than 0."),
-  unit: z.string().min(1).max(50),
-  quantity_available: z.number().int().min(0, "Quantity cannot be negative."),
-  min_order_quantity: z.number().int().positive("Minimum order must be greater than 0."),
-  harvest_date: z.string().nullable().optional(),
-  available_until: z.string().nullable().optional(),
-  status: z.enum(["active", "draft"]),
-  image_path: z.string().nullable().optional(),
-  images: z
-    .array(
-      z.object({
-        id: z.string().optional(),
-        image_path: z.string(),
-        sort_order: z.number().int(),
-      })
-    )
-    .max(5)
-    .optional(),
-});
-
-export type ProductFormInput = z.infer<typeof ProductFormSchema>;
-
 // ── V4 Listings & Inventory ──────────────────────────
 // Mirrors the SQL rules in create/update_business_listing and
 // adjust_business_inventory; the database re-validates every field.

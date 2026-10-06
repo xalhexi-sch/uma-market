@@ -21,7 +21,7 @@ import { routes } from "@/platform/routes";
 import { ListingInputSchema, ListingStatusSchema, type ListingInput } from "@/lib/validation";
 import { producerOpsError } from "@/lib/producer-ops-errors";
 import { productCreateRateLimit } from "@/lib/rate-limit";
-import type { ProductFormData } from "@/app/(dashboard)/farmer/products/actions";
+import type { ProductFormData } from "@/components/dashboard/product-form";
 
 const ProductIdSchema = z.string().uuid("Invalid listing.");
 

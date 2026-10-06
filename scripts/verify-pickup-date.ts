@@ -686,21 +686,20 @@ async function runTests(): Promise<void> {
   }
 
   // ---------------------------------------------------------------------------
-  // TEST-J: Every UI surface that renders a pickup date formats it correctly
+  // TEST-J: Every canonical UI surface that renders a pickup date formats it correctly
   //
   // The formatter is asserted against the REAL application source. Each page
   // declares its own module-private `formatPickupDate`; the body is extracted
   // from the source file and executed, so this exercises shipped application
   // code rather than a copy of it living inside this test script.
   // ---------------------------------------------------------------------------
-  section("TEST-J: Confirmation & detail UI formatting correctly handles scheduled pickup date");
+  section("TEST-J: Confirmation & buyer detail UI formatting correctly handles scheduled pickup date");
   {
     const uiSurfaces = [
       "src/app/(dashboard)/admin/orders/[id]/page.tsx",
       "src/app/checkout/confirmation/[orderId]/page.tsx",
       "src/app/checkout/confirmation/page.tsx",
-      "src/app/(dashboard)/business/orders/[id]/page.tsx",
-      "src/app/(dashboard)/farmer/orders/[id]/page.tsx",
+      "src/app/orders/[id]/page.tsx",
     ];
 
     const failures: string[] = [];

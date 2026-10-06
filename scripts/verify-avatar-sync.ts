@@ -479,7 +479,7 @@ async function runAvatarSyncVerification() {
     }
 
     // ------------------------------------------------------------------------
-    // TEST 10: Farmer Profile renders AvatarImage when avatar_url exists
+    // TEST 10: Canonical producer profile renders AvatarImage when avatar_url exists
     // ------------------------------------------------------------------------
     {
       // testFarmer2 currently has avatar_url populated
@@ -488,7 +488,7 @@ async function runAvatarSyncVerification() {
           default?: (props: { params: Promise<{ id: string }> }) => Promise<ReactVNode>;
         } | ((props: { params: Promise<{ id: string }> }) => Promise<ReactVNode>);
       };
-      const mod = (await import("@/app/farmers/[id]/page")) as unknown as PageModule;
+      const mod = (await import("@/app/producers/[id]/page")) as unknown as PageModule;
       const Page =
         (typeof mod.default === "object" && mod.default !== null && "default" in mod.default
           ? mod.default.default
@@ -507,7 +507,7 @@ async function runAvatarSyncVerification() {
       const passed = avatarImageNode !== null && avatarImageNode.props?.src === "https://img.clerk.com/avatars/santos-new.jpg";
       assert(
         "TEST-10",
-        "Farmer Profile renders AvatarImage when avatar_url exists",
+        "Producer Profile renders AvatarImage when avatar_url exists",
         passed,
         passed
           ? `Avatar contains <AvatarImage src="${avatarImageNode?.props?.src}">`
@@ -516,7 +516,7 @@ async function runAvatarSyncVerification() {
     }
 
     // ------------------------------------------------------------------------
-    // TEST 11: Farmer Profile renders AvatarFallback when avatar_url is NULL
+    // TEST 11: Canonical producer profile renders AvatarFallback when avatar_url is NULL
     // ------------------------------------------------------------------------
     {
       // Reset avatar_url to null for testFarmer2
@@ -530,7 +530,7 @@ async function runAvatarSyncVerification() {
           default?: (props: { params: Promise<{ id: string }> }) => Promise<ReactVNode>;
         } | ((props: { params: Promise<{ id: string }> }) => Promise<ReactVNode>);
       };
-      const mod = (await import("@/app/farmers/[id]/page")) as unknown as PageModule;
+      const mod = (await import("@/app/producers/[id]/page")) as unknown as PageModule;
       const Page =
         (typeof mod.default === "object" && mod.default !== null && "default" in mod.default
           ? mod.default.default
@@ -553,7 +553,7 @@ async function runAvatarSyncVerification() {
       const passed = avatarImageNode === null && avatarFallbackNode !== null && avatarFallbackNode.props?.children === "SF";
       assert(
         "TEST-11",
-        "Farmer Profile renders AvatarFallback when avatar_url is NULL",
+        "Producer Profile renders AvatarFallback when avatar_url is NULL",
         passed,
         passed
           ? `Avatar contains <AvatarFallback> with initials "${avatarFallbackNode?.props?.children}" and no AvatarImage`

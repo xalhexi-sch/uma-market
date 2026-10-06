@@ -291,69 +291,6 @@ export async function getFarmerProducts(farmerClerkId: string): Promise<Product[
 }
 
 /**
- * Fetch a single product owned by the given farmer.
- */
-export async function getFarmerProductById(
-  id: string,
-  farmerClerkId: string
-): Promise<Product | null> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("products")
-    .select(
-      `
-      id, farmer_clerk_id, category_id, name, description,
-      price_per_unit, unit, quantity_available, min_order_quantity,
-      image_url, image_path, harvest_date, available_until, status, created_at, updated_at,
-      category:categories(id, name, slug),
-      images:product_images(id, product_id, image_path, sort_order)
-    `
-    )
-    .eq("id", id)
-    .eq("farmer_clerk_id", farmerClerkId)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) return null;
-
-  let images: Product["images"] = [];
-  if (data.images && data.images.length > 0) {
-    images = [...data.images].sort((a, b) => a.sort_order - b.sort_order);
-  } else if (data.image_path || data.image_url) {
-    images = [
-      {
-        id: "primary",
-        product_id: data.id,
-        image_path: data.image_path || data.image_url || "",
-        sort_order: 0,
-      },
-    ];
-  }
-
-  return {
-    id: data.id,
-    farmer_clerk_id: data.farmer_clerk_id,
-    category_id: data.category_id,
-    name: data.name,
-    description: data.description,
-    price_per_unit: Number(data.price_per_unit),
-    unit: data.unit,
-    quantity_available: Number(data.quantity_available),
-    min_order_quantity: Number(data.min_order_quantity),
-    image_url: data.image_url,
-    image_path: data.image_path,
-    harvest_date: data.harvest_date,
-    available_until: data.available_until,
-    status: data.status as Product["status"],
-    created_at: data.created_at,
-    updated_at: data.updated_at,
-    category: data.category ?? undefined,
-    images,
-  };
-}
-
-/**
  * Fetch all categories for filter UI.
  * Cached with Next.js unstable_cache (1 hour TTL) using the anonymous public Supabase client.
  */

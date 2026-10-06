@@ -17,12 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  createProduct,
-  updateProduct,
-  archiveProduct,
-  type ProductFormData,
-} from "@/app/(dashboard)/farmer/products/actions";
 import { useSupabase } from "@/hooks/use-supabase";
 import { getProductImageUrl, validateProductImageFile, PRODUCT_IMAGES_BUCKET } from "@/lib/supabase/storage";
 import type { Category, Product } from "@/lib/types";
@@ -33,24 +27,39 @@ import { toast } from "@/components/ui/toast";
 
 type ProductFormResult = { success: boolean; error?: string };
 
-/** Server actions the form submits to. Defaults to the legacy farmer actions. */
+export interface ProductImageInput {
+  id?: string;
+  image_path: string;
+  sort_order: number;
+}
+
+export interface ProductFormData {
+  name: string;
+  category_id: string;
+  description: string;
+  price_per_unit: number;
+  unit: string;
+  quantity_available: number;
+  min_order_quantity: number;
+  harvest_date: string;
+  available_until: string;
+  status: "active" | "draft";
+  image_path?: string | null;
+  images?: ProductImageInput[];
+}
+
+/** Server actions supplied by the route that owns the form. */
 export interface ProductFormActions {
   create: (data: ProductFormData) => Promise<ProductFormResult>;
   update: (productId: string, data: ProductFormData) => Promise<ProductFormResult>;
   archive: (productId: string) => Promise<ProductFormResult>;
 }
 
-const LEGACY_ACTIONS: ProductFormActions = {
-  create: createProduct,
-  update: updateProduct,
-  archive: archiveProduct,
-};
-
 interface ProductFormProps {
   categories: Category[];
   mode: "create" | "edit";
   product?: Product;
-  actions?: ProductFormActions;
+  actions: ProductFormActions;
   /** Where to go after a successful save or archive. */
   successHref?: string;
 }
@@ -66,7 +75,7 @@ export function ProductForm({
   categories,
   mode,
   product,
-  actions = LEGACY_ACTIONS,
+  actions,
   successHref = routes.dashboard.listings,
 }: ProductFormProps) {
   const { user } = useUser();

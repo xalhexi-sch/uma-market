@@ -608,77 +608,6 @@ export async function getFarmerOrderById(
 }
 
 /**
- * Fetch recent order counts for dashboard metrics.
- */
-export async function getBusinessOrderMetrics(businessClerkId: string) {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("orders")
-    .select("status, total_amount")
-    .eq("business_clerk_id", businessClerkId);
-
-  if (error) return { active: 0, pendingDelivery: 0, total: 0, totalSpend: 0 };
-
-  const orders = data ?? [];
-  const nonCancelledOrders = orders.filter((o) => o.status !== "cancelled");
-  const totalSpend = nonCancelledOrders.reduce(
-    (sum, o) => sum + (Number(o.total_amount) || 0),
-    0
-  );
-
-  return {
-    active: orders.filter((o) =>
-      ["pending", "accepted", "preparing", "ready"].includes(o.status)
-    ).length,
-    pendingDelivery: orders.filter((o) => o.status === "for_delivery").length,
-    total: orders.length,
-    totalSpend,
-  };
-}
-
-/**
- * Fetch recent order counts for farmer dashboard.
- */
-export async function getFarmerOrderMetrics(farmerClerkId: string) {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("orders")
-    .select("status, total_amount")
-    .eq("farmer_clerk_id", farmerClerkId);
-
-  if (error) {
-    return {
-      pending: 0,
-      active: 0,
-      completed: 0,
-      cancelled: 0,
-      revenue: 0,
-      fulfillmentRate: 100,
-    };
-  }
-
-  const orders = data ?? [];
-  const completedOrders = orders.filter((o) => o.status === "completed");
-  const cancelledOrders = orders.filter((o) => o.status === "cancelled");
-  const revenue = completedOrders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
-  const resolvedCount = completedOrders.length + cancelledOrders.length;
-  const fulfillmentRate = resolvedCount > 0 ? Math.round((completedOrders.length / resolvedCount) * 100) : 100;
-
-  return {
-    pending: orders.filter((o) => o.status === "pending").length,
-    active: orders.filter((o) =>
-      ["accepted", "preparing", "ready", "for_delivery"].includes(o.status)
-    ).length,
-    completed: completedOrders.length,
-    cancelled: cancelledOrders.length,
-    revenue,
-    fulfillmentRate,
-  };
-}
-
-/**
  * Fetch pending orders count for a farmer (drives sidebar operational badge).
  */
 export async function getFarmerPendingOrderCount(farmerClerkId: string): Promise<number> {
@@ -755,24 +684,6 @@ export async function getBusinessOrderTabCounts(businessClerkId: string): Promis
 
   if (error) {
     console.error("[orders] getBusinessOrderTabCounts error:", error.message);
-    return computeTabCounts(null);
-  }
-  return computeTabCounts(data);
-}
-
-/**
- * Fetch lightweight status counts across all order tabs for a farmer.
- * Uses index scan on (farmer_clerk_id) with no joins or heavy payload.
- */
-export async function getFarmerOrderTabCounts(farmerClerkId: string): Promise<OrderTabCounts> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .select("status")
-    .eq("farmer_clerk_id", farmerClerkId);
-
-  if (error) {
-    console.error("[orders] getFarmerOrderTabCounts error:", error.message);
     return computeTabCounts(null);
   }
   return computeTabCounts(data);

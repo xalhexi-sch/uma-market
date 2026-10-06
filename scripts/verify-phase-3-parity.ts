@@ -59,23 +59,20 @@ async function runTests() {
   const categoryPillsPath = path.resolve(__dirname, "../src/components/products/category-pills.tsx");
   const paginationPath = path.resolve(__dirname, "../src/components/products/product-pagination.tsx");
   const publicProductsPath = path.resolve(__dirname, "../src/app/products/page.tsx");
-  const businessProductsPath = path.resolve(__dirname, "../src/app/(dashboard)/business/products/page.tsx");
-  const businessDetailPath = path.resolve(__dirname, "../src/app/(dashboard)/business/products/[id]/page.tsx");
+  const productDetailPath = path.resolve(__dirname, "../src/app/products/[id]/page.tsx");
   const liveGridPath = path.resolve(__dirname, "../src/components/products/live-product-grid.tsx");
   const searchContextPath = path.resolve(__dirname, "../src/components/products/product-search-context.tsx");
 
   const categoryPillsContent = fs.readFileSync(categoryPillsPath, "utf-8");
   const paginationContent = fs.readFileSync(paginationPath, "utf-8");
   const publicProductsContent = fs.readFileSync(publicProductsPath, "utf-8");
-  const businessProductsContent = fs.readFileSync(businessProductsPath, "utf-8");
-  const businessDetailContent = fs.readFileSync(businessDetailPath, "utf-8");
+  const productDetailContent = fs.readFileSync(productDetailPath, "utf-8");
   const liveGridContent = fs.readFileSync(liveGridPath, "utf-8");
   const searchContextContent = fs.readFileSync(searchContextPath, "utf-8");
 
-  // Test 1: Public/business category pill parity
-  console.log(`${YELLOW}1. Category Pill Surface Parity${RESET}`);
-  const hasCategoryPillsInPublic = publicProductsContent.includes("<CategoryPills");
-  const hasCategoryPillsInBusiness = businessProductsContent.includes("<CategoryPills");
+  // Test 1: The V4 marketplace has one category-filtered product surface.
+  console.log(`${YELLOW}1. Canonical Marketplace Category Pills${RESET}`);
+  const hasCategoryPillsInMarketplace = publicProductsContent.includes("<CategoryPills");
   const hasPillStyling =
     categoryPillsContent.includes("rounded-full") &&
     categoryPillsContent.includes("overflow-x-auto") &&
@@ -83,9 +80,9 @@ async function runTests() {
     categoryPillsContent.includes("whitespace-nowrap") &&
     categoryPillsContent.includes("shadow-2xs");
   assert(
-    hasCategoryPillsInPublic && hasCategoryPillsInBusiness && hasPillStyling,
-    "Shared CategoryPills component is used in both public and business pages with consistent visual tokens",
-    `public: ${hasCategoryPillsInPublic}, business: ${hasCategoryPillsInBusiness}, styling: ${hasPillStyling}`
+    hasCategoryPillsInMarketplace && hasPillStyling,
+    "Canonical marketplace page uses the shared CategoryPills component with consistent visual tokens",
+    `marketplace: ${hasCategoryPillsInMarketplace}, styling: ${hasPillStyling}`
   );
 
   // Test 2: Category change preserves q/sort/in_stock and resets page
@@ -100,51 +97,50 @@ async function runTests() {
     `preserves: q=${categoryPreservesQ}, sort=${categoryPreservesSort}, stock=${categoryPreservesStock}, resets page=${categoryDoesNotSetPage}`
   );
 
-  // Test 3: Business detail breadcrumbs
-  console.log(`${YELLOW}3. Business Detail Breadcrumbs${RESET}`);
-  const hasBreadcrumbImport = businessDetailContent.includes('from "@/components/ui/breadcrumb"');
-  const hasBreadcrumbList = businessDetailContent.includes("<BreadcrumbList");
-  const hasProductsBreadcrumbLink = businessDetailContent.includes('href="/business/products"');
+  // Test 3: Canonical product detail breadcrumbs
+  console.log(`${YELLOW}3. Product Detail Breadcrumbs${RESET}`);
+  const hasBreadcrumb = productDetailContent.includes('<nav aria-label="Breadcrumb"');
+  const hasProductsBreadcrumbLink = productDetailContent.includes('href="/products"');
   assert(
-    hasBreadcrumbImport && hasBreadcrumbList && hasProductsBreadcrumbLink,
-    "Business detail page includes structured shadcn Breadcrumb hierarchy linking to business products and category",
-    `import: ${hasBreadcrumbImport}, list: ${hasBreadcrumbList}, link: ${hasProductsBreadcrumbLink}`
+    hasBreadcrumb && hasProductsBreadcrumbLink,
+    "Canonical product detail page includes breadcrumb navigation back to /products",
+    `breadcrumb: ${hasBreadcrumb}, products link: ${hasProductsBreadcrumbLink}`
   );
 
-  // Test 4: Business detail category image badge
-  console.log(`${YELLOW}4. Business Detail Category Image Badge${RESET}`);
-  const passesCategoryNameToGallery = businessDetailContent.includes(
+  // Test 4: Product detail category image badge
+  console.log(`${YELLOW}4. Product Detail Category Image Badge${RESET}`);
+  const passesCategoryNameToGallery = productDetailContent.includes(
     "categoryName={product.category?.name}"
   );
   assert(
     passesCategoryNameToGallery,
-    "Business detail page passes categoryName to ProductGallery for image overlay badge",
+    "Canonical product detail page passes categoryName to ProductGallery for image overlay badge",
     `categoryName passed: ${passesCategoryNameToGallery}`
   );
 
-  // Test 5: Business provenance presentation
-  console.log(`${YELLOW}5. Business Producer Provenance Card${RESET}`);
-  const hasProvenanceHeader = businessDetailContent.includes("Producer Provenance");
+  // Test 5: Producer provenance presentation
+  console.log(`${YELLOW}5. Producer Provenance Card${RESET}`);
+  const hasProvenanceHeader = productDetailContent.includes("About the producer");
   const hasVerifiedBadgeTokens =
-    businessDetailContent.includes("✓ Verified Producer") &&
-    businessDetailContent.includes("dark:text-emerald-400");
-  const hasProvenanceStoreIcon = businessDetailContent.includes("<RiStore2Line");
-  const hasProvenanceCity = businessDetailContent.includes("product.farmer?.city");
+    productDetailContent.includes("Verified producer") &&
+    productDetailContent.includes("dark:text-emerald-400");
+  const hasProvenanceStoreIcon = productDetailContent.includes("<RiStore2Line");
+  const hasProvenanceCity = productDetailContent.includes("product.farmer?.city");
   assert(
     hasProvenanceHeader && hasVerifiedBadgeTokens && hasProvenanceStoreIcon && hasProvenanceCity,
-    "Business detail page contains structured Producer Provenance card with verified dark-mode tokens and city display",
+    "Canonical product detail page presents verified producer identity and location",
     `header: ${hasProvenanceHeader}, verified: ${hasVerifiedBadgeTokens}, storeIcon: ${hasProvenanceStoreIcon}, city: ${hasProvenanceCity}`
   );
 
-  // Test 6: Business fulfillment presentation
-  console.log(`${YELLOW}6. Business Wholesale Fulfillment Options${RESET}`);
-  const hasFulfillmentCard = businessDetailContent.includes("Wholesale Fulfillment Options");
-  const hasFarmPickup = businessDetailContent.includes("Farm Pickup");
-  const hasSellerDelivery = businessDetailContent.includes("Seller Delivery");
+  // Test 6: Canonical business order entry
+  console.log(`${YELLOW}6. Canonical Buyer Order Entry${RESET}`);
+  const hasBusinessOrderEntry = productDetailContent.includes('role === "business" && !isOwnListing');
+  const usesCanonicalCart = productDetailContent.includes("href={routes.cart}");
+  const usesAddToCartControls = productDetailContent.includes("<AddToCartControls product={product} />");
   assert(
-    hasFulfillmentCard && hasFarmPickup && hasSellerDelivery,
-    "Business detail page includes Wholesale Fulfillment Options explaining Farm Pickup and Seller Delivery",
-    `fulfillmentCard: ${hasFulfillmentCard}, pickup: ${hasFarmPickup}, delivery: ${hasSellerDelivery}`
+    hasBusinessOrderEntry && usesCanonicalCart && usesAddToCartControls,
+    "Canonical product detail page connects business buyers to the V4 cart",
+    `business entry: ${hasBusinessOrderEntry}, cart link: ${usesCanonicalCart}, add-to-cart: ${usesAddToCartControls}`
   );
 
   // Test 7: MOQ=1 renders correctly
@@ -154,7 +150,7 @@ async function runTests() {
     sampleProductMoq1.min_order_quantity != null && sampleProductMoq1.min_order_quantity > 0
       ? `${sampleProductMoq1.min_order_quantity} ${sampleProductMoq1.unit}`
       : "No minimum";
-  const noOldMoqHideBug = !businessDetailContent.includes("min_order_quantity > 1");
+  const noOldMoqHideBug = !productDetailContent.includes("min_order_quantity > 1");
   assert(
     moq1Formatted === "1 kg" && noOldMoqHideBug,
     "MOQ = 1 renders visibly as '1 kg' and old 'min_order_quantity > 1' hiding bug is removed",

@@ -361,9 +361,7 @@ function ProgressCompact({
  * Shared order-progress display driven by the canonical order-state flow
  * (`getOrderFlow`). Server-safe: no hooks, no client state.
  *
- * The live-updating sections (`BusinessOrderStatusSection`,
- * `FarmerOrderStatusSection`) re-render this on realtime status changes;
- * the page-top usage renders it server-side.
+ * Current order pages render this server-side from the canonical order state.
  */
 export function OrderProgress({
   variant,

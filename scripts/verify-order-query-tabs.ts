@@ -193,18 +193,19 @@ let getFarmerOrders: typeof import("../src/lib/supabase/queries/orders").getFarm
 let getBusinessOrderTabCounts: typeof import("../src/lib/supabase/queries/orders").getBusinessOrderTabCounts;
 
 /**
- * Both shipped order pages select the default view with
- * `VALID_VIEWS.find((key) => tabCounts[key] > 0) ?? "needs"`.
- *
- * TAB-5.3 asserts that exact expression is present in each page; the helper
- * below evaluates the SAME rule against counts produced by the real exported
- * `getBusinessOrderTabCounts()`. That pairing is what keeps TAB-5.4/TAB-5.5
- * honest: the data is real (a missing or mis-shaped fixture fails them) and the
- * rule cannot silently diverge from the application (TAB-5.3 fails).
+ * The V4 buyer order page chooses its first non-empty tab; the seller
+ * workspace defaults to the "needs" tab. Keep these source checks attached to
+ * the canonical routes after the legacy role pages are removed.
  */
 const ORDER_PAGE_SOURCES = [
-  "src/app/(dashboard)/business/orders/page.tsx",
-  "src/app/(dashboard)/farmer/orders/page.tsx",
+  {
+    relativePath: "src/app/orders/page.tsx",
+    expectedRule: 'VALID_VIEWS.find((key) => tabCounts[key] > 0) ?? "needs"',
+  },
+  {
+    relativePath: "src/app/dashboard/orders/page.tsx",
+    expectedRule: 'rawView && VALID_VIEWS.includes(rawView) ? rawView : "needs"',
+  },
 ] as const;
 
 function selectDefaultView(counts: OrderTabCounts): OrderViewTab {
@@ -501,18 +502,19 @@ async function run() {
         `counts: ${JSON.stringify(emptyCounts)}`
       );
 
-      // TAB-5.3 — the default-view rule must actually exist in the SHIPPED
-      // pages, otherwise the local evaluation below would drift from the app.
-      const DEFAULT_VIEW_RULE = "VALID_VIEWS.find((key) => tabCounts[key] > 0) ?? \"needs\"";
+      // TAB-5.3 — both canonical order pages must retain their declared
+      // defaults, otherwise the source-backed checks below could drift.
       const missingRule = ORDER_PAGE_SOURCES.filter((relative) => {
-        const source = readFileSync(path.join(process.cwd(), relative), "utf8");
-        return !source.includes(DEFAULT_VIEW_RULE);
+        const source = readFileSync(path.join(process.cwd(), relative.relativePath), "utf8");
+        return !source.includes(relative.expectedRule);
       });
       assert(
         "TAB-5.3",
-        "Both shipped order pages derive defaultView from tab counts with a 'needs' fallback",
+        "Canonical buyer and seller order pages retain their declared default views",
         missingRule.length === 0,
-        missingRule.length ? `rule not found in: ${missingRule.join(", ")}` : undefined
+        missingRule.length
+          ? `rule not found in: ${missingRule.map((entry) => entry.relativePath).join(", ")}`
+          : undefined
       );
 
       // TAB-5.4 — the real empty-state fallback.

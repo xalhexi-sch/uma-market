@@ -325,8 +325,7 @@ async function runQueryEfficiencyVerification() {
   const productsQueryCode = readFileSync(path.join(rootDir, "src/lib/supabase/queries/products.ts"), "utf8");
   const messagesQueryCode = readFileSync(path.join(rootDir, "src/lib/supabase/queries/messages.ts"), "utf8");
   const adminQueryCode = readFileSync(path.join(rootDir, "src/lib/supabase/queries/admin.ts"), "utf8");
-  const businessDashboardCode = readFileSync(path.join(rootDir, "src/app/(dashboard)/business/page.tsx"), "utf8");
-  const farmerDashboardCode = readFileSync(path.join(rootDir, "src/app/(dashboard)/farmer/page.tsx"), "utf8");
+  const dashboardCode = readFileSync(path.join(rootDir, "src/app/dashboard/page.tsx"), "utf8");
   const clientTsCode = readFileSync(path.join(rootDir, "src/lib/supabase/client.ts"), "utf8");
   const serverTsCode = readFileSync(path.join(rootDir, "src/lib/supabase/server.ts"), "utf8");
   const adminTsCode = readFileSync(path.join(rootDir, "src/lib/supabase/admin.ts"), "utf8");
@@ -583,22 +582,25 @@ async function runQueryEfficiencyVerification() {
     }
   }
 
-  // Check business dashboard page requests limit: 3
-  const businessDashboardUsesLimit3 = businessDashboardCode.includes("getBusinessOrders(userId, 3)");
+  // The unified V4 dashboard bounds buyer and seller order snapshots.
+  const buyerDashboardUsesLimit5 = dashboardCode.includes(
+    "getV4BuyerOrders(business.id, { limit: 5 }, business.legacy_clerk_id)",
+  );
   assert(
     "BOUND-03",
-    "Business dashboard home page requests only limit: 3",
-    businessDashboardUsesLimit3,
-    "Replaced unbounded fetch with getBusinessOrders(userId, 3)",
+    "V4 dashboard bounds the buyer order snapshot",
+    buyerDashboardUsesLimit5,
+    "Expected getV4BuyerOrders to request a five-order snapshot",
   );
 
-  // Check farmer dashboard page requests limit: 3
-  const farmerDashboardUsesLimit3 = farmerDashboardCode.includes("getFarmerOrders(userId, 3)");
+  const sellerDashboardUsesLimit5 = dashboardCode.includes(
+    "getFarmerOrders(sellerClerkId, { limit: 5 })",
+  );
   assert(
     "BOUND-04",
-    "Farmer dashboard home page requests only limit: 3",
-    farmerDashboardUsesLimit3,
-    "Replaced in-memory .slice(0, 3) with getFarmerOrders(userId, 3)",
+    "V4 dashboard bounds the seller order snapshot",
+    sellerDashboardUsesLimit5,
+    "Expected getFarmerOrders to request a five-order snapshot",
   );
 
   // -------------------------------------------------------------------------
@@ -616,13 +618,14 @@ async function runQueryEfficiencyVerification() {
     `getFarmerActiveProductCount source length: ${getActiveCountSrc.length}`,
   );
 
-  const farmerPageUsesCountFn = farmerDashboardCode.includes("getFarmerActiveProductCount(userId)");
-  const farmerPageNoLongerFetchesAllProducts = !farmerDashboardCode.includes("getFarmerProducts(userId)");
+  const dashboardLoadsSellerProducts = dashboardCode.includes(
+    "getFarmerProducts(sellerClerkId)",
+  );
   assert(
     "COUNT-02",
-    "Farmer dashboard uses getFarmerActiveProductCount instead of getFarmerProducts",
-    farmerPageUsesCountFn && farmerPageNoLongerFetchesAllProducts,
-    "Eliminated unnecessary product payload on farmer dashboard load",
+    "V4 dashboard loads seller listings for its listing and inventory snapshots",
+    dashboardLoadsSellerProducts,
+    "Expected the canonical dashboard to load seller products for its operational summaries",
   );
 
   // Functional test against DB for the exact head-count query
