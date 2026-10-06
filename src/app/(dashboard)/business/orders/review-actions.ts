@@ -33,11 +33,12 @@ export async function createSellerReview(input: unknown) {
   if (!rateResult.success) return { success: false, error: REVIEW_RATE_LIMIT_ERROR };
 
   const supabase = await createClient();
+  // Row scoping delegated to RLS (orders SELECT policy resolves legacy
+  // identity + business_members membership), so no caller-identity filter.
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select("id, farmer_clerk_id, status")
     .eq("id", parsed.data.orderId)
-    .eq("business_clerk_id", userId)
     .maybeSingle();
 
   if (orderError || !order || order.status !== "completed") {
@@ -76,11 +77,12 @@ export async function createProductReview(input: unknown) {
   if (!rateResult.success) return { success: false, error: REVIEW_RATE_LIMIT_ERROR };
 
   const supabase = await createClient();
+  // Row scoping delegated to RLS (orders SELECT policy resolves legacy
+  // identity + business_members membership), so no caller-identity filter.
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select("id, status")
     .eq("id", parsed.data.orderId)
-    .eq("business_clerk_id", userId)
     .maybeSingle();
 
   if (orderError || !order || order.status !== "completed") {

@@ -11,8 +11,12 @@ import { assertActiveProfile } from "@/lib/supabase/queries/profiles";
  * Protected by:
  * 1. Server-side Clerk auth + role check
  * 2. Supabase RLS policy "orders: business cancels pending"
- *    (USING: sub = business_clerk_id AND status = 'pending')
- *    (WITH CHECK: sub = business_clerk_id AND status = 'cancelled')
+ *    (USING: pending AND (legacy identity OR business_members membership))
+ *    (WITH CHECK: cancelled AND (legacy identity OR business_members membership))
+ *
+ * Row scoping is delegated to RLS (the declared authorization boundary):
+ * membership resolves both V4 rows (business_id) and legacy rows
+ * (business_clerk_id), so no caller-identity filter is applied here.
  */
 export async function cancelOrder(orderId: string) {
   const { userId, sessionClaims } = await auth();
@@ -36,7 +40,6 @@ export async function cancelOrder(orderId: string) {
       cancellation_reason: "Cancelled by buyer",
     })
     .eq("id", orderId)
-    .eq("business_clerk_id", userId)
     .eq("status", "pending") // Only pending orders can be cancelled
     .select("id");
 
