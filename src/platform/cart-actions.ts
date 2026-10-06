@@ -18,18 +18,36 @@ import {
   requireBusinessMembership,
   setActiveBusinessCookie,
 } from "@/platform/business-context";
+import { safeErrorMessage } from "@/platform/errors";
+
+const ADD_TO_CART_MAX_ATTEMPTS = 3;
+
+function roundQuantity(value: number): number {
+  return Math.round(value * 100) / 100;
+}
 
 /**
  * Add a product to the active business's cart.
+ *
+ * The business is resolved server-side (membership + active-business cookie);
+ * no business ID is accepted from the caller. Adding a product that is already
+ * in the business cart increments its quantity.
+ *
+ * cart_items uniqueness is enforced by PARTIAL unique indexes
+ * (idx_cart_items_business_product WHERE business_id IS NOT NULL), which
+ * PostgREST's upsert `onConflict` cannot target (PostgreSQL 42P10). The write is
+ * therefore an insert, or a compare-and-swap update of the existing row,
+ * retried when a concurrent add wins the race.
  */
-export async function addToBusinessCart(
-  productId: string,
-  quantity: number,
-  preferredBusinessId?: string | null
-) {
-  const context = await requireCanBuy(preferredBusinessId);
+export async function addToBusinessCart(productId: string, quantity: number) {
+  let context;
+  try {
+    context = await requireCanBuy();
+  } catch (error) {
+    return { success: false, error: safeErrorMessage(error) };
+  }
 
-  if (quantity <= 0) {
+  if (!Number.isFinite(quantity) || quantity <= 0) {
     return { success: false, error: "Quantity must be greater than zero." };
   }
 
@@ -59,24 +77,70 @@ export async function addToBusinessCart(
     };
   }
 
-  const { error } = await supabase.from("cart_items").upsert(
-    {
-      business_id: context.business.id,
+  const businessId = context.business.id;
+  let written = false;
+
+  for (let attempt = 0; attempt < ADD_TO_CART_MAX_ATTEMPTS && !written; attempt++) {
+    const { data: existing, error: existingError } = await supabase
+      .from("cart_items")
+      .select("id, quantity")
+      .eq("business_id", businessId)
+      .eq("product_id", productId)
+      .maybeSingle();
+
+    if (existingError) {
+      console.error("[cart-actions] addToBusinessCart read error:", existingError.message);
+      return { success: false, error: "Could not add to cart. Please try again." };
+    }
+
+    if (existing) {
+      const nextQuantity = roundQuantity(existing.quantity + quantity);
+      if (nextQuantity > product.quantity_available) {
+        return {
+          success: false,
+          error: `You already have ${existing.quantity} ${product.unit} in your cart. Only ${product.quantity_available} ${product.unit} available.`,
+        };
+      }
+
+      // Compare-and-swap: only applies if no concurrent write changed the row.
+      const { data: updated, error: updateError } = await supabase
+        .from("cart_items")
+        .update({ quantity: nextQuantity })
+        .eq("id", existing.id)
+        .eq("business_id", businessId)
+        .eq("quantity", existing.quantity)
+        .select("id");
+
+      if (updateError) {
+        console.error("[cart-actions] addToBusinessCart update error:", updateError.message);
+        return { success: false, error: "Could not add to cart. Please try again." };
+      }
+      written = (updated ?? []).length > 0;
+      continue;
+    }
+
+    const { error: insertError } = await supabase.from("cart_items").insert({
+      business_id: businessId,
       business_clerk_id: context.user.userId,
       product_id: productId,
       quantity,
-    },
-    { onConflict: "business_id,product_id" }
-  );
+    });
 
-  if (error) {
-    console.error("[cart-actions] addToBusinessCart error:", error.message);
+    // 23505: a concurrent add created the row first — retry as an increment.
+    if (insertError && insertError.code !== "23505") {
+      console.error("[cart-actions] addToBusinessCart insert error:", insertError.message);
+      return { success: false, error: "Could not add to cart. Please try again." };
+    }
+    written = !insertError;
+  }
+
+  if (!written) {
     return { success: false, error: "Could not add to cart. Please try again." };
   }
 
   revalidatePath("/cart");
   revalidatePath("/products");
-  return { success: true, productName: product.name, businessId: context.business.id };
+  return { success: true, productName: product.name, businessId };
 }
 
 /**

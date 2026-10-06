@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { RiShoppingCart2Line, RiSubtractLine, RiAddLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { addToCart } from "@/app/(dashboard)/business/cart/actions";
+import { addToBusinessCart } from "@/platform/cart-actions";
 import type { Product } from "@/lib/types";
 import { CURRENCY } from "@/lib/constants";
 import { routes } from "@/platform/routes";
@@ -34,7 +34,7 @@ export function AddToCartControls({ product }: AddToCartControlsProps) {
   function handleAddToCart() {
     setMessage(null);
     startTransition(async () => {
-      const result = await addToCart(product.id, quantity);
+      const result = await addToBusinessCart(product.id, quantity);
       if (result.success) {
         toast.success(`"${result.productName}" added to cart.`);
         setMessage({ type: "success", text: `"${result.productName}" added to cart.` });
