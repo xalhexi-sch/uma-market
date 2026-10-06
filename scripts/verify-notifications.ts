@@ -428,6 +428,15 @@ async function run() {
   const farmerA = await sessionFor(FARMER_A);
 
   try {
+    // V4 checkout: the buyer's cart and order belong to their business.
+    // provision_owner_business is idempotent across runs.
+    const { data: buyerBusinessId, error: provisionErr } = await admin.rpc("provision_owner_business", {
+      p_clerk_id: BUYER_A,
+    });
+    if (provisionErr || !buyerBusinessId) {
+      throw new Error(`provision ${BUYER_A} business failed: ${provisionErr?.message ?? "no business id"}`);
+    }
+
     // -----------------------------------------------------------------------
     // Schema / static migration assertions
     // -----------------------------------------------------------------------
@@ -465,7 +474,7 @@ async function run() {
     );
 
     // -----------------------------------------------------------------------
-    // REAL checkout through place_checkout_orders() as authenticated BUYER_A
+    // REAL checkout through place_v4_checkout_orders() as authenticated BUYER_A
     // -----------------------------------------------------------------------
     const checkoutProduct = await admin.from("products").insert({
       id: IDS.checkoutProduct,
@@ -481,10 +490,11 @@ async function run() {
 
     const cartInsert = await buyerA.client
       .from("cart_items")
-      .insert({ business_clerk_id: BUYER_A, product_id: IDS.checkoutProduct, quantity: CHECKOUT_PRICES.quantity });
+      .insert({ business_clerk_id: BUYER_A, business_id: buyerBusinessId, product_id: IDS.checkoutProduct, quantity: CHECKOUT_PRICES.quantity });
     if (cartInsert.error) throw new Error(`checkout cart fixture failed: ${cartInsert.error.message}`);
 
-    const checkout = await buyerA.client.rpc("place_checkout_orders", {
+    const checkout = await buyerA.client.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerBusinessId,
       p_orders: [
         {
           farmer_clerk_id: FARMER_A,
@@ -505,7 +515,7 @@ async function run() {
       for (const type of ORDER_STATUS_TYPES) FIXTURE_DEDUPE_KEYS.add(`order:${checkoutOrderId}:${type}`);
     }
     assert(
-      "successful checkout via place_checkout_orders returns an order id",
+      "successful checkout via place_v4_checkout_orders returns an order id",
       !checkout.error && orderIds.length === 1 && Boolean(checkoutOrderId),
       checkout.error?.message ?? `order_ids=${orderIds.length}`,
     );
@@ -573,7 +583,7 @@ async function run() {
     if (lowStockProduct.error) throw new Error(`low stock product fixture failed: ${lowStockProduct.error.message}`);
     const lowStockCart = await buyerA.client
       .from("cart_items")
-      .insert({ business_clerk_id: BUYER_A, product_id: IDS.lowStockProduct, quantity: 3 });
+      .insert({ business_clerk_id: BUYER_A, business_id: buyerBusinessId, product_id: IDS.lowStockProduct, quantity: 3 });
     if (lowStockCart.error) throw new Error(`low stock cart fixture failed: ${lowStockCart.error.message}`);
 
     const ordersBefore = await admin
@@ -582,7 +592,8 @@ async function run() {
       .eq("business_clerk_id", BUYER_A)
       .eq("farmer_clerk_id", FARMER_A);
     const notificationsBefore = await countByType("new_order", FARMER_A);
-    const failedCheckout = await buyerA.client.rpc("place_checkout_orders", {
+    const failedCheckout = await buyerA.client.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerBusinessId,
       p_orders: [
         {
           farmer_clerk_id: FARMER_A,
@@ -606,7 +617,7 @@ async function run() {
       .select("id, quantity")
       .eq("business_clerk_id", BUYER_A)
       .eq("product_id", IDS.lowStockProduct);
-    assert("failed checkout is rejected by place_checkout_orders", Boolean(failedCheckout.error), failedCheckout.error?.message ?? "");
+    assert("failed checkout is rejected by place_v4_checkout_orders", Boolean(failedCheckout.error), failedCheckout.error?.message ?? "");
     assert(
       "failed checkout creates no order",
       (ordersAfter.count ?? 0) === (ordersBefore.count ?? 0),

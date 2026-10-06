@@ -8,7 +8,7 @@
 // The suite reproduces the three documented regression targets:
 //   REG-E2E-005a  Two simultaneous same-account checkout tabs commit exactly ONE
 //                 order and deduct inventory exactly once.
-//   REG-E2E-005b  A direct place_checkout_orders replay for an item that is NOT
+//   REG-E2E-005b  A direct place_v4_checkout_orders replay for an item that is NOT
 //                 in the caller's cart is rejected by PostgreSQL.
 //   REG-E2E-005c  A multi-farmer checkout stays atomic when one cart component
 //                 disappears during contention: zero orders, stock untouched.
@@ -286,15 +286,22 @@ test("REG-E2E-005a: two simultaneous same-account checkout tabs commit exactly o
   await contextB.close();
 });
 
-test("REG-E2E-005b: a direct place_checkout_orders replay for an item absent from the caller's cart is rejected", async () => {
+test("REG-E2E-005b: a direct place_v4_checkout_orders replay for an item absent from the caller's cart is rejected", async () => {
   // The cart is empty after REG-E2E-005a consumed it, so this is exactly the
   // stale-tab replay the RPC must refuse.
   expect(await countCartItems(admin, buyer.clerkUserId), "pre-condition: cart is empty").toBe(0);
   const ordersBefore = await countBuyerOrders(admin, buyer.clerkUserId);
   const stockBefore = await readStock(admin, CHECKOUT_PRODUCTS.a);
 
+  // The V4 RPC requires the caller's business (idempotent provisioning).
+  const { data: businessId, error: provisionError } = await admin.rpc("provision_owner_business", {
+    p_clerk_id: buyer.clerkUserId,
+  });
+  expect(provisionError ?? null, "buyer business must be provisionable").toBeNull();
+  expect(businessId, "buyer business id must exist").toBeTruthy();
+
   const { jwt } = await createSessionToken(buyer.clerkUserId);
-  const rpcUrl = `${TEST_SUPABASE_URL}/rest/v1/rpc/place_checkout_orders`;
+  const rpcUrl = `${TEST_SUPABASE_URL}/rest/v1/rpc/place_v4_checkout_orders`;
   const response = await fetch(rpcUrl, {
     method: "POST",
     headers: {
@@ -303,6 +310,7 @@ test("REG-E2E-005b: a direct place_checkout_orders replay for an item absent fro
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
+      p_business_id: businessId,
       p_orders: [
         {
           farmer_clerk_id: farmerA.clerkUserId,

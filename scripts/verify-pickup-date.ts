@@ -297,6 +297,15 @@ async function runTests(): Promise<void> {
   const buyerAClient = await getAuthenticatedClient(PERSONAS.buyerA.clerkId);
   console.log("  Authenticated Buyer A client ready");
 
+  // V4 checkout: carts and orders belong to a business. provision_owner_business
+  // is idempotent and returns the persona's existing business on re-runs.
+  const { data: buyerBusinessId, error: provisionErr } = await adminClient.rpc("provision_owner_business", {
+    p_clerk_id: PERSONAS.buyerA.clerkId,
+  });
+  if (provisionErr || !buyerBusinessId) {
+    throw new Error(`provision buyer A business failed: ${provisionErr?.message ?? "no business id"}`);
+  }
+
   // Future date (tomorrow)
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -318,11 +327,13 @@ async function runTests(): Promise<void> {
     await adminClient.from("cart_items").delete().eq("business_clerk_id", PERSONAS.buyerA.clerkId);
     await adminClient.from("cart_items").insert({
       business_clerk_id: PERSONAS.buyerA.clerkId,
+      business_id: buyerBusinessId,
       product_id: FIXTURES.productA,
       quantity: 5,
     });
 
-    const { data, error } = await buyerAClient.rpc("place_checkout_orders", {
+    const { data, error } = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerBusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
@@ -367,13 +378,15 @@ async function runTests(): Promise<void> {
     await adminClient.from("cart_items").delete().eq("business_clerk_id", PERSONAS.buyerA.clerkId);
     await adminClient.from("cart_items").insert({
       business_clerk_id: PERSONAS.buyerA.clerkId,
+      business_id: buyerBusinessId,
       product_id: FIXTURES.productA,
       quantity: 2,
     });
 
     const ordersBefore = await countBuyerOrders();
 
-    const result = await buyerAClient.rpc("place_checkout_orders", {
+    const result = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerBusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
@@ -386,7 +399,7 @@ async function runTests(): Promise<void> {
 
     assert(
       "TEST-B",
-      "place_checkout_orders rejects a pickup order with no pickup_date",
+      "place_v4_checkout_orders rejects a pickup order with no pickup_date",
       result.error !== null && /pickup date is required/i.test(result.error.message),
       result.error
         ? `RPC rejected as expected: "${result.error.message.slice(0, 160)}"`
@@ -410,13 +423,15 @@ async function runTests(): Promise<void> {
     await adminClient.from("cart_items").delete().eq("business_clerk_id", PERSONAS.buyerA.clerkId);
     await adminClient.from("cart_items").insert({
       business_clerk_id: PERSONAS.buyerA.clerkId,
+      business_id: buyerBusinessId,
       product_id: FIXTURES.productA,
       quantity: 2,
     });
 
     const ordersBefore = await countBuyerOrders();
 
-    const result = await buyerAClient.rpc("place_checkout_orders", {
+    const result = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerBusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
@@ -429,7 +444,7 @@ async function runTests(): Promise<void> {
 
     assert(
       "TEST-C",
-      "place_checkout_orders rejects a pickup order dated in the past",
+      "place_v4_checkout_orders rejects a pickup order dated in the past",
       result.error !== null && /pickup date cannot be in the past/i.test(result.error.message),
       result.error
         ? `RPC rejected as expected: "${result.error.message.slice(0, 160)}"`
@@ -467,11 +482,13 @@ async function runTests(): Promise<void> {
     await adminClient.from("cart_items").delete().eq("business_clerk_id", PERSONAS.buyerA.clerkId);
     await adminClient.from("cart_items").insert({
       business_clerk_id: PERSONAS.buyerA.clerkId,
+      business_id: buyerBusinessId,
       product_id: FIXTURES.productA,
       quantity: 3,
     });
 
-    const { data: delData, error: delErr } = await buyerAClient.rpc("place_checkout_orders", {
+    const { data: delData, error: delErr } = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerBusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
@@ -515,12 +532,14 @@ async function runTests(): Promise<void> {
     await adminClient.from("cart_items").delete().eq("business_clerk_id", PERSONAS.buyerA.clerkId);
     await adminClient.from("cart_items").insert({
       business_clerk_id: PERSONAS.buyerA.clerkId,
+      business_id: buyerBusinessId,
       product_id: FIXTURES.productA,
       quantity: 2,
     });
 
     const maliciousPickupDate = "2030-01-01";
-    const { data: maliciousData, error: maliciousErr } = await buyerAClient.rpc("place_checkout_orders", {
+    const { data: maliciousData, error: maliciousErr } = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerBusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
@@ -564,12 +583,14 @@ async function runTests(): Promise<void> {
     await adminClient.from("cart_items").delete().eq("business_clerk_id", PERSONAS.buyerA.clerkId);
     await adminClient.from("cart_items").insert({
       business_clerk_id: PERSONAS.buyerA.clerkId,
+      business_id: buyerBusinessId,
       product_id: FIXTURES.productA,
       quantity: 4,
     });
 
     const targetDate = "2026-11-20";
-    const { data: exactData, error: exactErr } = await buyerAClient.rpc("place_checkout_orders", {
+    const { data: exactData, error: exactErr } = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerBusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
@@ -751,18 +772,21 @@ async function runTests(): Promise<void> {
     await adminClient.from("cart_items").insert([
       {
         business_clerk_id: PERSONAS.buyerA.clerkId,
+        business_id: buyerBusinessId,
         product_id: FIXTURES.productA,
         quantity: 2,
       },
       {
         business_clerk_id: PERSONAS.buyerA.clerkId,
+        business_id: buyerBusinessId,
         product_id: FIXTURES.productB,
         quantity: 2,
       },
     ]);
 
     // Place multi-farmer order with pickup date for Farmer A and delivery for Farmer B
-    const { data: multiData, error: multiErr } = await buyerAClient.rpc("place_checkout_orders", {
+    const { data: multiData, error: multiErr } = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerBusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,

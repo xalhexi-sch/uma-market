@@ -33,13 +33,15 @@
 // WHY SERVICE_ROLE CANNOT EXERCISE AUTHENTICATED RPC PATHS
 // ============================================================================
 //
-// SECURITY DEFINER RPCs (place_checkout_orders, update_order_status) call
+// SECURITY DEFINER RPCs (place_v4_checkout_orders, update_order_status) call
 // auth.jwt()->>'sub' as their very first statement. When called via the
 // service_role key, auth.jwt() returns NULL → the RPC raises "Not authenticated"
 // before reaching any business logic (stock checks, MOQ, state transitions).
+// (The retired place_checkout_orders / place_order RPCs are additionally
+//  revoked from every client role — see 20261011000000_v4_retire_legacy_checkout_rpc.)
 //
 // These behaviours are therefore NOT asserted by this script:
-//   Multi-farmer checkout atomicity (place_checkout_orders)
+//   Multi-farmer checkout atomicity (place_v4_checkout_orders)
 //   Insufficient stock rejection + full rollback
 //   MOQ rejection through authenticated checkout
 //   Farmer update_order_status: valid + invalid paths
@@ -258,7 +260,8 @@ async function runStaticChecks(): Promise<void> {
 // SECTION 2 — DATABASE: RPC AUTH GATE VERIFICATION
 //
 // Confirms that SECURITY DEFINER RPCs reject service_role callers at the
-// auth.jwt()->>'sub' IS NULL guard — the first statement in each RPC.
+// identity gate — auth.jwt()->>'sub' IS NULL for the service key, and a
+// service key is never a business member — before any business logic runs.
 //
 // What this does NOT verify:
 //   - The actual checkout flow (stock decrement, cart clearing, atomicity)
@@ -273,14 +276,15 @@ async function runRPCAuthGateChecks(): Promise<void> {
     "Auth gate fires at auth.jwt()->>'sub' IS NULL — business logic not reached."
   );
   {
-    const { error } = await adminClient.rpc("place_checkout_orders", {
+    const { error } = await adminClient.rpc("place_v4_checkout_orders", {
+      p_business_id: "00000000-0000-0000-0000-000000000000",
       p_orders: [{ farmer_clerk_id: T.farmerA_id, fulfillment_type: "pickup",
         items: [{ product_id: T.productA1, quantity: 5 }] }],
     });
     assert("D-01", "DATABASE",
-      "place_checkout_orders: rejects unauthenticated caller (auth gate present)",
+      "place_v4_checkout_orders: rejects service_role caller (auth/membership gate present)",
       error !== null,
-      error ? `Auth gate: "${error.message?.slice(0, 100)}"` : "UNEXPECTED: RPC accepted unauthenticated call");
+      error ? `Gate: "${error.message?.slice(0, 100)}"` : "UNEXPECTED: RPC accepted service_role call");
   }
   {
     const { error } = await adminClient.rpc("update_order_status", {
@@ -555,7 +559,7 @@ function runCoverageGapReport(): void {
     "Zero assertions recorded. These are never counted as passes.",
   );
   coverageGap("GAP-01",
-    "Multi-farmer checkout atomicity via place_checkout_orders",
+    "Multi-farmer checkout atomicity via place_v4_checkout_orders",
     "Real buyer JWT + 2 farmer groups; covered by tests/browser/e2e-005-checkout-race.spec.ts");
   coverageGap("GAP-02",
     "Insufficient stock: RPC rejects and rolls back completely",

@@ -11,7 +11,7 @@
 //      Cleaned up in finally{} after every run, even on failure.
 //
 // TEST SUITE: AUTH-E2E-01 through AUTH-E2E-08
-//   AUTH-E2E-01  Multi-farmer checkout atomicity via place_checkout_orders
+//   AUTH-E2E-01  Multi-farmer checkout atomicity via place_v4_checkout_orders
 //   AUTH-E2E-02  Insufficient stock rejection + full rollback
 //   AUTH-E2E-03  MOQ rejection through authenticated checkout
 //   AUTH-E2E-04  Farmer update_order_status: valid + invalid transition paths
@@ -143,8 +143,9 @@ const ALL_PERSONAS = [
 // =============================================================================
 // DETERMINISTIC PICKUP DATE
 //
-// CURRENT CONTRACT enforced by public.place_checkout_orders
-// (supabase/migrations/20260928000001_pickup_date_validation.sql):
+// CURRENT CONTRACT enforced by public.place_v4_checkout_orders
+// (rules from supabase/migrations/20260928000001_pickup_date_validation.sql,
+//  re-asserted inside 20261006000001_v4_checkout_business_orders.sql):
 //   1. fulfillment_type = 'pickup' REQUIRES a non-null pickup_date
 //      -> otherwise: "Pickup date is required for pickup orders"
 //   2. pickup_date must not be earlier than
@@ -456,21 +457,32 @@ async function runAuthE2ETests(): Promise<void> {
   const adminJwtClient = await getAuthenticatedClient(PERSONAS.admin.clerkId);
   console.log("  Authenticated clients ready (Buyer A, Buyer B, Farmer A, Farmer B, Admin)");
 
+  // V4 checkout: every buyer cart/order belongs to a business now.
+  // provision_owner_business is idempotent — it returns the persona's existing
+  // business on re-runs (legacy_clerk_id = the buyer's clerk id).
+  const { data: buyerABusinessId, error: provisionErr } = await adminClient.rpc("provision_owner_business", {
+    p_clerk_id: PERSONAS.buyerA.clerkId,
+  });
+  if (provisionErr || !buyerABusinessId) {
+    throw new Error(`provision buyer A business failed: ${provisionErr?.message ?? "no business id"}`);
+  }
+
   // ---------------------------------------------------------------------------
-  // AUTH-E2E-01: Multi-farmer checkout atomicity via place_checkout_orders
+  // AUTH-E2E-01: Multi-farmer checkout atomicity via place_v4_checkout_orders
   // ---------------------------------------------------------------------------
   section("AUTH-E2E-01 — Multi-Farmer Checkout Atomicity");
   {
-    // Pre-populate cart items for Buyer A
+    // Pre-populate cart items for Buyer A (V4: cart rows carry business_id)
     await buyerAClient.from("cart_items").upsert([
-      { business_clerk_id: PERSONAS.buyerA.clerkId, product_id: FIXTURES.productA1, quantity: 5 },
-      { business_clerk_id: PERSONAS.buyerA.clerkId, product_id: FIXTURES.productB1, quantity: 5 },
+      { business_clerk_id: PERSONAS.buyerA.clerkId, business_id: buyerABusinessId, product_id: FIXTURES.productA1, quantity: 5 },
+      { business_clerk_id: PERSONAS.buyerA.clerkId, business_id: buyerABusinessId, product_id: FIXTURES.productB1, quantity: 5 },
     ]);
 
     const initialStockA = await getStock(FIXTURES.productA1);
     const initialStockB = await getStock(FIXTURES.productB1);
 
-    const { data, error } = await buyerAClient.rpc("place_checkout_orders", {
+    const { data, error } = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerABusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
@@ -498,7 +510,7 @@ async function runAuthE2ETests(): Promise<void> {
 
     assert(
       "AUTH-E2E-01",
-      "Multi-farmer checkout atomicity via place_checkout_orders",
+      "Multi-farmer checkout atomicity via place_v4_checkout_orders",
       !error && orderIds.length === 2 &&
       stockAfterA === (initialStockA ?? 0) - 5 &&
       stockAfterB === (initialStockB ?? 0) - 5 &&
@@ -514,15 +526,16 @@ async function runAuthE2ETests(): Promise<void> {
   {
     // Satisfy E2E-005 cart pre-validation gate
     await buyerAClient.from("cart_items").upsert([
-      { business_clerk_id: PERSONAS.buyerA.clerkId, product_id: FIXTURES.productA1, quantity: 5 },
-      { business_clerk_id: PERSONAS.buyerA.clerkId, product_id: FIXTURES.productB1, quantity: 9999 },
+      { business_clerk_id: PERSONAS.buyerA.clerkId, business_id: buyerABusinessId, product_id: FIXTURES.productA1, quantity: 5 },
+      { business_clerk_id: PERSONAS.buyerA.clerkId, business_id: buyerABusinessId, product_id: FIXTURES.productB1, quantity: 9999 },
     ]);
 
     const initialStockA = await getStock(FIXTURES.productA1);
     const initialStockB = await getStock(FIXTURES.productB1);
 
     // Order group 1 is valid (5 units of A1), Order group 2 requests 9999 units of B1 (exceeds 95 available)
-    const { error } = await buyerAClient.rpc("place_checkout_orders", {
+    const { error } = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerABusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
@@ -560,13 +573,14 @@ async function runAuthE2ETests(): Promise<void> {
   {
     // Satisfy E2E-005 cart pre-validation gate
     await buyerAClient.from("cart_items").upsert([
-      { business_clerk_id: PERSONAS.buyerA.clerkId, product_id: FIXTURES.productMOQ, quantity: 2 },
+      { business_clerk_id: PERSONAS.buyerA.clerkId, business_id: buyerABusinessId, product_id: FIXTURES.productMOQ, quantity: 2 },
     ]);
 
     const initialStock = await getStock(FIXTURES.productMOQ);
 
     // productMOQ has min_order_quantity = 10; Buyer requests 2
-    const { error } = await buyerAClient.rpc("place_checkout_orders", {
+    const { error } = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerABusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,
@@ -783,8 +797,9 @@ async function runAuthE2ETests(): Promise<void> {
       .update({ status: "revoked" })
       .eq("clerk_id", PERSONAS.buyerA.clerkId);
 
-    // Attempt checkout while revoked
-    const { error: checkoutErr } = await buyerAClient.rpc("place_checkout_orders", {
+    // Attempt checkout while revoked (V4 checks caller status before cart)
+    const { error: checkoutErr } = await buyerAClient.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerABusinessId,
       p_orders: [
         {
           farmer_clerk_id: PERSONAS.farmerA.clerkId,

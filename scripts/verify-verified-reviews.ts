@@ -377,12 +377,21 @@ async function run() {
       throw new Error("Checkout fixture profiles are not active business/farmer accounts.");
     }
 
+    // V4 checkout: the buyer's business owns the cart and the order.
+    const { data: buyerBusinessId, error: provisionErr } = await admin.rpc("provision_owner_business", {
+      p_clerk_id: BUYER_A,
+    });
+    if (provisionErr || !buyerBusinessId) {
+      throw new Error(`Checkout business provisioning failed: ${provisionErr?.message ?? "no business id"}`);
+    }
+
     const cartInsert = await buyerA.from("cart_items").insert({
-      business_clerk_id: BUYER_A, product_id: IDS.checkoutProduct, quantity: 2,
+      business_clerk_id: BUYER_A, business_id: buyerBusinessId, product_id: IDS.checkoutProduct, quantity: 2,
     });
     if (cartInsert.error) throw new Error(`Checkout cart fixture setup failed: ${cartInsert.error.message}`);
 
-    const checkout = await buyerA.rpc("place_checkout_orders", {
+    const checkout = await buyerA.rpc("place_v4_checkout_orders", {
+      p_business_id: buyerBusinessId,
       p_orders: [{
         farmer_clerk_id: FARMER_A,
         fulfillment_type: "seller_delivery",

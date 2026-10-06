@@ -545,11 +545,11 @@ async function setSellerStatus(status: string): Promise<void> {
   if (error) throw new Error(`seed: set seller status failed: ${error.message}`);
 }
 
-async function seedCart(quantity: number): Promise<void> {
+async function seedCart(quantity: number, businessId: string): Promise<void> {
   await adminClient.from("cart_items").delete()
     .eq("business_clerk_id", LIVE_BUYER_CLERK_ID).eq("product_id", LIVE_PRODUCT_ID);
   const { error } = await adminClient.from("cart_items").insert({
-    business_clerk_id: LIVE_BUYER_CLERK_ID, product_id: LIVE_PRODUCT_ID, quantity,
+    business_clerk_id: LIVE_BUYER_CLERK_ID, business_id: businessId, product_id: LIVE_PRODUCT_ID, quantity,
   });
   if (error) throw new Error(`seed: cart insert failed: ${error.message}`);
 }
@@ -577,6 +577,14 @@ async function runLiveTests(): Promise<void> {
   }
   await adminClient.from("profiles").update({ status: "active", is_verified: true })
     .in("clerk_id", [LIVE_BUYER_CLERK_ID, LIVE_FARMER_CLERK_ID]);
+
+  // V4 checkout: carts and orders belong to a business (idempotent provisioning).
+  const { data: buyerBusinessId, error: provisionErr } = await adminClient.rpc("provision_owner_business", {
+    p_clerk_id: LIVE_BUYER_CLERK_ID,
+  });
+  if (provisionErr || !buyerBusinessId) {
+    throw new Error(`LIVE seed: provision buyer business failed: ${provisionErr?.message ?? "no business id"}`);
+  }
 
   const base = {
     farmer_clerk_id: LIVE_FARMER_CLERK_ID, category_id: TEST_CATEGORY_ID,
@@ -620,40 +628,34 @@ async function runLiveTests(): Promise<void> {
 
   // ── LIVE-SELL: checkout from suspended / revoked seller ────────────────
   const checkoutPayload = {
+    p_business_id: buyerBusinessId,
     p_orders: [{
       farmer_clerk_id: LIVE_FARMER_CLERK_ID, fulfillment_type: "pickup", pickup_date: PICKUP_DATE,
       items: [{ product_id: LIVE_PRODUCT_ID, quantity: 2 }],
     }],
   };
-  const placeOrderPayload = {
-    p_farmer_clerk_id: LIVE_FARMER_CLERK_ID, p_fulfillment_type: "pickup", p_pickup_date: PICKUP_DATE,
-    p_items: [{ product_id: LIVE_PRODUCT_ID, quantity: 2 }],
-  };
+  // place_order is retired by 20261011000000_v4_retire_legacy_checkout_rpc:
+  // no client role can execute it. Its seller-status validation remains
+  // covered by the static prosrc check above (the function is revoked, not dropped).
 
   for (const sellerStatus of ["suspended", "revoked"]) {
     await setSellerStatus(sellerStatus);
-    await seedCart(2);
+    await seedCart(2, buyerBusinessId);
     const before = await liveOrderCount();
 
-    const { error: e1 } = await buyer.rpc("place_checkout_orders", checkoutPayload);
+    const { error: e1 } = await buyer.rpc("place_v4_checkout_orders", checkoutPayload);
     assert(`LIVE-SELL-${sellerStatus}-a`, "LIVE",
-      `place_checkout_orders rejects ${sellerStatus} seller`,
+      `place_v4_checkout_orders rejects ${sellerStatus} seller`,
       e1 !== null && e1.message.includes(`Seller account is ${sellerStatus}`) && (await liveOrderCount()) === before,
       e1 ? `rejected: ${e1.message}` : "DANGER: checkout accepted");
-
-    const { error: e2 } = await buyer.rpc("place_order", placeOrderPayload);
-    assert(`LIVE-SELL-${sellerStatus}-b`, "LIVE",
-      `place_order rejects ${sellerStatus} seller`,
-      e2 !== null && e2.message.includes(`Seller account is ${sellerStatus}`) && (await liveOrderCount()) === before,
-      e2 ? `rejected: ${e2.message}` : "DANGER: place_order accepted");
   }
 
   // Positive control: same buyer/product/payload succeeds once the seller is active.
   {
     await setSellerStatus("active");
-    await seedCart(2);
+    await seedCart(2, buyerBusinessId);
     const before = await liveOrderCount();
-    const { data, error } = await buyer.rpc("place_checkout_orders", checkoutPayload);
+    const { data, error } = await buyer.rpc("place_v4_checkout_orders", checkoutPayload);
     const orderIds = (data as { order_ids?: string[] } | null)?.order_ids ?? [];
     assert("LIVE-SELL-active", "LIVE", "Control: checkout from an active seller succeeds",
       error === null && orderIds.length === 1 && (await liveOrderCount()) === before + 1,

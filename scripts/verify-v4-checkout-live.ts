@@ -32,6 +32,9 @@
  *      - no double stock decrement
  *      - no partial cart consumption
  *  18. RLS order read isolation: business members can read, non-members cannot
+ *  19. Legacy checkout RPC retirement: place_checkout_orders / place_order are
+ *      revoked from every client role (20261011000000) — authenticated and
+ *      anonymous clients cannot execute them (RED before the revoke, GREEN after)
  *
  * HOW TO RUN:
  *   npx tsx scripts/verify-v4-checkout-live.ts
@@ -831,6 +834,62 @@ async function run(): Promise<void> {
       "Anonymous client cannot read Business A's orders (RLS enforced)",
       !anonOrders || anonOrders.length === 0,
       `Rows: ${anonOrders?.length ?? 0}`
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 6. Legacy checkout RPC retirement — denial proof
+  //    RED before migration 20261011000000 (revocation) is applied,
+  //    GREEN after: no client role may execute the legacy checkout functions.
+  // ══════════════════════════════════════════════════════════════════════════
+  section("6. Legacy Checkout RPC Retirement (denial proof)");
+
+  {
+    // Empty any legacy-keyed cart rows so a pre-revoke run can only fail at a
+    // gate, never commit a stray order as a side effect of the probe.
+    await adminClient.from("cart_items").delete().eq("business_clerk_id", PERSONAS.buyerA.clerkId);
+
+    const legacyCheckoutPayload = {
+      p_orders: [{
+        farmer_clerk_id: PERSONAS.farmerA.clerkId,
+        fulfillment_type: "pickup",
+        pickup_date: tomorrow,
+        items: [{ product_id: FIXTURES.prodA1, quantity: 2 }],
+      }],
+    };
+    const legacyOrderPayload = {
+      p_farmer_clerk_id: PERSONAS.farmerA.clerkId,
+      p_fulfillment_type: "pickup",
+      p_delivery_address: null,
+      p_notes: null,
+      p_pickup_date: tomorrow,
+      p_items: [{ product_id: FIXTURES.prodA1, quantity: 2 }],
+    };
+    const DENIED = /permission denied for function|could not find the function/i;
+
+    const r1 = await ownerAClient.rpc("place_checkout_orders", legacyCheckoutPayload);
+    assert(
+      "LEG-01",
+      "Authenticated client cannot execute place_checkout_orders (revoked)",
+      r1.error !== null && DENIED.test(r1.error.message),
+      r1.error?.message ?? "DANGER: legacy checkout executed"
+    );
+
+    const r2 = await ownerAClient.rpc("place_order", legacyOrderPayload);
+    assert(
+      "LEG-02",
+      "Authenticated client cannot execute place_order (revoked)",
+      r2.error !== null && DENIED.test(r2.error.message),
+      r2.error?.message ?? "DANGER: legacy place_order executed"
+    );
+
+    const anonClient = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const r3 = await anonClient.rpc("place_checkout_orders", legacyCheckoutPayload);
+    assert(
+      "LEG-03",
+      "Anonymous client cannot execute place_checkout_orders (revoked)",
+      r3.error !== null && DENIED.test(r3.error.message),
+      r3.error?.message ?? "DANGER: legacy checkout executed by anon"
     );
   }
 
