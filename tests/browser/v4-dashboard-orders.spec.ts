@@ -20,6 +20,7 @@ import { expect, test, type Page } from "@playwright/test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   authenticatedContext,
+  E2E_BASE_URL,
   PROD_APP_HOST,
   PROD_SUPABASE_HOST,
   provisionProduct,
@@ -28,6 +29,7 @@ import {
   upsertTestProfile,
   type Persona,
 } from "./harness";
+import { ACTIVE_BUSINESS_COOKIE } from "@/platform";
 
 const FIXTURES = {
   farmerBusinessId:    "d6000001-0000-4000-8000-000000000010",
@@ -388,6 +390,7 @@ test("STAFF member can access /dashboard/orders with operational permissions", a
     .eq("id", farmerMemberId);
 
   const { context } = await authenticatedContext(browser, farmer);
+  await context.addCookies([{ name: ACTIVE_BUSINESS_COOKIE, value: farmerBusinessId, url: E2E_BASE_URL }]);
   const page = await context.newPage();
   const prodLeaks = trackProductionRequests(page);
 
