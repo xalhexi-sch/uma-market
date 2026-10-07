@@ -174,11 +174,11 @@ export function BusinessSettingsClient({
         <Alert
           data-testid="settings-success"
           role="status"
-          className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+          className="border-primary/30 bg-primary/10 text-primary"
         >
-          <RiCheckLine className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-          <AlertTitle className="font-medium text-emerald-800 dark:text-emerald-300">Success</AlertTitle>
-          <AlertDescription className="font-medium text-emerald-700 dark:text-emerald-400">{success}</AlertDescription>
+          <RiCheckLine className="size-4 text-primary" aria-hidden="true" />
+          <AlertTitle className="font-medium text-primary">Success</AlertTitle>
+          <AlertDescription className="font-medium text-primary">{success}</AlertDescription>
         </Alert>
       )}
 

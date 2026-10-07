@@ -121,10 +121,10 @@ export default async function InventoryPage() {
             ) : (
               <div
                 data-testid="inventory-all-clear"
-                className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm"
+                className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm"
               >
                 <RiCheckboxCircleLine
-                  className="size-5 shrink-0 text-emerald-600 dark:text-emerald-400"
+                  className="size-5 shrink-0 text-primary"
                   aria-hidden="true"
                 />
                 <p className="text-foreground">Every live listing has enough stock for buyers to order.</p>

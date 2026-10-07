@@ -276,7 +276,6 @@ export function V4SellerOrderCard({ order }: V4SellerOrderCardProps) {
                   size="sm"
                   disabled={isPending}
                   onClick={() => handleTransition("accepted")}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   <RiCheckLine className="mr-1.5 size-3.5" aria-hidden="true" />
                   Accept Order
@@ -304,8 +303,7 @@ export function V4SellerOrderCard({ order }: V4SellerOrderCardProps) {
                 size="sm"
                 disabled={isPending}
                 onClick={() => handleTransition("ready")}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
+                >
                 {order.fulfillment_type === "seller_delivery" ? "Mark Ready for Delivery" : "Mark Ready for Pickup"}
                 <RiCheckLine className="ml-1.5 size-3.5" aria-hidden="true" />
               </Button>
@@ -331,8 +329,7 @@ export function V4SellerOrderCard({ order }: V4SellerOrderCardProps) {
                 size="sm"
                 disabled={isPending}
                 onClick={() => handleTransition("completed")}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
+                >
                 <RiCheckLine className="mr-1.5 size-3.5" aria-hidden="true" />
                 Mark as Picked Up
               </Button>
@@ -345,8 +342,7 @@ export function V4SellerOrderCard({ order }: V4SellerOrderCardProps) {
                 size="sm"
                 disabled={isPending}
                 onClick={() => handleTransition("completed")}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
+                >
                 <RiCheckLine className="mr-1.5 size-3.5" aria-hidden="true" />
                 Mark as Delivered
               </Button>
@@ -359,8 +355,7 @@ export function V4SellerOrderCard({ order }: V4SellerOrderCardProps) {
                 size="sm"
                 disabled={isPending}
                 onClick={() => handleTransition("completed")}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
+                >
                 <RiCheckLine className="mr-1.5 size-3.5" aria-hidden="true" />
                 Mark as Picked Up
               </Button>
@@ -373,15 +368,14 @@ export function V4SellerOrderCard({ order }: V4SellerOrderCardProps) {
                 size="sm"
                 disabled={isPending}
                 onClick={() => handleTransition("completed")}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
+                >
                 <RiCheckLine className="mr-1.5 size-3.5" aria-hidden="true" />
                 Mark as Delivered
               </Button>
             )}
 
             {order.status === "completed" && (
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <span className="text-xs font-semibold text-primary flex items-center gap-1">
                 <RiCheckLine className="size-4" aria-hidden="true" />
                 Fulfilled
               </span>

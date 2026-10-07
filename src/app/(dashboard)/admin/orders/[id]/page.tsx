@@ -162,7 +162,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <RiPlantLine className="size-4 text-emerald-600" />
+                <RiPlantLine className="size-4 text-primary" />
                 Farm Producer
               </CardTitle>
             </CardHeader>

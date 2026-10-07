@@ -37,7 +37,7 @@ export function V4MessagesContextBar({ context }: V4MessagesContextBarProps) {
                   Producer
                 </Badge>
               ) : (
-                <Badge variant="outline" className="border-blue-500/30 text-blue-700 dark:text-blue-400 text-xs">
+                <Badge variant="outline" className="border-border/60 text-muted-foreground text-xs">
                   Buyer
                 </Badge>
               )}

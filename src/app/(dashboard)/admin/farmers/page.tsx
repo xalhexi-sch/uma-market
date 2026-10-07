@@ -43,7 +43,7 @@ export default async function AdminFarmersPage() {
           Back to Overview
         </Link>
         <div className="flex items-center gap-2">
-          <RiPlantLine className="size-6 text-emerald-600" />
+          <RiPlantLine className="size-6 text-primary" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Registered Farmers
           </h1>

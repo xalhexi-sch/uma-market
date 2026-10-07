@@ -72,7 +72,7 @@ export function InventoryActivity({
               className={cn(
                 "flex size-8 shrink-0 items-center justify-center rounded-lg",
                 isIncrease
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  ? "bg-primary/10 text-primary"
                   : "bg-muted text-muted-foreground"
               )}
             >
@@ -94,7 +94,7 @@ export function InventoryActivity({
               <p
                 className={cn(
                   "text-sm font-semibold tabular-nums",
-                  isIncrease ? "text-emerald-700 dark:text-emerald-400" : "text-foreground"
+                  isIncrease ? "text-primary" : "text-foreground"
                 )}
               >
                 {formatQuantityDelta(movement.quantity_delta)} {movement.unit}

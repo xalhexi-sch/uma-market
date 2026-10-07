@@ -94,7 +94,7 @@ export default async function HomePage() {
         >
           {/* Quiet background: soft accent glow + faint grid */}
           <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-            <div className="absolute -top-32 right-[-10%] size-[520px] rounded-full bg-green-500/10 blur-3xl dark:bg-green-500/10" />
+            <div className="absolute -top-32 right-[-10%] size-[520px] rounded-full bg-primary/10 blur-3xl" />
             <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:48px_48px] opacity-40 [mask-image:radial-gradient(ellipse_at_top_right,black,transparent_70%)]" />
           </div>
 
@@ -102,8 +102,8 @@ export default async function HomePage() {
             <div className="animate-in fade-in slide-in-from-bottom-3 duration-700 motion-reduce:animate-none lg:col-span-6">
               <p className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-2xs">
                 <span aria-hidden className="relative flex size-2">
-                  <span className="absolute inline-flex size-full rounded-full bg-green-500/60 motion-safe:animate-ping" />
-                  <span className="relative inline-flex size-2 rounded-full bg-green-500" />
+                  <span className="absolute inline-flex size-full rounded-full bg-primary/60 motion-safe:animate-ping" />
+                  <span className="relative inline-flex size-2 rounded-full bg-primary" />
                 </span>
                 Butuan City&apos;s local agricultural marketplace
               </p>
@@ -113,7 +113,7 @@ export default async function HomePage() {
                 className="mt-5 text-4xl font-bold tracking-tight text-foreground text-balance sm:text-5xl lg:text-6xl lg:leading-[1.05]"
               >
                 Buy directly from the people who{" "}
-                <span className="text-primary dark:text-emerald-400">grow it.</span>
+                <span className="text-primary">grow it.</span>
               </h1>
 
               <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -147,7 +147,7 @@ export default async function HomePage() {
                     <li key={item} className="flex items-center gap-1.5">
                       <RiCheckboxCircleFill
                         aria-hidden
-                        className="size-4 text-green-500"
+                        className="size-4 text-primary"
                       />
                       {item}
                     </li>
@@ -226,7 +226,7 @@ export default async function HomePage() {
                       0{index + 1}
                     </span>
                   </div>
-                  <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-primary dark:text-emerald-400">
+                  <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-primary">
                     {step.label}
                   </p>
                   <h3 className="mt-1.5 text-base font-semibold text-foreground">
@@ -290,7 +290,7 @@ export default async function HomePage() {
           <div className="relative isolate mx-auto max-w-6xl overflow-hidden rounded-3xl border border-border bg-card px-6 py-14 text-center sm:px-12 sm:py-16">
             <div
               aria-hidden
-              className="pointer-events-none absolute left-1/2 top-0 -z-10 size-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-500/15 blur-3xl"
+              className="pointer-events-none absolute left-1/2 top-0 -z-10 size-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15 blur-3xl"
             />
             <h2
               id="cta-heading"
