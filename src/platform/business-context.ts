@@ -182,6 +182,46 @@ export async function resolveActiveBusinessContext(
 
 // ── Guards ───────────────────────────────────────────────────────────────────
 
+export interface ActiveBusinessIdentity {
+  name: string;
+  role: BusinessRole;
+  canBuy: boolean;
+  canSell: boolean;
+}
+
+/**
+ * Safely resolves the active business context for the current user if signed in.
+ * Returns null if unauthenticated, revoked, in onboarding, or having no active business.
+ * Never throws, ensuring navigation and shell components fail safely without crashing.
+ */
+export async function getActiveBusinessContext(
+  preferredBusinessId?: string | null
+): Promise<ActiveBusinessContext | null> {
+  try {
+    return await requireActiveBusiness(preferredBusinessId);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Safely resolves the minimal serialized identity of the active business.
+ * Suitable for server components passing identity to navigation and sidebar headers.
+ * Returns null if no active business is available.
+ */
+export async function getActiveBusinessIdentity(
+  preferredBusinessId?: string | null
+): Promise<ActiveBusinessIdentity | null> {
+  const ctx = await getActiveBusinessContext(preferredBusinessId);
+  if (!ctx) return null;
+  return {
+    name: ctx.business.name,
+    role: ctx.role,
+    canBuy: ctx.canBuy,
+    canSell: ctx.canSell,
+  };
+}
+
 /**
  * Requires a signed-in active user and resolves their active business context.
  */

@@ -46,6 +46,8 @@ export {
   setActiveBusinessCookie,
   getUserBusinessMemberships,
   resolveActiveBusinessContext,
+  getActiveBusinessContext,
+  getActiveBusinessIdentity,
   requireActiveBusiness,
   requireBusinessMembership,
   requireBusinessRole,
@@ -53,6 +55,7 @@ export {
   requireCanSell,
   switchActiveBusiness,
   type ActiveBusinessContext,
+  type ActiveBusinessIdentity,
 } from "./business-context";
 
 // V4 Business Cart Actions

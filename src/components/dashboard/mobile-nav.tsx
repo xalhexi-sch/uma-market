@@ -24,7 +24,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { NAV_ITEMS, ROLE_LABELS } from "@/components/dashboard/sidebar";
+import { NAV_ITEMS, ROLE_LABELS, type ActiveBusinessIdentity } from "@/components/dashboard/sidebar";
 import { APP_NAME, type UserRole } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -68,6 +68,7 @@ interface DashboardMobileNavProps {
   cartCount?: number;
   farmerPendingCount?: number;
   businessActiveOrderCount?: number;
+  activeBusiness?: ActiveBusinessIdentity | null;
 }
 
 export function DashboardMobileNav({
@@ -75,6 +76,7 @@ export function DashboardMobileNav({
   cartCount = 0,
   farmerPendingCount = 0,
   businessActiveOrderCount = 0,
+  activeBusiness,
 }: DashboardMobileNavProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -85,22 +87,22 @@ export function DashboardMobileNav({
 
   return (
     <>
-      <header className="flex md:hidden h-14 items-center justify-between border-b border-border bg-sidebar px-4 shrink-0 z-40">
+      <header className="flex md:hidden h-14 items-center justify-between border-b border-border bg-sidebar px-4 shrink-0 z-40 gap-2">
       {/* Left: Hamburger trigger & Brand */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 min-w-0">
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={() => setOpen(true)}
           aria-label="Open navigation menu"
-          className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground shrink-0"
         >
           <RiMenuLine className="size-5" />
         </Button>
 
         <Link
           href={homeHref}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 shrink-0"
           onClick={() => setOpen(false)}
         >
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
@@ -109,14 +111,28 @@ export function DashboardMobileNav({
           <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
             {APP_NAME}
           </span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-muted text-muted-foreground uppercase tracking-wider">
+          <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-muted text-muted-foreground uppercase tracking-wider hidden sm:inline-block">
             {ROLE_LABELS[role]}
           </span>
         </Link>
       </div>
 
+      {/* Middle/Right: Active business on mobile */}
+      {activeBusiness && (
+        <div
+          data-testid="mobile-header-active-business"
+          className="hidden xs:flex items-center gap-1.5 max-w-[140px] truncate rounded-md bg-sidebar-accent/50 border border-border/50 px-2 py-0.5 text-xs text-sidebar-foreground"
+          aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
+        >
+          <span className="text-xs shrink-0 select-none" aria-hidden="true">
+            {activeBusiness.canSell ? "🌱" : "🏢"}
+          </span>
+          <span className="truncate text-[11px] font-semibold">{activeBusiness.name}</span>
+        </div>
+      )}
+
       {/* Right: Quick actions & User Profile */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 shrink-0">
         <ThemeToggle />
 
         {role === "business" && (
@@ -165,6 +181,39 @@ export function DashboardMobileNav({
               </div>
             </Link>
           </SheetHeader>
+
+          {/* Active Business Identity inside Drawer */}
+          {activeBusiness && (
+            <div
+              data-testid="mobile-drawer-active-business"
+              className="border-b border-border bg-sidebar-accent/25 px-5 py-3"
+              aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-base select-none shrink-0" aria-hidden="true">
+                  {activeBusiness.canSell ? "🌱" : "🏢"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-sidebar-foreground leading-tight">
+                    {activeBusiness.name}
+                  </p>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {activeBusiness.role}
+                    </span>
+                    <span className="text-muted-foreground/40 text-[10px]" aria-hidden="true">•</span>
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      {activeBusiness.canBuy && activeBusiness.canSell
+                        ? "Buy & Sell"
+                        : activeBusiness.canSell
+                        ? "Producer"
+                        : "Buyer"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Navigation Links */}
           <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col justify-between">

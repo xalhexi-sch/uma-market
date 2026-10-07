@@ -9,11 +9,14 @@ import { APP_NAME } from "@/lib/constants";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { routes } from "@/platform/routes";
 
+import type { ActiveBusinessIdentity } from "@/platform";
+
 interface MarketplaceMobileNavProps {
   isAuthenticated: boolean;
   dashboardHref: string;
   isBusiness: boolean;
   activeRoute?: string;
+  activeBusiness?: ActiveBusinessIdentity | null;
 }
 
 export function MarketplaceMobileNav({
@@ -21,6 +24,7 @@ export function MarketplaceMobileNav({
   dashboardHref,
   isBusiness,
   activeRoute,
+  activeBusiness,
 }: MarketplaceMobileNavProps) {
   const [open, setOpen] = useState(false);
 
@@ -63,6 +67,39 @@ export function MarketplaceMobileNav({
               </SheetTitle>
             </Link>
           </SheetHeader>
+
+          {/* Active Business Identity inside Drawer */}
+          {activeBusiness && (
+            <div
+              data-testid="marketplace-mobile-drawer-active-business"
+              className="mt-4 rounded-lg border border-border/60 bg-muted/30 p-3"
+              aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-base select-none shrink-0" aria-hidden="true">
+                  {activeBusiness.canSell ? "🌱" : "🏢"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-foreground leading-tight">
+                    {activeBusiness.name}
+                  </p>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {activeBusiness.role}
+                    </span>
+                    <span className="text-muted-foreground/40 text-[10px]" aria-hidden="true">•</span>
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      {activeBusiness.canBuy && activeBusiness.canSell
+                        ? "Buy & Sell"
+                        : activeBusiness.canSell
+                        ? "Producer"
+                        : "Buyer"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Nav links */}
           <nav className="mt-6 flex flex-col gap-2">

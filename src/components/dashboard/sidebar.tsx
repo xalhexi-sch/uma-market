@@ -59,12 +59,16 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Admin",
 };
 
+import type { ActiveBusinessIdentity } from "@/platform";
+export type { ActiveBusinessIdentity };
+
 interface DashboardSidebarProps {
   role: UserRole;
   userId: string;
   cartCount?: number;
   farmerPendingCount?: number;
   businessActiveOrderCount?: number;
+  activeBusiness?: ActiveBusinessIdentity | null;
 }
 
 export function DashboardSidebar({
@@ -72,6 +76,7 @@ export function DashboardSidebar({
   cartCount = 0,
   farmerPendingCount = 0,
   businessActiveOrderCount = 0,
+  activeBusiness,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const navItems = NAV_ITEMS[role];
@@ -92,6 +97,45 @@ export function DashboardSidebar({
           <p className="text-[11px] text-muted-foreground leading-none mt-0.5">{ROLE_LABELS[role]}</p>
         </div>
       </Link>
+
+      {/* Active Business Identity */}
+      {activeBusiness && (
+        <div
+          data-testid="sidebar-active-business"
+          className="border-b border-border bg-sidebar-accent/25 px-4 py-3"
+          aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-base select-none shrink-0" aria-hidden="true">
+              {activeBusiness.canSell ? "🌱" : "🏢"}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p
+                data-testid="sidebar-business-name"
+                className="truncate text-xs font-semibold text-sidebar-foreground leading-tight"
+              >
+                {activeBusiness.name}
+              </p>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <span
+                  data-testid="sidebar-business-role"
+                  className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                  {activeBusiness.role}
+                </span>
+                <span className="text-muted-foreground/40 text-[10px]" aria-hidden="true">•</span>
+                <span className="text-[10px] text-muted-foreground truncate">
+                  {activeBusiness.canBuy && activeBusiness.canSell
+                    ? "Buy & Sell"
+                    : activeBusiness.canSell
+                    ? "Producer"
+                    : "Buyer"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col justify-between">

@@ -5,7 +5,7 @@ import { MarketplaceUserButton } from "./marketplace-user-button";
 import { RiShoppingCart2Line, RiArrowRightLine } from "@remixicon/react";
 import { APP_NAME } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
-import { routes } from "@/platform/routes";
+import { routes, getActiveBusinessIdentity } from "@/platform";
 import { MarketplaceMobileNav } from "./marketplace-mobile-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -14,6 +14,8 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
   const role = sessionClaims?.user_role as UserRole | undefined;
   const dashboardHref = isAuthenticated ? routes.dashboardRoot : "/onboarding";
   const isBusiness = role === "business";
+
+  const activeBusiness = isAuthenticated ? await getActiveBusinessIdentity() : null;
 
   const navLinks = [
     { label: "Market", href: "/products", isActive: activeRoute === "products" },
@@ -62,6 +64,35 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
           <ThemeToggle />
           {isAuthenticated ? (
             <>
+              {activeBusiness && (
+                <div
+                  data-testid="header-active-business"
+                  className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/40 px-2.5 py-1 text-xs text-foreground"
+                  aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
+                >
+                  <span className="text-sm select-none" aria-hidden="true">
+                    {activeBusiness.canSell ? "🌱" : "🏢"}
+                  </span>
+                  <div className="flex flex-col min-w-0 max-w-[150px]">
+                    <span className="truncate font-semibold text-xs leading-tight">
+                      {activeBusiness.name}
+                    </span>
+                    <div className="flex items-center gap-1 leading-none mt-0.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {activeBusiness.role}
+                      </span>
+                      <span className="text-muted-foreground/40 text-[9px]" aria-hidden="true">•</span>
+                      <span className="text-[10px] text-muted-foreground truncate">
+                        {activeBusiness.canBuy && activeBusiness.canSell
+                          ? "Buy & Sell"
+                          : activeBusiness.canSell
+                          ? "Producer"
+                          : "Buyer"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
               {isBusiness && (
                 <Link
                   href={routes.cart}
@@ -101,6 +132,18 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
 
         {/* Mobile Nav Toggle */}
         <div className="flex items-center gap-2 sm:hidden">
+          {activeBusiness && (
+            <div
+              data-testid="header-mobile-active-business"
+              className="flex items-center gap-1.5 max-w-[130px] rounded-md bg-muted/40 border border-border/50 px-2 py-0.5 text-xs text-foreground"
+              aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
+            >
+              <span className="text-xs shrink-0 select-none" aria-hidden="true">
+                {activeBusiness.canSell ? "🌱" : "🏢"}
+              </span>
+              <span className="truncate text-[11px] font-semibold">{activeBusiness.name}</span>
+            </div>
+          )}
           <ThemeToggle />
           {isAuthenticated && <MarketplaceUserButton />}
           <MarketplaceMobileNav
@@ -108,6 +151,7 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
             dashboardHref={dashboardHref}
             isBusiness={isBusiness}
             activeRoute={activeRoute}
+            activeBusiness={activeBusiness}
           />
         </div>
       </div>

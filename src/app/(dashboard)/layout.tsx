@@ -12,6 +12,7 @@ import {
   getFarmerPendingOrderCount,
   getBusinessActiveOrderCount,
 } from "@/lib/supabase/queries/orders";
+import { getActiveBusinessIdentity } from "@/platform";
 
 /**
  * Shared layout for all authenticated dashboards.
@@ -77,6 +78,8 @@ export default async function DashboardLayout({
     profileMissing = !profile;
   }
 
+  const activeBusiness = await getActiveBusinessIdentity();
+
   return (
     <div className="flex h-screen flex-col md:flex-row overflow-hidden bg-background">
       {/* Mobile Topbar & Sheet Drawer (< md) */}
@@ -85,6 +88,7 @@ export default async function DashboardLayout({
         cartCount={cartCount}
         farmerPendingCount={farmerPendingCount}
         businessActiveOrderCount={businessActiveOrderCount}
+        activeBusiness={activeBusiness}
       />
 
       {/* Desktop Sidebar (>= md) */}
@@ -95,6 +99,7 @@ export default async function DashboardLayout({
           cartCount={cartCount}
           farmerPendingCount={farmerPendingCount}
           businessActiveOrderCount={businessActiveOrderCount}
+          activeBusiness={activeBusiness}
         />
       </div>
 
