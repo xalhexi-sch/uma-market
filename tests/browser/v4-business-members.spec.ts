@@ -19,6 +19,7 @@ import { expect, test, type Page } from "@playwright/test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   authenticatedContext,
+  deliverClerkWebhook,
   PROD_APP_HOST,
   PROD_SUPABASE_HOST,
   resolvePersona,
@@ -26,6 +27,7 @@ import {
   upsertTestProfile,
   type Persona,
 } from "./harness";
+import { consumeBusinessStaffInvitation } from "@/platform/member-actions";
 
 const FIXTURES = {
   primaryBizId:       "d7000001-0000-4000-8000-000000000110",
@@ -453,5 +455,130 @@ test.describe("V4 Business Members & Staff", () => {
 
     expect(prodLeaks).toEqual([]);
     await context.close();
+  });
+
+  // ── Test 8: Staff Invitation Lifecycle — Webhook Enrollment ────────────────
+  test("staff invitation lifecycle: clerk user.created webhook creates profile and STAFF membership", async () => {
+    const inviteeId = "d7000001-0000-4000-8000-000000000180";
+
+    // Clean up any pre-existing test data
+    await admin.from("business_members").delete().eq("user_id", inviteeId);
+    await admin.from("profiles").delete().eq("clerk_id", inviteeId);
+
+    // Deliver user.created event with staff invitation metadata
+    const delivery = await deliverClerkWebhook({
+      data: {
+        id: inviteeId,
+        first_name: "Morgan",
+        last_name: "Staff",
+        public_metadata: {
+          business_id: primaryBusinessId,
+          role: "STAFF",
+        },
+      },
+      object: "event",
+      type: "user.created",
+    });
+
+    expect(delivery.status).toBe(200);
+
+    // Verify profile was created with role 'business'
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("clerk_id, role, full_name")
+      .eq("clerk_id", inviteeId)
+      .maybeSingle();
+
+    expect(profile).not.toBeNull();
+    expect(profile?.role).toBe("business");
+    expect(profile?.full_name).toBe("Morgan Staff");
+
+    // Verify business_members row exists with role 'STAFF'
+    const { data: membership } = await admin
+      .from("business_members")
+      .select("business_id, user_id, role")
+      .eq("business_id", primaryBusinessId)
+      .eq("user_id", inviteeId)
+      .maybeSingle();
+
+    expect(membership).not.toBeNull();
+    expect(membership?.role).toBe("STAFF");
+
+    // Cleanup
+    await admin.from("business_members").delete().eq("user_id", inviteeId);
+    await admin.from("profiles").delete().eq("clerk_id", inviteeId);
+  });
+
+  // ── Test 9: Staff Invitation Lifecycle — Malicious/Invalid Business ID ──────
+  test("staff invitation lifecycle: fails safe without membership insertion when business_id is invalid", async () => {
+    const maliciousInviteeId = "d7000001-0000-4000-8000-000000000190";
+    const nonExistentBizId = "00000000-0000-0000-0000-000000000000";
+
+    await admin.from("business_members").delete().eq("user_id", maliciousInviteeId);
+    await admin.from("profiles").delete().eq("clerk_id", maliciousInviteeId);
+
+    const result = await consumeBusinessStaffInvitation({
+      userId: maliciousInviteeId,
+      metadata: {
+        business_id: nonExistentBizId,
+        role: "STAFF",
+      },
+      fullName: "Malicious User",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Target business not found or inactive.");
+
+    // Verify business_members was NEVER inserted
+    const { data: members } = await admin
+      .from("business_members")
+      .select("id")
+      .eq("user_id", maliciousInviteeId);
+
+    expect(members).toEqual([]);
+  });
+
+  // ── Test 10: Staff Invitation Lifecycle — Duplicate Acceptance Idempotency ──
+  test("staff invitation lifecycle: duplicate delivery handles conflict idempotently", async () => {
+    const idempotentUserId = "d7000001-0000-4000-8000-000000000195";
+
+    await admin.from("business_members").delete().eq("user_id", idempotentUserId);
+    await admin.from("profiles").delete().eq("clerk_id", idempotentUserId);
+
+    const payload = {
+      data: {
+        id: idempotentUserId,
+        first_name: "Idempotent",
+        last_name: "Staff",
+        public_metadata: {
+          business_id: primaryBusinessId,
+          role: "STAFF",
+        },
+      },
+      object: "event",
+      type: "user.created",
+    };
+
+    // First delivery
+    const delivery1 = await deliverClerkWebhook(payload);
+    expect(delivery1.status).toBe(200);
+
+    // Duplicate delivery
+    const delivery2 = await deliverClerkWebhook(payload);
+    expect(delivery2.status).toBe(200);
+
+    // Ensure exactly 1 membership exists
+    const { data: memberships } = await admin
+      .from("business_members")
+      .select("id, role")
+      .eq("business_id", primaryBusinessId)
+      .eq("user_id", idempotentUserId);
+
+    expect(memberships?.length).toBe(1);
+    expect(memberships?.[0].role).toBe("STAFF");
+
+    // Cleanup
+    await admin.from("business_members").delete().eq("user_id", idempotentUserId);
+    await admin.from("profiles").delete().eq("clerk_id", idempotentUserId);
   });
 });

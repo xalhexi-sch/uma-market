@@ -161,7 +161,15 @@ export async function resolveActiveBusinessContext(
     }
   }
 
-  // 3. Fallback: single business or default (prefer OWNER, else first)
+  // 3. Session claim preference (e.g. invited staff membership in Clerk metadata)
+  if (!selectedMembership) {
+    const claimBizId = typeof user.sessionClaims?.business_id === "string" ? user.sessionClaims.business_id : undefined;
+    if (claimBizId) {
+      selectedMembership = memberships.find((m) => m.business_id === claimBizId);
+    }
+  }
+
+  // 4. Fallback: single business or default (prefer OWNER, else first)
   if (!selectedMembership) {
     selectedMembership = memberships.find((m) => m.role === "OWNER") ?? memberships[0];
   }

@@ -2,12 +2,14 @@ import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { WebhookEvent } from "@clerk/nextjs/server";
+import { consumeBusinessStaffInvitation } from "@/platform/member-actions";
 
 /**
  * Clerk Webhook Handler
  *
  * Handles lifecycle events:
- * - user.created: Creates stub profile if role is provided in publicMetadata.
+ * - user.created: Creates stub profile if role is provided in publicMetadata,
+ *   or consumes staff invitation if business_id and STAFF role are present.
  * - user.updated: Logs event. Never overwrites UMA-managed profile data.
  *   Acts as resilience fallback: creates stub profile if missing.
  * - user.deleted: Archives products for farmers (status = archived).
@@ -30,13 +32,27 @@ export async function POST(req: NextRequest) {
 
   switch (evt.type) {
     case "user.created": {
-      const { id, public_metadata, image_url, has_image } = evt.data;
+      const { id, public_metadata, image_url, has_image, first_name, last_name } = evt.data;
       const role = public_metadata?.role as string | undefined;
+      const businessId = (public_metadata?.business_id as string | undefined)?.trim();
+      const isStaffInvite = role === "STAFF" || Boolean(public_metadata?.joined_as_staff);
       const avatarUrl = has_image && image_url ? image_url : null;
+      const fullName = [first_name, last_name].filter(Boolean).join(" ").trim() || null;
 
-      // Only upsert profile stub if role is known and valid.
-      // If role is not yet selected, the user will complete onboarding at /onboarding.
-      if (role && ["farmer", "business", "admin"].includes(role)) {
+      if (businessId && isStaffInvite) {
+        const result = await consumeBusinessStaffInvitation({
+          userId: id,
+          metadata: public_metadata,
+          fullName,
+          avatarUrl,
+        });
+
+        if (result.success) {
+          console.log(`[webhooks/clerk] user.created: enrolled staff member ${id} into business ${result.businessId}`);
+        } else {
+          console.error(`[webhooks/clerk] user.created staff enrollment error:`, result.error);
+        }
+      } else if (role && ["farmer", "business", "admin"].includes(role)) {
         const { error } = await supabase
           .from("profiles")
           .upsert(

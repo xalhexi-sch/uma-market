@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { APP_NAME } from "@/lib/constants";
 import { getProfileByClerkId } from "@/lib/supabase/queries/profiles";
 import { routes } from "@/platform/routes";
+import { consumeBusinessStaffInvitation } from "@/platform/member-actions";
 import { OnboardingForm } from "./onboarding-form";
 
 export const metadata: Metadata = {
@@ -18,6 +19,26 @@ export default async function OnboardingPage() {
 
   const clerk = await clerkClient();
   const currentUser = await clerk.users.getUser(userId);
+
+  // Fallback: If user accepted a STAFF invitation, consume it and complete onboarding
+  const metadata = currentUser.publicMetadata as Record<string, unknown> | undefined;
+  const businessId = (metadata?.business_id as string | undefined)?.trim();
+  const isStaffInvite = metadata?.role === "STAFF" || Boolean(metadata?.joined_as_staff);
+
+  if (businessId && isStaffInvite) {
+    const fullName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ").trim() || null;
+    const result = await consumeBusinessStaffInvitation({
+      userId,
+      metadata,
+      fullName,
+      avatarUrl: currentUser.imageUrl || null,
+    });
+
+    if (result.success && result.businessId) {
+      redirect(`/onboarding/complete?role=business&business_id=${result.businessId}`);
+    }
+  }
+
   const existingRole =
     (currentUser.publicMetadata?.role as string | undefined) ||
     (sessionClaims?.user_role as string | undefined);

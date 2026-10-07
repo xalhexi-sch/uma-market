@@ -22,9 +22,14 @@ export default function OnboardingCompletePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const role = searchParams.get("role");
+  const businessId = searchParams.get("business_id");
 
   useEffect(() => {
     if (!isLoaded || !session) return;
+
+    if (businessId) {
+      document.cookie = `uma_active_business_id=${encodeURIComponent(businessId)}; path=/; SameSite=Lax`;
+    }
 
     // Force a session token refresh so the new role claim is available.
     session.reload().then(() => {
@@ -34,7 +39,7 @@ export default function OnboardingCompletePage() {
         router.replace(routes.home);
       }
     });
-  }, [isLoaded, session, role, router]);
+  }, [isLoaded, session, role, businessId, router]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background">

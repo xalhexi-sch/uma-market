@@ -260,3 +260,119 @@ export async function revokeBusinessInvitationAction(input: {
     return { success: false, error: safeErrorMessage(err) };
   }
 }
+
+/**
+ * Consumes a Clerk invitation containing { business_id, role: "STAFF" }.
+ * Called by:
+ * 1. Clerk webhook handler on user.created
+ * 2. /onboarding entry flow for resilient fallback
+ *
+ * Validates the target business is active, ensures a 'business' profile exists,
+ * inserts a business_members row with role 'STAFF', and synchronizes Clerk metadata.
+ * Completely idempotent and fails safe on invalid/inactive business IDs.
+ */
+export async function consumeBusinessStaffInvitation(params: {
+  userId: string;
+  metadata?: Record<string, unknown> | null;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+}): Promise<{ success: boolean; businessId?: string; error?: string }> {
+  try {
+    const { userId, metadata, fullName, avatarUrl } = params;
+    if (!userId) {
+      return { success: false, error: "User ID is required." };
+    }
+
+    const businessId = (metadata?.business_id as string | undefined)?.trim();
+    const roleMeta = metadata?.role as string | undefined;
+    const isStaffInvite = roleMeta === "STAFF" || Boolean(metadata?.joined_as_staff);
+
+    if (!businessId || !isStaffInvite) {
+      return { success: false, error: "Not a staff invitation." };
+    }
+
+    const admin = createAdminClient();
+
+    // 1. Validate business exists and is active
+    const { data: targetBusiness, error: bizError } = await admin
+      .from("businesses")
+      .select("id, name, status")
+      .eq("id", businessId)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (bizError || !targetBusiness) {
+      return {
+        success: false,
+        error: "Target business not found or inactive.",
+      };
+    }
+
+    // 2. Ensure profile exists with role: 'business'
+    const { error: profileError } = await admin
+      .from("profiles")
+      .upsert(
+        {
+          clerk_id: userId,
+          role: "business",
+          full_name: fullName || null,
+          city: "Butuan",
+          is_verified: false,
+          avatar_url: avatarUrl || null,
+        },
+        { onConflict: "clerk_id" }
+      );
+
+    if (profileError) {
+      return { success: false, error: safeErrorMessage(profileError) };
+    }
+
+    // 3. Upsert business_members row with role: 'STAFF'
+    const { error: memberError } = await admin
+      .from("business_members")
+      .upsert(
+        {
+          business_id: businessId,
+          user_id: userId,
+          role: "STAFF",
+        },
+        { onConflict: "business_id, user_id" }
+      );
+
+    if (memberError) {
+      return { success: false, error: safeErrorMessage(memberError) };
+    }
+
+    // 4. Update Clerk user metadata so JWT claims emit user_role: "business"
+    try {
+      const clerk = await clerkClient();
+      if ("updateUserMetadata" in clerk.users && typeof clerk.users.updateUserMetadata === "function") {
+        await clerk.users.updateUserMetadata(userId, {
+          publicMetadata: {
+            role: "business",
+            business_id: businessId,
+            joined_as_staff: true,
+          },
+        });
+      } else {
+        await clerk.users.updateUser(userId, {
+          publicMetadata: {
+            role: "business",
+            business_id: businessId,
+            joined_as_staff: true,
+          },
+        });
+      }
+    } catch (clerkErr) {
+      console.warn("[consumeBusinessStaffInvitation] Clerk user metadata sync warning:", safeErrorMessage(clerkErr));
+    }
+
+    return {
+      success: true,
+      businessId,
+    };
+  } catch (err: unknown) {
+    return { success: false, error: safeErrorMessage(err) };
+  }
+}
+

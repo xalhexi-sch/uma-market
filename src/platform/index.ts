@@ -86,6 +86,7 @@ export {
   inviteBusinessStaffAction,
   removeBusinessMemberAction,
   revokeBusinessInvitationAction,
+  consumeBusinessStaffInvitation,
   type MemberActionResult,
 } from "./member-actions";
 
