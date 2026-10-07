@@ -144,8 +144,7 @@ export async function placeV4Checkout(orders: V4CheckoutOrderGroup[]): Promise<{
   });
 
   // 6. Call V4 RPC — business_id is server-resolved, never client-provided
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC not yet in generated types
-  const supabase = await createClient() as any;
+  const supabase = await createClient();
   const { data, error } = await supabase.rpc("place_v4_checkout_orders", {
     p_business_id: context.business.id,
     p_orders: formattedOrders,
@@ -156,8 +155,12 @@ export async function placeV4Checkout(orders: V4CheckoutOrderGroup[]): Promise<{
     return { success: false, error: mapCheckoutDatabaseError(error.message) };
   }
 
-  const orderIds = (data as unknown as { order_ids: string[] }).order_ids;
-  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+  const rawOrderIds =
+    data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.order_ids)
+      ? data.order_ids
+      : null;
+  const orderIds = rawOrderIds?.filter((id): id is string => typeof id === "string");
+  if (!orderIds || orderIds.length === 0) {
     console.error("[v4-checkout] place_v4_checkout_orders returned no order ids");
     return { success: false, error: genericCheckoutError() };
   }
