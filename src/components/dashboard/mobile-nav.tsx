@@ -121,11 +121,23 @@ export function DashboardMobileNav({
       {activeBusiness && (
         <div
           data-testid="mobile-header-active-business"
-          className="hidden xs:flex items-center gap-1.5 max-w-[140px] truncate rounded-md bg-sidebar-accent/50 border border-border/50 px-2 py-0.5 text-xs text-sidebar-foreground"
+          className="hidden min-[430px]:flex items-center gap-1.5 max-w-[140px] truncate rounded-md bg-sidebar-accent/50 border border-border/50 px-2 py-0.5 text-xs text-sidebar-foreground"
           aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
         >
-          <span className="text-xs shrink-0 select-none" aria-hidden="true">
-            {activeBusiness.canSell ? "🌱" : "🏢"}
+          <span
+            className={cn(
+              "flex size-4 shrink-0 items-center justify-center rounded-xs",
+              activeBusiness.canSell
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-primary"
+            )}
+            aria-hidden="true"
+          >
+            {activeBusiness.canSell ? (
+              <RiPlantLine className="size-3.5" />
+            ) : (
+              <RiBuildingLine className="size-3.5" />
+            )}
           </span>
           <span className="truncate text-[11px] font-semibold">{activeBusiness.name}</span>
         </div>
@@ -186,23 +198,35 @@ export function DashboardMobileNav({
           {activeBusiness && (
             <div
               data-testid="mobile-drawer-active-business"
-              className="border-b border-border bg-sidebar-accent/25 px-5 py-3"
+              className="border-b border-sidebar-border bg-sidebar-accent/20 px-5 py-3"
               aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <span className="text-base select-none shrink-0" aria-hidden="true">
-                  {activeBusiness.canSell ? "🌱" : "🏢"}
-                </span>
+                <div
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-md",
+                    activeBusiness.canSell
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-primary/10 text-primary"
+                  )}
+                  aria-hidden="true"
+                >
+                  {activeBusiness.canSell ? (
+                    <RiPlantLine className="size-4" />
+                  ) : (
+                    <RiBuildingLine className="size-4" />
+                  )}
+                </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-sidebar-foreground leading-tight">
+                  <p className="truncate text-xs font-semibold text-sidebar-foreground leading-tight" title={activeBusiness.name}>
                     {activeBusiness.name}
                   </p>
-                  <div className="mt-0.5 flex items-center gap-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="font-semibold uppercase tracking-wider">
                       {activeBusiness.role}
                     </span>
-                    <span className="text-muted-foreground/40 text-[10px]" aria-hidden="true">•</span>
-                    <span className="text-[10px] text-muted-foreground truncate">
+                    <span className="text-muted-foreground/40" aria-hidden="true">•</span>
+                    <span className="truncate">
                       {activeBusiness.canBuy && activeBusiness.canSell
                         ? "Buy & Sell"
                         : activeBusiness.canSell
