@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   RiPlantLine,
   RiBuildingLine,
@@ -9,7 +10,9 @@ import {
   RiCheckLine,
   RiAddLine,
   RiExchangeLine,
+  RiSettings4Line,
 } from "@remixicon/react";
+import { routes } from "@/platform/routes";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   Dialog,
@@ -416,6 +419,17 @@ export function BusinessSwitcher({
             <RiAddLine className="size-4 shrink-0" aria-hidden="true" />
             <span>Create another business</span>
           </button>
+
+          {/* Action: Business Settings */}
+          <Link
+            href={routes.dashboard.settings}
+            data-testid="business-settings-switcher-link"
+            onClick={() => setPopoverOpen(false)}
+            className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+          >
+            <RiSettings4Line className="size-4 shrink-0" aria-hidden="true" />
+            <span>Business settings</span>
+          </Link>
         </PopoverContent>
       </Popover>
 

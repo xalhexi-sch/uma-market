@@ -63,7 +63,9 @@ export {
 export {
   createBusinessAction,
   switchBusinessAction,
+  updateBusinessSettingsAction,
   type CreateBusinessInput,
+  type UpdateBusinessSettingsInput,
   type BusinessActionResult,
 } from "./business-actions";
 

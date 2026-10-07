@@ -1,9 +1,15 @@
 import Link from "next/link";
-import { RiDashboardLine, RiPlantLine, RiStackLine, RiTeamLine } from "@remixicon/react";
+import {
+  RiDashboardLine,
+  RiPlantLine,
+  RiSettings4Line,
+  RiStackLine,
+  RiTeamLine,
+} from "@remixicon/react";
 import { routes } from "@/platform/routes";
 import { cn } from "@/lib/utils";
 
-export type WorkspaceSection = "overview" | "listings" | "inventory" | "members";
+export type WorkspaceSection = "overview" | "listings" | "inventory" | "members" | "settings";
 
 interface V4WorkspaceNavProps {
   active: WorkspaceSection;
@@ -22,6 +28,7 @@ export function V4WorkspaceNav({ active, canSell }: V4WorkspaceNavProps) {
         ]
       : []),
     { id: "members" as const, label: "Members", href: routes.dashboard.members, Icon: RiTeamLine },
+    { id: "settings" as const, label: "Settings", href: routes.dashboard.settings, Icon: RiSettings4Line },
   ];
 
   return (

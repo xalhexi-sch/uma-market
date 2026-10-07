@@ -12,12 +12,19 @@ import { revalidatePath } from "next/cache";
 import { requireActiveUser } from "@/platform/auth";
 import {
   requireBusinessMembership,
+  requireBusinessRole,
   setActiveBusinessCookie,
 } from "@/platform/business-context";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { safeErrorMessage } from "@/platform/errors";
 
 export interface CreateBusinessInput {
+  name: string;
+  capability: "sell" | "buy" | "both";
+}
+
+export interface UpdateBusinessSettingsInput {
+  businessId?: string;
   name: string;
   capability: "sell" | "buy" | "both";
 }
@@ -145,3 +152,77 @@ export async function createBusinessAction(
     return { success: false, error: safeErrorMessage(err) };
   }
 }
+
+/**
+ * Updates settings for the currently active business.
+ * Validates that caller is the business OWNER server-side.
+ * Strictly scopes modifications to the active business context.
+ */
+export async function updateBusinessSettingsAction(
+  input: UpdateBusinessSettingsInput
+): Promise<BusinessActionResult> {
+  try {
+    // 1. Server-side authorization: requires active business and OWNER role
+    const context = await requireBusinessRole("OWNER");
+
+    // 2. Active business scoping: ensure client-provided ID (if given) matches active business
+    if (input.businessId && input.businessId !== context.business.id) {
+      return {
+        success: false,
+        error: "Cross-business modification is not allowed.",
+      };
+    }
+
+    // 3. Validate name
+    const trimmedName = typeof input?.name === "string" ? input.name.trim() : "";
+    if (!trimmedName || trimmedName.length < 2) {
+      return { success: false, error: "Business name must be at least 2 characters." };
+    }
+    if (trimmedName.length > 100) {
+      return { success: false, error: "Business name cannot exceed 100 characters." };
+    }
+
+    // 4. Validate capability
+    const canBuy = input.capability === "buy" || input.capability === "both";
+    const canSell = input.capability === "sell" || input.capability === "both";
+    if (!canBuy && !canSell) {
+      return { success: false, error: "Please select how you will use UMA (Sell, Buy, or Both)." };
+    }
+
+    // 5. Update business record via admin client (service_role is required per migration 20261009000000)
+    const admin = createAdminClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: updateErr } = await (admin as any)
+      .from("businesses")
+      .update({
+        name: trimmedName,
+        can_buy: canBuy,
+        can_sell: canSell,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", context.business.id);
+
+    if (updateErr) {
+      console.error("[updateBusinessSettingsAction] update error:", updateErr.message);
+      return { success: false, error: "Failed to update business settings. Please try again." };
+    }
+
+    // 6. Revalidate all relevant pages
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/members");
+    revalidatePath("/dashboard/listings");
+    revalidatePath("/dashboard/inventory");
+    revalidatePath("/profile");
+
+    return {
+      success: true,
+      businessId: context.business.id,
+      businessName: trimmedName,
+    };
+  } catch (err: unknown) {
+    console.error("[updateBusinessSettingsAction] error:", err);
+    return { success: false, error: safeErrorMessage(err) };
+  }
+}
+

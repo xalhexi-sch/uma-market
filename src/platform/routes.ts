@@ -34,6 +34,7 @@ export const routes = {
   dashboardRoot: "/dashboard",
   dashboardOrders: "/dashboard/orders",
   dashboardMembers: "/dashboard/members",
+  dashboardSettings: "/dashboard/settings",
 
   // Auth
   signIn: "/sign-in",
@@ -69,6 +70,7 @@ export const routes = {
     editListing: (id: string) => `/dashboard/listings/${id}/edit` as const,
     inventory: "/dashboard/inventory",
     members: "/dashboard/members",
+    settings: "/dashboard/settings",
 
     // Shared
     messages: "/messages",
