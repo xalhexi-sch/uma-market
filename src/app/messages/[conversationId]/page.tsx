@@ -44,43 +44,45 @@ export default async function ConversationPage({
     redirect("/sign-in");
   }
 
-  const conversation = await getV4Conversation(conversationId, context.business.id);
-  if (!conversation) {
-    notFound();
-  }
-
-  const initialMessages = await getV4ConversationMessages(conversationId);
-
-  // Optional: load product context preview if productId was provided in query
-  let initialProductContext = null;
-  if (productId) {
+  // Run conversation, messages, and optional contextual previews concurrently to eliminate network waterfalls
+  const productPromise = (async () => {
+    if (!productId) return null;
     const supabase = await createClient();
     const { data: prod } = await supabase
       .from("products")
       .select("id, name, price_per_unit, unit, image_url")
       .eq("id", productId)
       .maybeSingle();
-    if (prod) {
-      initialProductContext = prod;
-    }
-  }
+    return prod ?? null;
+  })();
 
-  // Optional: load order context preview if orderId was provided in query
-  let initialOrderContext = null;
-  if (orderId) {
+  const orderPromise = (async () => {
+    if (!orderId) return null;
     const supabase = await createClient();
     const { data: ord } = await supabase
       .from("orders")
       .select("id, status, total_amount")
       .eq("id", orderId)
       .maybeSingle();
-    if (ord) {
-      initialOrderContext = {
-        id: ord.id,
-        status: ord.status,
-        total_amount: Number(ord.total_amount),
-      };
-    }
+    return ord
+      ? {
+          id: ord.id,
+          status: ord.status,
+          total_amount: Number(ord.total_amount),
+        }
+      : null;
+  })();
+
+  const [conversation, initialMessages, initialProductContext, initialOrderContext] =
+    await Promise.all([
+      getV4Conversation(conversationId, context.business.id),
+      getV4ConversationMessages(conversationId),
+      productPromise,
+      orderPromise,
+    ]);
+
+  if (!conversation) {
+    notFound();
   }
 
   return (

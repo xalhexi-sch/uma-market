@@ -76,15 +76,15 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
     notFound();
   }
 
-  // Fetch optional placer audit info if present
-  const placerProfile = order.placed_by_user_id
-    ? await getOrderPlacerProfile(order.placed_by_user_id)
-    : null;
-
-  // Review status
-  const reviewStatus = order.status === "completed"
-    ? await getOrderReviewStatus(order.id, context.user.userId)
-    : { sellerReviewed: false, reviewedProductItemIds: [] };
+  // Fetch optional placer audit info and review status concurrently
+  const [placerProfile, reviewStatus] = await Promise.all([
+    order.placed_by_user_id
+      ? getOrderPlacerProfile(order.placed_by_user_id)
+      : Promise.resolve(null),
+    order.status === "completed"
+      ? getOrderReviewStatus(order.id, context.user.userId)
+      : Promise.resolve({ sellerReviewed: false, reviewedProductItemIds: [] }),
+  ]);
 
   const farmerName =
     order.farmer?.business_name || order.farmer?.full_name || "Local Producer";
