@@ -19,6 +19,7 @@ import {
   EmptyDescription,
   EmptyContent,
 } from "@/components/ui/empty";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActiveBusiness } from "@/platform";
 import type { ActiveBusinessContext } from "@/platform";
@@ -233,20 +234,24 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     >
                       <span>{tab.label}</span>
                       {isAmber ? (
-                        <span className="inline-flex items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-xs font-semibold">
+                        <Badge
+                          variant="outline"
+                          className="border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold text-xs px-2 py-0.5"
+                        >
                           {count}
-                        </span>
+                        </Badge>
                       ) : (
-                        <span
+                        <Badge
+                          variant="secondary"
                           className={cn(
-                            "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium",
+                            "px-2 py-0.5 text-xs font-medium",
                             isActive
                               ? "bg-muted text-foreground"
                               : "bg-muted/60 text-muted-foreground"
                           )}
                         >
                           {count}
-                        </span>
+                        </Badge>
                       )}
                     </Link>
                   );

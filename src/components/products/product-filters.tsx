@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RiSearchLine, RiFilter3Line } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -267,43 +269,44 @@ export function ProductFilters({
           </Select>
 
           {/* Search submit button — replaces generic "Apply" since dropdowns now auto-apply */}
-          <button
+          <Button
             type="button"
             onClick={() => handleApply({ search: draftSearch })}
+            variant={variant === "marketplace" ? "default" : "secondary"}
             className={cn(
-              "cursor-pointer transition-colors shadow-xs rounded-md font-semibold inline-flex items-center justify-center gap-1.5",
+              "cursor-pointer transition-colors shadow-xs font-semibold gap-1.5",
               variant === "marketplace"
-                ? "h-11 px-4 bg-primary text-sm text-primary-foreground hover:bg-primary/90"
-                : "h-9 px-3 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
+                ? "h-11 px-4 text-sm"
+                : "h-9 px-3 text-xs font-medium border border-border"
             )}
             aria-label="Search"
           >
             <RiSearchLine className="size-4" />
             <span className="hidden lg:inline">Search</span>
-          </button>
+          </Button>
         </div>
 
         {/* Small Mobile Filter Trigger (< sm) */}
         <div className="flex sm:hidden shrink-0">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => setSheetOpen(true)}
             className={cn(
-              "h-10 px-3 inline-flex items-center justify-center gap-1.5 rounded-md border text-sm font-medium transition-colors shadow-xs cursor-pointer shrink-0 bg-background hover:bg-muted/50",
-              activeFilterCount > 0
-                ? "border-primary text-primary font-semibold bg-primary/5"
-                : "border-input text-foreground"
+              "h-10 px-3 gap-1.5 shrink-0 cursor-pointer shadow-xs",
+              activeFilterCount > 0 &&
+                "border-primary text-primary font-semibold bg-primary/5 hover:bg-primary/10"
             )}
             aria-label="Open product filters"
           >
             <RiFilter3Line className="size-4" />
             <span>Filters</span>
             {activeFilterCount > 0 && (
-              <span className="flex size-4.5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              <Badge className="size-4.5 p-0 justify-center rounded-full text-[10px] font-bold">
                 {activeFilterCount}
-              </span>
+              </Badge>
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -314,7 +317,7 @@ export function ProductFilters({
           className="w-[300px] sm:w-[360px] p-0 flex flex-col justify-between"
         >
           {/* Header */}
-          <div className="p-5 border-b border-border/60">
+          <div className="p-5">
             <SheetHeader>
               <div className="flex items-center justify-between">
                 <SheetTitle className="text-lg font-bold text-foreground">
@@ -326,6 +329,7 @@ export function ProductFilters({
               </SheetDescription>
             </SheetHeader>
           </div>
+          <Separator />
 
           {/* Body Form Controls */}
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
@@ -448,7 +452,8 @@ export function ProductFilters({
           </div>
 
           {/* Footer Actions */}
-          <div className="border-t border-border p-5 flex flex-col gap-2.5 bg-muted/20">
+          <Separator />
+          <div className="p-5 flex flex-col gap-2.5 bg-muted/20">
             <Button
               type="button"
               onClick={() => handleApply()}

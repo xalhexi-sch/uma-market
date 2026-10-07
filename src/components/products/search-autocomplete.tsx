@@ -11,6 +11,8 @@ import {
   RiArrowRightLine,
 } from "@remixicon/react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { ProductImage } from "@/components/marketplace/product-image";
 import { CURRENCY } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -309,39 +311,45 @@ export function SearchAutocomplete({
 
           {/* Category Chips / Quick Jump */}
           {activeCategories.length > 0 && (
-            <div className="border-t border-border/60 p-2 bg-muted/20">
-              <div className="px-1.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Categories
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {activeCategories.map((cat, catIdx) => {
-                  const globalIdx = activeSuggestions.length + catIdx;
-                  const isHighlighted = highlightedIndex === globalIdx;
+            <>
+              {activeSuggestions.length > 0 && <Separator />}
+              <div className="p-2 bg-muted/20">
+                <div className="px-1.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Categories
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeCategories.map((cat, catIdx) => {
+                    const globalIdx = activeSuggestions.length + catIdx;
+                    const isHighlighted = highlightedIndex === globalIdx;
 
-                  return (
-                    <Link
-                      key={cat.slug}
-                      id={`suggestion-item-${globalIdx}`}
-                      role="option"
-                      aria-selected={isHighlighted}
-                      href={`${basePath}?category=${encodeURIComponent(cat.slug)}`}
-                      onClick={() => setIsOpen(false)}
-                      onMouseEnter={() => setHighlightedIndex(globalIdx)}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-colors",
-                        isHighlighted
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background text-foreground border-border hover:border-primary/50"
-                      )}
-                    >
-                      <RiPlantLine className="size-3 text-primary" />
-                      <span>{cat.name}</span>
-                      <RiArrowRightLine className="size-3 opacity-60" />
-                    </Link>
-                  );
-                })}
+                    return (
+                      <Link
+                        key={cat.slug}
+                        id={`suggestion-item-${globalIdx}`}
+                        role="option"
+                        aria-selected={isHighlighted}
+                        href={`${basePath}?category=${encodeURIComponent(cat.slug)}`}
+                        onClick={() => setIsOpen(false)}
+                        onMouseEnter={() => setHighlightedIndex(globalIdx)}
+                        className="inline-flex"
+                      >
+                        <Badge
+                          variant={isHighlighted ? "default" : "outline"}
+                          className={cn(
+                            "cursor-pointer gap-1.5 py-1 px-2.5 text-xs font-medium transition-colors",
+                            !isHighlighted && "bg-background hover:border-primary/50"
+                          )}
+                        >
+                          <RiPlantLine className={cn("size-3", isHighlighted ? "text-primary-foreground" : "text-primary")} />
+                          <span>{cat.name}</span>
+                          <RiArrowRightLine className="size-3 opacity-60" />
+                        </Badge>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Empty State */}
@@ -357,7 +365,8 @@ export function SearchAutocomplete({
           )}
 
           {/* Footer query submit CTA */}
-          <div className="border-t border-border/60 px-3 py-2 bg-muted/40 flex items-center justify-between text-[11px] text-muted-foreground">
+          <Separator />
+          <div className="px-3 py-2 bg-muted/40 flex items-center justify-between text-[11px] text-muted-foreground">
             <span>
               Press <kbd className="px-1 py-0.5 rounded bg-muted border border-border font-mono text-[10px]">↵ Enter</kbd> for all results
             </span>

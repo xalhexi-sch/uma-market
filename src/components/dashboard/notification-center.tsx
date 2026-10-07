@@ -17,6 +17,18 @@ import { cn } from "@/lib/utils";
 
 const LIMIT = 30;
 
+/**
+ * action_url is server-generated (INSERT is revoked for clients and the
+ * read-only UPDATE trigger locks the column), but navigation is still
+ * constrained to same-origin paths as defense in depth — legacy V2
+ * notification URLs are relative and pass through unchanged.
+ */
+function safeHref(actionUrl: string): string {
+  return actionUrl.startsWith("/") && !actionUrl.startsWith("//") && !actionUrl.startsWith("/\\")
+    ? actionUrl
+    : "/dashboard";
+}
+
 export function NotificationCenter() {
   const { userId, getToken } = useAuth();
   const supabase = useSupabase();
@@ -96,7 +108,7 @@ export function NotificationCenter() {
         </PopoverHeader>
         <Separator />
         <ScrollArea className="h-[min(28rem,70vh)]">
-          {loading ? <div className="space-y-3 p-4"><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /></div> : error ? <Empty><EmptyHeader><EmptyMedia variant="icon"><RiNotification3Line /></EmptyMedia><EmptyTitle>Could not load notifications</EmptyTitle><EmptyDescription>Try opening this panel again.</EmptyDescription></EmptyHeader></Empty> : items.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon"><RiNotification3Line /></EmptyMedia><EmptyTitle>No notifications yet</EmptyTitle><EmptyDescription>Updates about your orders and messages will appear here.</EmptyDescription></EmptyHeader></Empty> : <div>{items.map((item, index) => <div key={item.id}><Link href={item.action_url} onClick={() => void markRead(item)} className={cn("block px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none", !item.read_at && "bg-primary/5")}><div className="flex gap-3"><span className={cn("mt-1.5 size-2 shrink-0 rounded-full", item.read_at ? "bg-transparent" : "bg-primary")} /><div className="min-w-0"><p className="text-sm font-medium">{item.title}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.body}</p><time className="mt-1 block text-[11px] text-muted-foreground" dateTime={item.created_at}>{new Date(item.created_at).toLocaleString()}</time></div></div></Link>{index < items.length - 1 && <Separator />}</div>)}</div>}
+          {loading ? <div className="space-y-3 p-4"><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /></div> : error ? <Empty><EmptyHeader><EmptyMedia variant="icon"><RiNotification3Line /></EmptyMedia><EmptyTitle>Could not load notifications</EmptyTitle><EmptyDescription>Try opening this panel again.</EmptyDescription></EmptyHeader></Empty> : items.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon"><RiNotification3Line /></EmptyMedia><EmptyTitle>No notifications yet</EmptyTitle><EmptyDescription>Updates about your orders and messages will appear here.</EmptyDescription></EmptyHeader></Empty> : <div>{items.map((item, index) => <div key={item.id}><Link href={safeHref(item.action_url)} onClick={() => void markRead(item)} className={cn("block px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none", !item.read_at && "bg-primary/5")}><div className="flex gap-3"><span className={cn("mt-1.5 size-2 shrink-0 rounded-full", item.read_at ? "bg-transparent" : "bg-primary")} /><div className="min-w-0"><p className="text-sm font-medium">{item.title}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.body}</p><time className="mt-1 block text-[11px] text-muted-foreground" dateTime={item.created_at}>{new Date(item.created_at).toLocaleString()}</time></div></div></Link>{index < items.length - 1 && <Separator />}</div>)}</div>}
         </ScrollArea>
       </PopoverContent>
     </Popover>
