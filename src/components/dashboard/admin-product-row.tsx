@@ -5,6 +5,7 @@ import { moderateProductStatus } from "@/app/(dashboard)/admin/actions";
 import { ProductStatusBadge } from "@/components/dashboard/product-status-badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { TableRow, TableCell } from "@/components/ui/table";
 import { CURRENCY } from "@/lib/constants";
 import type { Product } from "@/lib/types";
 
@@ -31,26 +32,26 @@ export function AdminProductRow({ product }: AdminProductRowProps) {
   const isArchived = status === "archived";
 
   return (
-    <tr className="border-b border-border transition-colors hover:bg-muted/20 text-sm">
-      <td className="py-3 px-4 font-medium text-foreground">
+    <TableRow className="text-sm">
+      <TableCell className="font-medium text-foreground">
         <div>
           <p>{product.name}</p>
           <p className="text-xs text-muted-foreground">{product.category?.name ?? "General"}</p>
         </div>
-      </td>
-      <td className="py-3 px-4 text-muted-foreground">
+      </TableCell>
+      <TableCell className="text-muted-foreground">
         {product.farmer?.business_name || product.farmer?.full_name || "Farm Producer"}
-      </td>
-      <td className="py-3 px-4 tabular-nums">
+      </TableCell>
+      <TableCell className="tabular-nums">
         {CURRENCY}{Number(product.price_per_unit).toFixed(2)} / {product.unit}
-      </td>
-      <td className="py-3 px-4 tabular-nums">
+      </TableCell>
+      <TableCell className="tabular-nums">
         {product.quantity_available} {product.unit}
-      </td>
-      <td className="py-3 px-4">
+      </TableCell>
+      <TableCell>
         <ProductStatusBadge status={status} className="text-xs" />
-      </td>
-      <td className="py-3 px-4 text-right">
+      </TableCell>
+      <TableCell className="text-right">
         {isArchived ? (
           <Button
             size="sm"
@@ -72,7 +73,7 @@ export function AdminProductRow({ product }: AdminProductRowProps) {
             {loading ? "Updating..." : "Archive"}
           </Button>
         )}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

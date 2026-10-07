@@ -3,6 +3,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { RiArrowLeftLine, RiStoreLine } from "@remixicon/react";
 import { Empty, EmptyHeader, EmptyTitle, EmptyMedia } from "@/components/ui/empty";
+import {
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { getAdminProducts } from "@/lib/supabase/queries/admin";
 import { AdminProductRow } from "@/components/dashboard/admin-product-row";
 import type { UserRole } from "@/lib/constants";
@@ -46,21 +54,21 @@ export default async function AdminProductsPage() {
 
       <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <th className="py-3 px-4">Produce & Category</th>
-                <th className="py-3 px-4">Farm Producer</th>
-                <th className="py-3 px-4">Unit Price</th>
-                <th className="py-3 px-4">Stock</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Moderation</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-muted/40">
+                <TableHead className="text-muted-foreground">Produce & Category</TableHead>
+                <TableHead className="text-muted-foreground">Farm Producer</TableHead>
+                <TableHead className="text-muted-foreground">Unit Price</TableHead>
+                <TableHead className="text-muted-foreground">Stock</TableHead>
+                <TableHead className="text-muted-foreground">Status</TableHead>
+                <TableHead className="text-right text-muted-foreground">Moderation</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {products.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8">
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8">
                     <Empty>
                       <EmptyHeader>
                         <EmptyMedia variant="icon">
@@ -69,15 +77,15 @@ export default async function AdminProductsPage() {
                         <EmptyTitle>No products listed on the platform yet.</EmptyTitle>
                       </EmptyHeader>
                     </Empty>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 products.map((product) => (
                   <AdminProductRow key={product.id} product={product} />
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
     </div>

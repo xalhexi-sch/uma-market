@@ -9,7 +9,7 @@ import {
   CarouselNext,
   type CarouselApi,
 } from "@/components/ui/carousel";
-import { ProductImage } from "@/components/ui/product-image";
+import { ProductImage } from "@/components/marketplace/product-image";
 import { getProductImageUrl, DEFAULT_PRODUCT_PLACEHOLDER } from "@/lib/supabase/storage";
 import type { ProductImageItem } from "@/lib/types";
 import { cn } from "@/lib/utils";

@@ -1,4 +1,4 @@
-import { ProductImage } from "@/components/ui/product-image";
+import { ProductImage } from "@/components/marketplace/product-image";
 import { ProductStatusBadge } from "@/components/dashboard/product-status-badge";
 import { StockStateBadge } from "@/components/dashboard/inventory/stock-state-badge";
 import { ModerationBadge } from "@/components/dashboard/listings/moderation-badge";

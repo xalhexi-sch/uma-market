@@ -3,6 +3,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { RiArrowLeftLine, RiPlantLine, RiMapPinLine, RiPhoneLine } from "@remixicon/react";
 import { Empty, EmptyHeader, EmptyTitle, EmptyMedia } from "@/components/ui/empty";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { getAdminProfiles } from "@/lib/supabase/queries/admin";
 import { AdminVerifyButton } from "@/components/dashboard/admin-verify-button";
 import { AdminAccountStatusButton } from "@/components/dashboard/admin-account-status-button";
@@ -46,69 +54,67 @@ export default async function AdminFarmersPage() {
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <th className="py-3 px-4">Farm / Producer</th>
-                <th className="py-3 px-4">Contact Person</th>
-                <th className="py-3 px-4">Location</th>
-                <th className="py-3 px-4">Phone</th>
-                <th className="py-3 px-4">Verification</th>
-                <th className="py-3 px-4">Account Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {farmers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8">
-                    <Empty>
-                      <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                          <RiPlantLine className="size-4" />
-                        </EmptyMedia>
-                        <EmptyTitle>No farmers registered yet.</EmptyTitle>
-                      </EmptyHeader>
-                    </Empty>
-                  </td>
-                </tr>
-              ) : (
-                farmers.map((farmer) => (
-                  <tr key={farmer.clerk_id} className="border-b border-border transition-colors hover:bg-muted/20 text-sm">
-                    <td className="py-3 px-4 font-medium text-foreground">
-                      {farmer.business_name || "Farm Producer"}
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">
-                      {farmer.full_name || "—"}
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-border bg-muted/40 hover:bg-muted/40">
+              <TableHead className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Farm / Producer</TableHead>
+              <TableHead className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contact Person</TableHead>
+              <TableHead className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location</TableHead>
+              <TableHead className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</TableHead>
+              <TableHead className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Verification</TableHead>
+              <TableHead className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Account Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {farmers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-8">
+                  <Empty>
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <RiPlantLine className="size-4" />
+                      </EmptyMedia>
+                      <EmptyTitle>No farmers registered yet.</EmptyTitle>
+                    </EmptyHeader>
+                  </Empty>
+                </TableCell>
+              </TableRow>
+            ) : (
+              farmers.map((farmer) => (
+                <TableRow key={farmer.clerk_id} className="border-b border-border transition-colors hover:bg-muted/20 text-sm">
+                  <TableCell className="py-3 px-4 font-medium text-foreground">
+                    {farmer.business_name || "Farm Producer"}
+                  </TableCell>
+                  <TableCell className="py-3 px-4 text-muted-foreground">
+                    {farmer.full_name || "—"}
+                  </TableCell>
+                  <TableCell className="py-3 px-4 text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <RiMapPinLine className="size-3.5 text-muted-foreground" />
+                      <span>{farmer.city || "Butuan City"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3 px-4 text-muted-foreground">
+                    {farmer.phone ? (
                       <div className="flex items-center gap-1">
-                        <RiMapPinLine className="size-3.5 text-muted-foreground" />
-                        <span>{farmer.city || "Butuan City"}</span>
+                        <RiPhoneLine className="size-3.5 text-muted-foreground" />
+                        <span>{farmer.phone}</span>
                       </div>
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">
-                      {farmer.phone ? (
-                        <div className="flex items-center gap-1">
-                          <RiPhoneLine className="size-3.5 text-muted-foreground" />
-                          <span>{farmer.phone}</span>
-                        </div>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <AdminVerifyButton clerkId={farmer.clerk_id} isVerified={farmer.is_verified} />
-                    </td>
-                    <td className="py-3 px-4">
-                      <AdminAccountStatusButton clerkId={farmer.clerk_id} status={farmer.status} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell className="py-3 px-4">
+                    <AdminVerifyButton clerkId={farmer.clerk_id} isVerified={farmer.is_verified} />
+                  </TableCell>
+                  <TableCell className="py-3 px-4">
+                    <AdminAccountStatusButton clerkId={farmer.clerk_id} status={farmer.status} />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

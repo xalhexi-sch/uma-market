@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   Pagination,
   PaginationContent,
@@ -93,84 +92,60 @@ export function ProductPagination({
         </p>
       )}
 
-      {/* ─── Compact Mobile Pagination (< 640px) ─── */}
-      <div className="flex sm:hidden items-center justify-between w-full max-w-xs px-2 gap-2">
-        <Link
-          href={!isFirstPage ? buildPageHref(currentPage - 1) : "#"}
-          aria-disabled={isFirstPage}
-          tabIndex={isFirstPage ? -1 : undefined}
-          className={cn(
-            "inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-2xs transition-colors hover:bg-muted/50",
-            isFirstPage && "pointer-events-none opacity-40 cursor-not-allowed"
+      {/* Unified shadcn Pagination */}
+      <Pagination>
+        <PaginationContent>
+          {/* Previous Page Link */}
+          <PaginationItem>
+            <PaginationPrevious
+              href={!isFirstPage ? buildPageHref(currentPage - 1) : undefined}
+              aria-disabled={isFirstPage}
+              tabIndex={isFirstPage ? -1 : undefined}
+              className={cn(
+                isFirstPage && "pointer-events-none opacity-40 cursor-not-allowed"
+              )}
+            />
+          </PaginationItem>
+
+          {/* Compact count on mobile (< 640px) */}
+          <PaginationItem className="sm:hidden">
+            <span className="text-xs font-medium text-muted-foreground tabular-nums px-2">
+              {currentPage} / {totalPages}
+            </span>
+          </PaginationItem>
+
+          {/* Page Number Links on sm+ screens */}
+          {pages.map((p, idx) =>
+            p === "ellipsis" ? (
+              <PaginationItem key={`ellipsis-${idx}`} className="hidden sm:inline-flex">
+                <PaginationEllipsis />
+              </PaginationItem>
+            ) : (
+              <PaginationItem key={`page-${p}`} className="hidden sm:inline-flex">
+                <PaginationLink
+                  href={buildPageHref(p)}
+                  isActive={p === currentPage}
+                  className="cursor-pointer"
+                >
+                  {p}
+                </PaginationLink>
+              </PaginationItem>
+            )
           )}
-        >
-          Previous
-        </Link>
 
-        <span className="text-xs font-medium text-muted-foreground tabular-nums">
-          {currentPage} / {totalPages}
-        </span>
-
-        <Link
-          href={!isLastPage ? buildPageHref(currentPage + 1) : "#"}
-          aria-disabled={isLastPage}
-          tabIndex={isLastPage ? -1 : undefined}
-          className={cn(
-            "inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-2xs transition-colors hover:bg-muted/50",
-            isLastPage && "pointer-events-none opacity-40 cursor-not-allowed"
-          )}
-        >
-          Next
-        </Link>
-      </div>
-
-      {/* ─── Standard shadcn Pagination (>= 640px) ─── */}
-      <div className="hidden sm:flex">
-        <Pagination>
-          <PaginationContent>
-            {/* Previous Page Link */}
-            <PaginationItem>
-              <PaginationPrevious
-                href={!isFirstPage ? buildPageHref(currentPage - 1) : undefined}
-                aria-disabled={isFirstPage}
-                className={cn(
-                  isFirstPage && "pointer-events-none opacity-40 cursor-not-allowed"
-                )}
-              />
-            </PaginationItem>
-
-            {/* Page Number Links */}
-            {pages.map((p, idx) =>
-              p === "ellipsis" ? (
-                <PaginationItem key={`ellipsis-${idx}`}>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              ) : (
-                <PaginationItem key={`page-${p}`}>
-                  <PaginationLink
-                    href={buildPageHref(p)}
-                    isActive={p === currentPage}
-                    className="cursor-pointer"
-                  >
-                    {p}
-                  </PaginationLink>
-                </PaginationItem>
-              )
-            )}
-
-            {/* Next Page Link */}
-            <PaginationItem>
-              <PaginationNext
-                href={!isLastPage ? buildPageHref(currentPage + 1) : undefined}
-                aria-disabled={isLastPage}
-                className={cn(
-                  isLastPage && "pointer-events-none opacity-40 cursor-not-allowed"
-                )}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
+          {/* Next Page Link */}
+          <PaginationItem>
+            <PaginationNext
+              href={!isLastPage ? buildPageHref(currentPage + 1) : undefined}
+              aria-disabled={isLastPage}
+              tabIndex={isLastPage ? -1 : undefined}
+              className={cn(
+                isLastPage && "pointer-events-none opacity-40 cursor-not-allowed"
+              )}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
     </div>
   );
 }

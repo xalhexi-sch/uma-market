@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { RiPlantLine } from "@remixicon/react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CategoryIcon } from "@/components/marketplace/category-icon";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -19,6 +22,7 @@ interface CategoryPillsProps {
 
 /**
  * Shared CategoryPills component adhering to UMA Market design system:
+ * - Powered by shadcn ToggleGroup / ToggleGroupItem primitives
  * - Rounded-full capsule pills with horizontal ribbon scrolling
  * - Semantic category icon reinforcement
  * - Whitespace-nowrap for multi-word categories
@@ -50,44 +54,60 @@ export function CategoryPills({
     return `${basePath}${qs ? `?${qs}` : ""}`;
   };
 
+  const selectedValue = activeCategory || "all";
+
   return (
     <div
       className={cn(
-        "flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar",
+        "flex items-center overflow-x-auto pb-1 pt-1 no-scrollbar",
         className
       )}
       role="navigation"
       aria-label="Filter by produce category"
     >
-      <Link
-        href={buildCategoryHref()}
-        aria-current={!activeCategory ? "page" : undefined}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs",
-          !activeCategory
-            ? "bg-primary text-primary-foreground border-primary"
-            : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-        )}
+      <ToggleGroup
+        value={[selectedValue]}
+        variant="outline"
+        size="sm"
+        spacing={2}
+        className="w-max"
       >
-        <RiPlantLine className="size-3.5 shrink-0" />
-        <span>{allLabel}</span>
-      </Link>
-      {categories.map((cat) => (
-        <Link
-          key={cat.slug}
-          href={buildCategoryHref(cat.slug)}
-          aria-current={activeCategory === cat.slug ? "page" : undefined}
+        <ToggleGroupItem
+          value="all"
+          nativeButton={false}
+          render={<Link href={buildCategoryHref()} />}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors border shadow-2xs",
-            activeCategory === cat.slug
-              ? "bg-primary text-primary-foreground border-primary"
-              : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+            "rounded-full px-3.5 py-1.5 text-xs font-semibold gap-1.5 shadow-2xs transition-colors",
+            selectedValue === "all"
+              ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:text-primary-foreground"
+              : "text-muted-foreground hover:border-primary/40 hover:text-foreground"
           )}
         >
-          <CategoryIcon slug={cat.slug} className="size-3.5 shrink-0" />
-          <span>{cat.name}</span>
-        </Link>
-      ))}
+          <RiPlantLine className="size-3.5 shrink-0" />
+          <span>{allLabel}</span>
+        </ToggleGroupItem>
+
+        {categories.map((cat) => {
+          const isSelected = selectedValue === cat.slug;
+          return (
+            <ToggleGroupItem
+              key={cat.slug}
+              value={cat.slug}
+              nativeButton={false}
+              render={<Link href={buildCategoryHref(cat.slug)} />}
+              className={cn(
+                "rounded-full px-3.5 py-1.5 text-xs font-semibold gap-1.5 shadow-2xs transition-colors",
+                isSelected
+                  ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:text-primary-foreground"
+                  : "text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              )}
+            >
+              <CategoryIcon slug={cat.slug} className="size-3.5 shrink-0" />
+              <span>{cat.name}</span>
+            </ToggleGroupItem>
+          );
+        })}
+      </ToggleGroup>
     </div>
   );
 }

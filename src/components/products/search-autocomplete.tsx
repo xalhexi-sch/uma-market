@@ -11,7 +11,7 @@ import {
   RiArrowRightLine,
 } from "@remixicon/react";
 import { Input } from "@/components/ui/input";
-import { ProductImage } from "@/components/ui/product-image";
+import { ProductImage } from "@/components/marketplace/product-image";
 import { CURRENCY } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type {

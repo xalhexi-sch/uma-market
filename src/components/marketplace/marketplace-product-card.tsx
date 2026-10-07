@@ -3,7 +3,7 @@ import { RiPlantLine, RiCheckboxCircleFill } from "@remixicon/react";
 import { Badge } from "@/components/ui/badge";
 import { CURRENCY } from "@/lib/constants";
 import { getProductImageUrl } from "@/lib/supabase/storage";
-import { ProductImage } from "@/components/ui/product-image";
+import { ProductImage } from "@/components/marketplace/product-image";
 import { routes } from "@/platform/routes";
 import type { Product } from "@/lib/types";
 

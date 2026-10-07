@@ -11,7 +11,7 @@ import {
 } from "@remixicon/react";
 import { updateBusinessCartItemQuantity, removeFromBusinessCart } from "@/platform/cart-actions";
 import { getProductImageUrl } from "@/lib/supabase/storage";
-import { ProductImage } from "@/components/ui/product-image";
+import { ProductImage } from "@/components/marketplace/product-image";
 import { toast } from "@/components/ui/toast";
 import { CURRENCY } from "@/lib/constants";
 import { routes } from "@/platform/routes";

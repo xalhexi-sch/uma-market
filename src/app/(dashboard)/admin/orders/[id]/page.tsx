@@ -16,6 +16,15 @@ import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { OrderProgress } from "@/components/dashboard/order-progress";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableFooter,
+} from "@/components/ui/table";
 import { CURRENCY } from "@/lib/constants";
 import type { UserRole, OrderStatus } from "@/lib/constants";
 
@@ -218,54 +227,52 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm border-collapse">
-                <thead>
-                  <tr className="border-b border-border bg-muted/40 text-xs font-semibold text-muted-foreground">
-                    <th className="py-2.5 px-4">Item</th>
-                    <th className="py-2.5 px-4 text-right">Unit Price</th>
-                    <th className="py-2.5 px-4 text-right">Quantity</th>
-                    <th className="py-2.5 px-4 text-right">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.items && order.items.length > 0 ? (
-                    order.items.map((item) => (
-                      <tr key={item.id} className="border-b border-border text-xs sm:text-sm">
-                        <td className="py-3 px-4 font-medium text-foreground">
-                          {item.product_name}
-                        </td>
-                        <td className="py-3 px-4 text-right text-muted-foreground tabular-nums">
-                          {CURRENCY}{Number(item.unit_price).toFixed(2)} / {item.unit}
-                        </td>
-                        <td className="py-3 px-4 text-right text-foreground tabular-nums">
-                          {item.quantity} {item.unit}
-                        </td>
-                        <td className="py-3 px-4 text-right font-medium text-foreground tabular-nums">
-                          {CURRENCY}{Number(item.subtotal).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="py-4 text-center text-xs text-muted-foreground">
-                        No line items recorded.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-muted/30 font-semibold text-sm">
-                    <td colSpan={3} className="py-3 px-4 text-right text-foreground">
-                      Total Order Amount:
-                    </td>
-                    <td className="py-3 px-4 text-right text-foreground tabular-nums">
-                      {CURRENCY}{(Number(order.total_amount) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-border bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="py-2.5 px-4 text-xs font-semibold text-muted-foreground">Item</TableHead>
+                  <TableHead className="py-2.5 px-4 text-xs font-semibold text-muted-foreground text-right">Unit Price</TableHead>
+                  <TableHead className="py-2.5 px-4 text-xs font-semibold text-muted-foreground text-right">Quantity</TableHead>
+                  <TableHead className="py-2.5 px-4 text-xs font-semibold text-muted-foreground text-right">Subtotal</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {order.items && order.items.length > 0 ? (
+                  order.items.map((item) => (
+                    <TableRow key={item.id} className="border-b border-border text-xs sm:text-sm">
+                      <TableCell className="py-3 px-4 font-medium text-foreground">
+                        {item.product_name}
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-right text-muted-foreground tabular-nums">
+                        {CURRENCY}{Number(item.unit_price).toFixed(2)} / {item.unit}
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-right text-foreground tabular-nums">
+                        {item.quantity} {item.unit}
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-right font-medium text-foreground tabular-nums">
+                        {CURRENCY}{Number(item.subtotal).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-4 text-center text-xs text-muted-foreground">
+                      No line items recorded.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+              <TableFooter>
+                <TableRow className="bg-muted/30 font-semibold text-sm hover:bg-muted/30">
+                  <TableCell colSpan={3} className="py-3 px-4 text-right text-foreground">
+                    Total Order Amount:
+                  </TableCell>
+                  <TableCell className="py-3 px-4 text-right text-foreground tabular-nums">
+                    {CURRENCY}{(Number(order.total_amount) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
           </CardContent>
         </Card>
 
