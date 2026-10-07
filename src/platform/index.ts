@@ -74,3 +74,18 @@ export {
   removeFromBusinessCart,
 } from "./cart-actions";
 
+// Business Member Actions & Queries (V4)
+export {
+  getBusinessMembers,
+  getBusinessPendingInvitations,
+  type BusinessMemberDetail,
+  type BusinessInvitationDetail,
+} from "./member-queries";
+
+export {
+  inviteBusinessStaffAction,
+  removeBusinessMemberAction,
+  revokeBusinessInvitationAction,
+  type MemberActionResult,
+} from "./member-actions";
+

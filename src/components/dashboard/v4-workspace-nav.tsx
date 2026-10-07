@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { RiDashboardLine, RiPlantLine, RiStackLine } from "@remixicon/react";
+import { RiDashboardLine, RiPlantLine, RiStackLine, RiTeamLine } from "@remixicon/react";
 import { routes } from "@/platform/routes";
 import { cn } from "@/lib/utils";
 
-export type WorkspaceSection = "overview" | "listings" | "inventory";
+export type WorkspaceSection = "overview" | "listings" | "inventory" | "members";
 
 interface V4WorkspaceNavProps {
   active: WorkspaceSection;
@@ -21,6 +21,7 @@ export function V4WorkspaceNav({ active, canSell }: V4WorkspaceNavProps) {
           { id: "inventory" as const, label: "Inventory", href: routes.dashboard.inventory, Icon: RiStackLine },
         ]
       : []),
+    { id: "members" as const, label: "Members", href: routes.dashboard.members, Icon: RiTeamLine },
   ];
 
   return (
@@ -32,6 +33,7 @@ export function V4WorkspaceNav({ active, canSell }: V4WorkspaceNavProps) {
             <li key={id} className="shrink-0">
               <Link
                 href={href}
+                data-testid={`v4-workspace-nav-${id}`}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium outline-none transition-colors motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-t-md",

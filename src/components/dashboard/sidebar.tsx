@@ -14,6 +14,7 @@ import {
   RiShieldLine,
   RiShoppingCart2Line,
   RiHomeLine,
+  RiTeamLine,
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { APP_NAME, type UserRole } from "@/lib/constants";
@@ -34,6 +35,7 @@ export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "My Products", href: "/farmer/products", icon: RiPlantLine },
     { label: "Orders", href: "/farmer/orders", icon: RiShoppingBagLine, badgeKey: "farmerOrders" },
     { label: "Messages", href: "/farmer/messages", icon: RiMessage2Line },
+    { label: "Members", href: routes.dashboard.members, icon: RiTeamLine },
     { label: "Profile", href: routes.dashboard.profile, icon: RiUserLine },
   ],
   // Canonical V4 buyer routes. The legacy /business/* tree only redirects here.
@@ -43,6 +45,7 @@ export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Cart", href: routes.cart, icon: RiShoppingCart2Line, badgeKey: "cart" },
     { label: "Orders", href: routes.orders, icon: RiShoppingBagLine, badgeKey: "businessOrders" },
     { label: "Messages", href: routes.dashboard.messages, icon: RiMessage2Line },
+    { label: "Members", href: routes.dashboard.members, icon: RiTeamLine },
     { label: "Profile", href: routes.dashboard.profile, icon: RiUserLine },
   ],
   admin: [

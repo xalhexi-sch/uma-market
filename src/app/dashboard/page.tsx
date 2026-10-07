@@ -845,15 +845,27 @@ export default async function V4DashboardPage() {
                     <RiTeamLine className="size-5" aria-hidden="true" />
                   )}
                 </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">
-                    {isOwner ? "Owner Privileges" : "Staff Access"}
-                  </h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {isOwner
-                      ? `As the Owner of ${business.name}, you have administrative and operational control over listings, orders, and team members.`
-                      : `You are signed in as Staff for ${business.name}. Operational access (catalog, orders, messages) is active. Administrative settings are managed by the business owner.`}
-                  </p>
+                <div className="flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {isOwner ? "Owner Privileges" : "Staff Access"}
+                      </h3>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {isOwner
+                          ? `As the Owner of ${business.name}, you have administrative and operational control over listings, orders, and team members.`
+                          : `You are signed in as Staff for ${business.name}. Operational access (catalog, orders, messages) is active. Administrative settings are managed by the business owner.`}
+                      </p>
+                    </div>
+                    <Link
+                      href={routes.dashboard.members}
+                      data-testid="role-info-members-link"
+                      className={buttonVariants({ size: "sm", variant: isOwner ? "default" : "outline" })}
+                    >
+                      {isOwner ? "Manage Team" : "View Team"}
+                      <RiArrowRightLine className="ml-1.5 size-3.5" aria-hidden="true" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
