@@ -90,7 +90,7 @@ export default async function HomePage() {
         {/* ── 1. Hero ──────────────────────────────────────── */}
         <section
           aria-labelledby="hero-heading"
-          className="relative isolate overflow-hidden pt-28 pb-16 sm:pt-32 sm:pb-20 lg:pt-36 lg:pb-20"
+          className="relative isolate overflow-hidden pt-28 pb-20 sm:pt-32 sm:pb-24 lg:pt-36 lg:pb-24"
         >
           {/* Quiet background: soft accent glow + faint grid */}
           <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
@@ -194,16 +194,11 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── 2 + 4. Live discovery preview + local producers ── */}
-        <Suspense fallback={<HomeMarketplaceSkeleton />}>
-          <HomeMarketplace isProducer={isProducer} />
-        </Suspense>
-
-        {/* ── 3. How UMA works ─────────────────────────────── */}
+        {/* ── 2. How UMA works ─────────────────────────────── */}
         <section
           id="how"
           aria-labelledby="how-heading"
-          className="scroll-mt-20 border-t border-border/60 bg-background py-16 sm:py-20 lg:py-24"
+          className="scroll-mt-20 border-t border-border/60 bg-muted/30 py-16 sm:py-20 lg:py-24"
         >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <SectionHeading
@@ -216,7 +211,7 @@ export default async function HomePage() {
               {FLOW_STEPS.map((step, index) => (
                 <li
                   key={step.label}
-                  className="relative flex flex-col rounded-2xl border border-border bg-card p-6"
+                  className="relative flex flex-col rounded-2xl border border-border bg-card p-6 shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
                     <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -247,10 +242,15 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {/* ── 3 + 4. Live discovery preview + local producers ── */}
+        <Suspense fallback={<HomeMarketplaceSkeleton />}>
+          <HomeMarketplace isProducer={isProducer} />
+        </Suspense>
+
         {/* ── 5. Trust ─────────────────────────────────────── */}
         <section
           aria-labelledby="trust-heading"
-          className="border-t border-border/60 bg-muted/30 py-16 sm:py-20 lg:py-24"
+          className="border-t border-border/60 bg-background py-16 sm:py-20 lg:py-24"
         >
           <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-12 lg:gap-14">
             <div className="lg:col-span-5">
@@ -265,7 +265,7 @@ export default async function HomePage() {
               {TRUST_POINTS.map((point) => (
                 <li
                   key={point.title}
-                  className="rounded-2xl border border-border bg-card p-5"
+                  className="rounded-2xl border border-border bg-card p-5 shadow-2xs"
                 >
                   <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <point.icon aria-hidden className="size-[18px]" />
@@ -285,9 +285,9 @@ export default async function HomePage() {
         {/* ── 6. Final CTA ─────────────────────────────────── */}
         <section
           aria-labelledby="cta-heading"
-          className="border-t border-border/60 bg-background px-4 py-16 sm:px-6 sm:py-20"
+          className="border-t border-border/60 bg-muted/30 px-4 py-16 sm:px-6 sm:py-20 lg:py-24"
         >
-          <div className="relative isolate mx-auto max-w-6xl overflow-hidden rounded-3xl border border-border bg-card px-6 py-14 text-center sm:px-12 sm:py-16">
+          <div className="relative isolate mx-auto max-w-6xl overflow-hidden rounded-3xl border border-border bg-card px-6 py-14 text-center sm:px-12 sm:py-16 shadow-xs">
             <div
               aria-hidden
               className="pointer-events-none absolute left-1/2 top-0 -z-10 size-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15 blur-3xl"
