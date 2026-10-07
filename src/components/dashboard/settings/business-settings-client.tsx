@@ -17,6 +17,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { routes } from "@/platform/routes";
@@ -133,64 +145,59 @@ export function BusinessSettingsClient({
     >
       {/* Staff read-only notice */}
       {!isOwner && (
-        <div
+        <Alert
           data-testid="staff-readonly-notice"
-          className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground"
+          className="border-border bg-muted/40 text-muted-foreground"
         >
-          <RiInformationLine className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
-          <div>
-            <p className="font-semibold text-foreground">Read-only view</p>
-            <p className="mt-0.5">
-              You are signed in as a <span className="font-medium text-foreground">{role}</span> member. Only the business owner can edit business information or change capabilities.
-            </p>
-          </div>
-        </div>
+          <RiInformationLine className="size-4 text-primary" aria-hidden="true" />
+          <AlertTitle className="font-semibold text-foreground">Read-only view</AlertTitle>
+          <AlertDescription className="mt-0.5">
+            You are signed in as a <span className="font-medium text-foreground">{role}</span> member. Only the business owner can edit business information or change capabilities.
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Inline Feedback Alerts */}
       {error && (
-        <div
+        <Alert
+          variant="destructive"
           data-testid="settings-error"
-          role="alert"
-          className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+          className="border-destructive/30 bg-destructive/10 text-destructive"
         >
-          <RiAlertLine className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-          <p className="font-medium">{error}</p>
-        </div>
+          <RiAlertLine className="size-4" aria-hidden="true" />
+          <AlertTitle className="font-medium">Error</AlertTitle>
+          <AlertDescription className="text-destructive font-medium">{error}</AlertDescription>
+        </Alert>
       )}
 
       {success && (
-        <div
+        <Alert
           data-testid="settings-success"
           role="status"
-          className="flex items-start gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-400"
+          className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
         >
-          <RiCheckLine className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-          <p className="font-medium">{success}</p>
-        </div>
+          <RiCheckLine className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <AlertTitle className="font-medium text-emerald-800 dark:text-emerald-300">Success</AlertTitle>
+          <AlertDescription className="font-medium text-emerald-700 dark:text-emerald-400">{success}</AlertDescription>
+        </Alert>
       )}
 
       <form onSubmit={handleSave} className="flex flex-col gap-8">
         {/* Section 1: Business Information */}
-        <section
-          aria-labelledby="business-info-heading"
-          className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-xs"
-        >
-          <div className="flex items-center gap-2.5 pb-4 border-b border-border/60">
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-3 border-b border-border/60 pb-4">
             <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <RiStore2Line className="size-5" aria-hidden="true" />
             </div>
             <div>
-              <h2 id="business-info-heading" className="text-base font-semibold text-foreground">
-                Business Information
-              </h2>
-              <p className="text-xs text-muted-foreground">
+              <CardTitle id="business-info-heading">Business Information</CardTitle>
+              <CardDescription className="text-xs">
                 The public name of your farm or business across UMA Market.
-              </p>
+              </CardDescription>
             </div>
-          </div>
+          </CardHeader>
 
-          <div className="mt-5 space-y-4">
+          <CardContent className="pt-5 space-y-4">
             <div className="space-y-1.5">
               <label
                 htmlFor="business-name"
@@ -213,75 +220,72 @@ export function BusinessSettingsClient({
                 Between 2 and 100 characters. Used on invoices, orders, and marketplace chats.
               </p>
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
         {/* Section 2: How you use UMA */}
-        <section
-          aria-labelledby="capability-heading"
-          className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-xs"
-        >
-          <div className="flex items-center gap-2.5 pb-4 border-b border-border/60">
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-3 border-b border-border/60 pb-4">
             <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <RiExchangeLine className="size-5" aria-hidden="true" />
             </div>
             <div>
-              <h2 id="capability-heading" className="text-base font-semibold text-foreground">
-                How you use UMA
-              </h2>
-              <p className="text-xs text-muted-foreground">
+              <CardTitle id="capability-heading">How you use UMA</CardTitle>
+              <CardDescription className="text-xs">
                 Configure whether this business operates as a buyer, producer, or hybrid.
-              </p>
+              </CardDescription>
             </div>
-          </div>
+          </CardHeader>
 
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {capabilityChoices.map((choice) => {
-              const isSelected = capability === choice.id;
-              const { Icon } = choice;
+          <CardContent className="pt-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {capabilityChoices.map((choice) => {
+                const isSelected = capability === choice.id;
+                const { Icon } = choice;
 
-              return (
-                <button
-                  key={choice.id}
-                  type="button"
-                  data-testid={`capability-option-${choice.id}`}
-                  disabled={!isOwner || isPending}
-                  onClick={() => isOwner && setCapability(choice.id)}
-                  className={cn(
-                    "flex flex-col items-start rounded-lg border p-4 text-left transition-all",
-                    isOwner ? "cursor-pointer" : "cursor-default opacity-85",
-                    isSelected
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                      : "border-border bg-background hover:border-border/80 hover:bg-muted/30"
-                  )}
-                >
-                  <div className="flex w-full items-center justify-between">
-                    <div
-                      className={cn(
-                        "flex size-8 items-center justify-center rounded-md",
-                        isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      <Icon className="size-4" aria-hidden="true" />
+                return (
+                  <button
+                    key={choice.id}
+                    type="button"
+                    data-testid={`capability-option-${choice.id}`}
+                    disabled={!isOwner || isPending}
+                    onClick={() => isOwner && setCapability(choice.id)}
+                    className={cn(
+                      "flex flex-col items-start rounded-lg border p-4 text-left transition-all",
+                      isOwner ? "cursor-pointer" : "cursor-default opacity-85",
+                      isSelected
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border bg-background hover:border-border/80 hover:bg-muted/30"
+                    )}
+                  >
+                    <div className="flex w-full items-center justify-between">
+                      <div
+                        className={cn(
+                          "flex size-8 items-center justify-center rounded-md",
+                          isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        <Icon className="size-4" aria-hidden="true" />
+                      </div>
+                      <Badge variant={isSelected ? "default" : "outline"} className="text-[10px]">
+                        {choice.badge}
+                      </Badge>
                     </div>
-                    <Badge variant={isSelected ? "default" : "outline"} className="text-[10px]">
-                      {choice.badge}
-                    </Badge>
-                  </div>
 
-                  <h3 className="mt-3 text-sm font-semibold text-foreground">{choice.title}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{choice.subtitle}</p>
-                </button>
-              );
-            })}
-          </div>
+                    <h3 className="mt-3 text-sm font-semibold text-foreground">{choice.title}</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{choice.subtitle}</p>
+                  </button>
+                );
+              })}
+            </div>
 
-          {capability === "buy" && initialCanSell && (
-            <p className="mt-4 text-xs text-amber-600 dark:text-amber-400">
-              Note: Changing to Buyer-only hides producer listing and inventory management tools for this business.
-            </p>
-          )}
-        </section>
+            {capability === "buy" && initialCanSell && (
+              <p className="mt-4 text-xs text-amber-600 dark:text-amber-400">
+                Note: Changing to Buyer-only hides producer listing and inventory management tools for this business.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Section 3: Save button (Owners only) */}
         {isOwner && (
@@ -306,11 +310,8 @@ export function BusinessSettingsClient({
       </form>
 
       {/* Section 4: Team & Members Link */}
-      <section
-        aria-labelledby="team-heading"
-        className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-xs"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <Card>
+        <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 sm:p-6">
           <div className="flex items-start gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <RiTeamLine className="size-5" aria-hidden="true" />
@@ -333,8 +334,8 @@ export function BusinessSettingsClient({
             <span>Manage members</span>
             <RiArrowRightLine className="size-3.5" aria-hidden="true" />
           </Link>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   );
 }

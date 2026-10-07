@@ -24,6 +24,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -153,12 +157,13 @@ export function BusinessSwitcher({
                   {activeBusiness.name}
                 </p>
                 <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span
+                  <Badge
+                    variant="outline"
                     data-testid="sidebar-business-role"
-                    className="font-semibold uppercase tracking-wider"
+                    className="h-4 px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-border/60"
                   >
                     {activeBusiness.role}
-                  </span>
+                  </Badge>
                   <span className="text-muted-foreground/40" aria-hidden="true">•</span>
                   <span className="truncate">
                     {activeBusiness.canBuy && activeBusiness.canSell
@@ -208,9 +213,12 @@ export function BusinessSwitcher({
                 {activeBusiness.name}
               </span>
               <div className="flex items-center gap-1 leading-none mt-0.5 text-[10px] text-muted-foreground">
-                <span className="font-semibold uppercase tracking-wider">
+                <Badge
+                  variant="outline"
+                  className="h-3.5 px-1 py-0 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground border-border/60"
+                >
                   {activeBusiness.role}
-                </span>
+                </Badge>
                 <span className="text-muted-foreground/40 text-[9px]" aria-hidden="true">•</span>
                 <span className="truncate">
                   {activeBusiness.canBuy && activeBusiness.canSell
@@ -257,9 +265,12 @@ export function BusinessSwitcher({
                   {activeBusiness.name}
                 </p>
                 <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span className="font-semibold uppercase tracking-wider">
+                  <Badge
+                    variant="outline"
+                    className="h-4 px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-border/60"
+                  >
                     {activeBusiness.role}
-                  </span>
+                  </Badge>
                   <span className="text-muted-foreground/40" aria-hidden="true">•</span>
                   <span className="truncate">
                     {activeBusiness.canBuy && activeBusiness.canSell
@@ -326,85 +337,90 @@ export function BusinessSwitcher({
             </p>
           </div>
 
-          <div className="my-1 border-t border-border/60" />
+          <Separator className="my-1" />
 
           {/* Memberships List */}
-          <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto" role="menu">
-            {memberships.map((m) => {
-              const isCurrent = m.isActive || m.id === activeBusiness.id;
-              const isThisSwitching = isSwitching && switchingId === m.id;
+          <ScrollArea className="max-h-60" role="menu">
+            <div className="flex flex-col gap-0.5 pr-2">
+              {memberships.map((m) => {
+                const isCurrent = m.isActive || m.id === activeBusiness.id;
+                const isThisSwitching = isSwitching && switchingId === m.id;
 
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="menuitem"
-                  data-testid={`business-item-${m.id}`}
-                  data-business-option={`business-option-${m.id}`}
-                  disabled={isSwitching}
-                  onClick={() => handleSwitch(m.id, m.name)}
-                  className={cn(
-                    "flex w-full items-center justify-between gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors cursor-pointer",
-                    isCurrent
-                      ? "bg-accent/60 text-foreground font-medium"
-                      : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
-                    isSwitching && !isThisSwitching && "opacity-50 pointer-events-none"
-                  )}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div
-                      className={cn(
-                        "flex size-6 shrink-0 items-center justify-center rounded-md",
-                        m.canSell
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "bg-primary/10 text-primary"
-                      )}
-                      aria-hidden="true"
-                    >
-                      {m.canSell ? (
-                        <RiPlantLine className="size-3.5" />
-                      ) : (
-                        <RiBuildingLine className="size-3.5" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold leading-tight text-foreground" title={m.name}>
-                        {m.name}
-                      </p>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                        <span className="font-semibold uppercase tracking-wider">
-                          {m.role}
-                        </span>
-                        <span className="text-muted-foreground/40" aria-hidden="true">•</span>
-                        <span className="truncate">
-                          {m.canBuy && m.canSell
-                            ? "Buy & Sell"
-                            : m.canSell
-                            ? "Producer"
-                            : "Buyer"}
-                        </span>
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    role="menuitem"
+                    data-testid={`business-item-${m.id}`}
+                    data-business-option={`business-option-${m.id}`}
+                    disabled={isSwitching}
+                    onClick={() => handleSwitch(m.id, m.name)}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors cursor-pointer",
+                      isCurrent
+                        ? "bg-accent/60 text-foreground font-medium"
+                        : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
+                      isSwitching && !isThisSwitching && "opacity-50 pointer-events-none"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className={cn(
+                          "flex size-6 shrink-0 items-center justify-center rounded-md",
+                          m.canSell
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "bg-primary/10 text-primary"
+                        )}
+                        aria-hidden="true"
+                      >
+                        {m.canSell ? (
+                          <RiPlantLine className="size-3.5" />
+                        ) : (
+                          <RiBuildingLine className="size-3.5" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold leading-tight text-foreground" title={m.name}>
+                          {m.name}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                          <Badge
+                            variant="outline"
+                            className="h-3.5 px-1 py-0 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground border-border/60"
+                          >
+                            {m.role}
+                          </Badge>
+                          <span className="text-muted-foreground/40" aria-hidden="true">•</span>
+                          <span className="truncate">
+                            {m.canBuy && m.canSell
+                              ? "Buy & Sell"
+                              : m.canSell
+                              ? "Producer"
+                              : "Buyer"}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {isThisSwitching ? (
-                    <Spinner className="size-4 shrink-0 text-primary" />
-                  ) : isCurrent ? (
-                    <span className="flex items-center gap-1">
-                      <span className="sr-only">Active</span>
-                      <RiCheckLine
-                        data-testid="active-check"
-                        className="size-4 shrink-0 text-primary"
-                        aria-hidden="true"
-                      />
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
+                    {isThisSwitching ? (
+                      <Spinner className="size-4 shrink-0 text-primary" />
+                    ) : isCurrent ? (
+                      <span className="flex items-center gap-1">
+                        <span className="sr-only">Active</span>
+                        <RiCheckLine
+                          data-testid="active-check"
+                          className="size-4 shrink-0 text-primary"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
 
-          <div className="my-1 border-t border-border/60" />
+          <Separator className="my-1" />
 
           {/* Action: Create another business */}
           <button
@@ -445,12 +461,15 @@ export function BusinessSwitcher({
 
           <form onSubmit={handleCreate} className="space-y-4 pt-1">
             {createError && (
-              <div
+              <Alert
+                variant="destructive"
                 data-testid="create-business-error"
-                className="rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive"
+                className="p-2.5 text-xs border-destructive/30 bg-destructive/10"
               >
-                {createError}
-              </div>
+                <AlertDescription className="text-xs text-destructive">
+                  {createError}
+                </AlertDescription>
+              </Alert>
             )}
 
             {/* Field 1: Business Name */}
