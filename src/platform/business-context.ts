@@ -182,11 +182,22 @@ export async function resolveActiveBusinessContext(
 
 // ── Guards ───────────────────────────────────────────────────────────────────
 
-export interface ActiveBusinessIdentity {
+export interface BusinessMembershipOption {
+  id: string;
   name: string;
   role: BusinessRole;
   canBuy: boolean;
   canSell: boolean;
+  isActive: boolean;
+}
+
+export interface ActiveBusinessIdentity {
+  id?: string;
+  name: string;
+  role: BusinessRole;
+  canBuy: boolean;
+  canSell: boolean;
+  memberships?: BusinessMembershipOption[];
 }
 
 /**
@@ -205,7 +216,8 @@ export async function getActiveBusinessContext(
 }
 
 /**
- * Safely resolves the minimal serialized identity of the active business.
+ * Safely resolves the minimal serialized identity of the active business,
+ * including all available business memberships for switching.
  * Suitable for server components passing identity to navigation and sidebar headers.
  * Returns null if no active business is available.
  */
@@ -215,10 +227,19 @@ export async function getActiveBusinessIdentity(
   const ctx = await getActiveBusinessContext(preferredBusinessId);
   if (!ctx) return null;
   return {
+    id: ctx.business.id,
     name: ctx.business.name,
     role: ctx.role,
     canBuy: ctx.canBuy,
     canSell: ctx.canSell,
+    memberships: ctx.memberships.map((m) => ({
+      id: m.business_id,
+      name: m.business?.name ?? "Business",
+      role: m.role,
+      canBuy: Boolean(m.business?.can_buy),
+      canSell: Boolean(m.business?.can_sell),
+      isActive: m.business_id === ctx.business.id,
+    })),
   };
 }
 

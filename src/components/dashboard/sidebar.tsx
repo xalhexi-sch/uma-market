@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { APP_NAME, type UserRole } from "@/lib/constants";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { routes } from "@/platform/routes";
+import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
 
 export interface NavItem {
   label: string;
@@ -98,55 +99,10 @@ export function DashboardSidebar({
         </div>
       </Link>
 
-      {/* Active Business Identity */}
+      {/* Active Business Switcher */}
       {activeBusiness && (
-        <div
-          data-testid="sidebar-active-business"
-          className="border-b border-sidebar-border bg-sidebar-accent/20 px-5 py-3"
-          aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={cn(
-                "flex size-7 shrink-0 items-center justify-center rounded-md",
-                activeBusiness.canSell
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "bg-primary/10 text-primary"
-              )}
-              aria-hidden="true"
-            >
-              {activeBusiness.canSell ? (
-                <RiPlantLine className="size-4" />
-              ) : (
-                <RiBuildingLine className="size-4" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p
-                data-testid="sidebar-business-name"
-                className="truncate text-xs font-semibold text-sidebar-foreground leading-tight"
-                title={activeBusiness.name}
-              >
-                {activeBusiness.name}
-              </p>
-              <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <span
-                  data-testid="sidebar-business-role"
-                  className="font-semibold uppercase tracking-wider"
-                >
-                  {activeBusiness.role}
-                </span>
-                <span className="text-muted-foreground/40" aria-hidden="true">•</span>
-                <span className="truncate">
-                  {activeBusiness.canBuy && activeBusiness.canSell
-                    ? "Buy & Sell"
-                    : activeBusiness.canSell
-                    ? "Producer"
-                    : "Buyer"}
-                </span>
-              </div>
-            </div>
-          </div>
+        <div data-testid="sidebar-active-business" className="border-b border-sidebar-border p-2">
+          <BusinessSwitcher activeBusiness={activeBusiness} variant="sidebar" />
         </div>
       )}
 

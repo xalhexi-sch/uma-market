@@ -2,13 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { MarketplaceUserButton } from "./marketplace-user-button";
-import { RiShoppingCart2Line, RiArrowRightLine, RiPlantLine, RiBuildingLine } from "@remixicon/react";
+import { RiShoppingCart2Line, RiArrowRightLine } from "@remixicon/react";
 import { APP_NAME } from "@/lib/constants";
 import type { UserRole } from "@/lib/constants";
 import { routes, getActiveBusinessIdentity } from "@/platform";
 import { MarketplaceMobileNav } from "./marketplace-mobile-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { cn } from "@/lib/utils";
+import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
 
 export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string }) {
   const { isAuthenticated, sessionClaims } = await auth();
@@ -66,44 +66,8 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
           {isAuthenticated ? (
             <>
               {activeBusiness && (
-                <div
-                  data-testid="header-active-business"
-                  className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors px-2.5 py-1 text-xs text-foreground"
-                  aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
-                >
-                  <div
-                    className={cn(
-                      "flex size-6 shrink-0 items-center justify-center rounded-md",
-                      activeBusiness.canSell
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        : "bg-primary/10 text-primary"
-                    )}
-                    aria-hidden="true"
-                  >
-                    {activeBusiness.canSell ? (
-                      <RiPlantLine className="size-3.5" />
-                    ) : (
-                      <RiBuildingLine className="size-3.5" />
-                    )}
-                  </div>
-                  <div className="flex flex-col min-w-0 max-w-[170px]">
-                    <span className="truncate font-semibold text-xs leading-tight" title={activeBusiness.name}>
-                      {activeBusiness.name}
-                    </span>
-                    <div className="flex items-center gap-1 leading-none mt-0.5 text-[10px] text-muted-foreground">
-                      <span className="font-semibold uppercase tracking-wider">
-                        {activeBusiness.role}
-                      </span>
-                      <span className="text-muted-foreground/40 text-[9px]" aria-hidden="true">•</span>
-                      <span className="truncate">
-                        {activeBusiness.canBuy && activeBusiness.canSell
-                          ? "Buy & Sell"
-                          : activeBusiness.canSell
-                          ? "Producer"
-                          : "Buyer"}
-                      </span>
-                    </div>
-                  </div>
+                <div data-testid="header-active-business">
+                  <BusinessSwitcher activeBusiness={activeBusiness} variant="header" />
                 </div>
               )}
               {isBusiness && (
@@ -146,27 +110,8 @@ export async function MarketplaceHeader({ activeRoute }: { activeRoute?: string 
         {/* Mobile Nav Toggle */}
         <div className="flex items-center gap-2 sm:hidden">
           {activeBusiness && (
-            <div
-              data-testid="header-mobile-active-business"
-              className="hidden min-[430px]:flex items-center gap-1.5 max-w-[140px] rounded-md bg-muted/40 border border-border/50 px-2 py-0.5 text-xs text-foreground"
-              aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
-            >
-              <span
-                className={cn(
-                  "flex size-4 shrink-0 items-center justify-center rounded-xs",
-                  activeBusiness.canSell
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-primary"
-                )}
-                aria-hidden="true"
-              >
-                {activeBusiness.canSell ? (
-                  <RiPlantLine className="size-3.5" />
-                ) : (
-                  <RiBuildingLine className="size-3.5" />
-                )}
-              </span>
-              <span className="truncate text-[11px] font-semibold">{activeBusiness.name}</span>
+            <div data-testid="header-mobile-active-business">
+              <BusinessSwitcher activeBusiness={activeBusiness} variant="mobile-header" />
             </div>
           )}
           <ThemeToggle />

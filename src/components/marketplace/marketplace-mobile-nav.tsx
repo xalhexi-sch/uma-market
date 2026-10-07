@@ -3,14 +3,14 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { RiMenuLine, RiShoppingCart2Line, RiArrowRightLine, RiPlantLine, RiBuildingLine } from "@remixicon/react";
+import { RiMenuLine, RiShoppingCart2Line, RiArrowRightLine } from "@remixicon/react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { APP_NAME } from "@/lib/constants";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { routes } from "@/platform/routes";
-import { cn } from "@/lib/utils";
 
 import type { ActiveBusinessIdentity } from "@/platform";
+import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
 
 interface MarketplaceMobileNavProps {
   isAuthenticated: boolean;
@@ -69,51 +69,10 @@ export function MarketplaceMobileNav({
             </Link>
           </SheetHeader>
 
-          {/* Active Business Identity inside Drawer */}
+          {/* Active Business Switcher inside Drawer */}
           {activeBusiness && (
-            <div
-              data-testid="marketplace-mobile-drawer-active-business"
-              className="mt-4 rounded-xl border border-border/60 bg-muted/30 p-3.5"
-              aria-label={`Operating as ${activeBusiness.name}, ${activeBusiness.role}`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-md",
-                    activeBusiness.canSell
-                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                      : "bg-primary/10 text-primary"
-                  )}
-                  aria-hidden="true"
-                >
-                  {activeBusiness.canSell ? (
-                    <RiPlantLine className="size-4" />
-                  ) : (
-                    <RiBuildingLine className="size-4" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p
-                    className="truncate text-xs font-semibold text-foreground leading-tight"
-                    title={activeBusiness.name}
-                  >
-                    {activeBusiness.name}
-                  </p>
-                  <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <span className="font-semibold uppercase tracking-wider">
-                      {activeBusiness.role}
-                    </span>
-                    <span className="text-muted-foreground/40" aria-hidden="true">•</span>
-                    <span className="truncate">
-                      {activeBusiness.canBuy && activeBusiness.canSell
-                        ? "Buy & Sell"
-                        : activeBusiness.canSell
-                        ? "Producer"
-                        : "Buyer"}
-                    </span>
-                  </div>
-                </div>
-              </div>
+            <div data-testid="marketplace-mobile-drawer-active-business" className="mt-4">
+              <BusinessSwitcher activeBusiness={activeBusiness} variant="drawer" />
             </div>
           )}
 

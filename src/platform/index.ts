@@ -56,7 +56,16 @@ export {
   switchActiveBusiness,
   type ActiveBusinessContext,
   type ActiveBusinessIdentity,
+  type BusinessMembershipOption,
 } from "./business-context";
+
+// Business Actions (V4)
+export {
+  createBusinessAction,
+  switchBusinessAction,
+  type CreateBusinessInput,
+  type BusinessActionResult,
+} from "./business-actions";
 
 // V4 Business Cart Actions
 export {
