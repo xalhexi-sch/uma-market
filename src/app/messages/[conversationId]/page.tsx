@@ -102,14 +102,14 @@ export default async function ConversationPage({
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-lg font-bold text-foreground flex items-center gap-1.5">
                   {conversation.counterparty.canSell ? (
-                    <RiPlantLine className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                    <RiPlantLine className="size-4 text-primary shrink-0" aria-hidden="true" />
                   ) : (
-                    <RiStoreLine className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                    <RiStoreLine className="size-4 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true" />
                   )}
                   <span>{conversation.counterparty.name}</span>
                 </h1>
                 {conversation.counterparty.canSell ? (
-                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs">
+                  <Badge variant="outline" className="border-primary/30 text-primary dark:text-primary-foreground text-xs">
                     Producer
                   </Badge>
                 ) : (

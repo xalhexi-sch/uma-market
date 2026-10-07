@@ -137,7 +137,7 @@ export function MarketplaceProductCard({
           {product.farmer?.is_verified && (
             <span
               title="Verified local producer"
-              className="inline-flex items-center gap-0.5 shrink-0 text-[11px] font-medium text-emerald-700 dark:text-emerald-400"
+              className="inline-flex items-center gap-0.5 shrink-0 text-[11px] font-medium text-primary"
             >
               <RiCheckboxCircleFill className="size-3.5 shrink-0" aria-hidden="true" />
               Verified

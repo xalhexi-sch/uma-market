@@ -20,8 +20,8 @@ export function SectionHeading({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl">
-        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary dark:text-emerald-400">
-          <span aria-hidden className="size-1.5 rounded-full bg-green-500" />
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+          <span aria-hidden className="size-1.5 rounded-full bg-primary" />
           {eyebrow}
         </p>
         <h2

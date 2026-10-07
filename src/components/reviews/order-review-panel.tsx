@@ -43,7 +43,7 @@ export function OrderReviewPanel({
               <p className="text-xs text-muted-foreground">Seller review · Verified Order</p>
             </div>
             {sellerReviewed ? (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400"><RiCheckLine className="size-4" /> Reviewed</span>
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-primary"><RiCheckLine className="size-4" /> Reviewed</span>
             ) : (
               <button type="button" onClick={() => setOpenReview(openReview === "seller" ? null : "seller")} className="text-sm font-medium text-primary hover:underline">Review seller</button>
             )}
@@ -72,7 +72,7 @@ export function OrderReviewPanel({
                   <p className="text-xs text-muted-foreground">Product review · Verified Order</p>
                 </div>
                 {reviewed ? (
-                  <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400"><RiCheckLine className="size-4" /> Reviewed</span>
+                  <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary"><RiCheckLine className="size-4" /> Reviewed</span>
                 ) : (
                   <button type="button" onClick={() => setOpenReview(openReview === key ? null : key)} className="shrink-0 text-sm font-medium text-primary hover:underline">Review product</button>
                 )}

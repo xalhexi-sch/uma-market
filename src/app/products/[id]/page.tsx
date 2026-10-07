@@ -296,7 +296,7 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                       <span className="font-semibold text-foreground">{producerName}</span>
                     )}
                     {product.farmer?.is_verified && (
-                      <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                      <span className="inline-flex items-center gap-0.5 text-xs font-medium text-primary">
                         <RiCheckboxCircleFill className="size-4" aria-hidden="true" />
                         Verified producer
                       </span>
@@ -463,7 +463,7 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
                     <p className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-foreground">
                       {producerName}
                       {product.farmer?.is_verified && (
-                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-primary">
                           <RiCheckboxCircleFill className="size-3.5" aria-hidden="true" />
                           Verified
                         </span>

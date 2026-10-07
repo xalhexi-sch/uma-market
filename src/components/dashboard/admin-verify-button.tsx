@@ -29,7 +29,7 @@ export function AdminVerifyButton({ clerkId, isVerified }: AdminVerifyButtonProp
     <div className="flex items-center gap-2">
       {isVerified ? (
         <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-500/20">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary border border-primary/20">
             <RiCheckboxCircleFill className="size-3.5" />
             Verified
           </span>

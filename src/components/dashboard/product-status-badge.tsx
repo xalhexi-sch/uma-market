@@ -4,9 +4,9 @@ import { PRODUCT_STATUS_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLES: Record<ProductStatus, string> = {
-  active: "text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/40 dark:border-emerald-800",
+  active: "text-primary bg-primary/10 border-primary/20 dark:text-primary dark:bg-primary/15 dark:border-primary/30",
   draft: "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-950/40 dark:border-amber-800",
-  out_of_stock: "text-destructive bg-destructive/5 border-destructive/20 dark:text-red-400 dark:bg-red-950/40 dark:border-red-800",
+  out_of_stock: "text-destructive bg-destructive/10 border-destructive/20 dark:text-red-400 dark:bg-red-950/40 dark:border-red-800",
   archived: "text-muted-foreground bg-muted border-border",
 };
 

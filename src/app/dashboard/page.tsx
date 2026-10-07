@@ -289,10 +289,10 @@ export default async function V4DashboardPage() {
                 {canBuy && buyerProgressCount > 0 && (
                   <div
                     data-testid="attention-buyer-progress"
-                    className="flex flex-col justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 sm:p-5 shadow-2xs"
+                    className="flex flex-col justify-between rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5 shadow-2xs"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <RiTruckLine className="size-5" aria-hidden="true" />
                       </div>
                       <div>
@@ -304,7 +304,7 @@ export default async function V4DashboardPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-emerald-500/15 flex justify-end">
+                    <div className="mt-4 pt-3 border-t border-primary/15 flex justify-end">
                       <Link
                         href={`${routes.orders}?view=progress`}
                         className={buttonVariants({ size: "sm", variant: "outline" })}
@@ -319,9 +319,9 @@ export default async function V4DashboardPage() {
             ) : (
               <div
                 data-testid="all-clear-card"
-                className="flex items-center gap-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-foreground shadow-2xs"
+                className="flex items-center gap-3.5 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground shadow-2xs"
               >
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <RiCheckboxCircleLine className="size-5" aria-hidden="true" />
                 </div>
                 <div>

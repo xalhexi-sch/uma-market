@@ -60,11 +60,11 @@ export function V4OrderStatusBanner({
       <div
         data-testid="order-status-banner"
         className={cn(
-          "rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5 flex items-start gap-3.5",
+          "rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5 flex items-start gap-3.5",
           className
         )}
       >
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mt-0.5">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary mt-0.5">
           <RiCheckboxCircleLine className="size-5" aria-hidden="true" />
         </div>
         <div>
@@ -160,11 +160,11 @@ export function V4OrderStatusBanner({
       <div
         data-testid="order-status-banner"
         className={cn(
-          "rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5 flex items-start gap-3.5",
+          "rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5 flex items-start gap-3.5",
           className
         )}
       >
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mt-0.5">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary mt-0.5">
           {isDelivery ? (
             <RiTruckLine className="size-5" aria-hidden="true" />
           ) : (

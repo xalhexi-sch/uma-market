@@ -14,13 +14,13 @@ export function V4MessagesContextBar({ context }: V4MessagesContextBarProps) {
       aria-label="Active Business Messaging Context"
       className="rounded-xl border border-border/70 bg-card p-4 shadow-2xs transition-colors"
     >
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Left: Identity & Badges */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="flex items-start sm:items-center gap-3 min-w-0">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary mt-0.5 sm:mt-0">
             <RiBuildingLine className="size-5" aria-hidden="true" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="truncate text-base font-semibold text-foreground">
                 {business.name}
@@ -29,7 +29,7 @@ export function V4MessagesContextBar({ context }: V4MessagesContextBarProps) {
                 {role}
               </Badge>
               {canBuy && canSell ? (
-                <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs">
+                <Badge variant="outline" className="border-primary/30 text-primary dark:text-primary-foreground text-xs">
                   Buyer & Producer
                 </Badge>
               ) : canSell ? (
@@ -49,8 +49,8 @@ export function V4MessagesContextBar({ context }: V4MessagesContextBarProps) {
         </div>
 
         {/* Right: Security & isolation indicator */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-lg border border-border/50">
-          <RiShieldCheckLine className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-lg border border-border/50 self-start sm:self-auto shrink-0">
+          <RiShieldCheckLine className="size-4 text-primary shrink-0" aria-hidden="true" />
           <span>Business-isolated communications</span>
         </div>
       </div>

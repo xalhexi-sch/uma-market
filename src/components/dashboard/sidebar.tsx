@@ -123,7 +123,7 @@ export function DashboardSidebar({
                 : pathname.startsWith(item.href);
 
             let badge: number | null = null;
-            let badgeVariant: "primary" | "amber" | "emerald" = "primary";
+            let badgeVariant: "primary" | "amber" = "primary";
 
             if (item.badgeKey === "cart" && cartCount > 0) {
               badge = cartCount;
@@ -133,7 +133,7 @@ export function DashboardSidebar({
               badgeVariant = "amber";
             } else if (item.badgeKey === "businessOrders" && businessActiveOrderCount > 0) {
               badge = businessActiveOrderCount;
-              badgeVariant = "emerald";
+              badgeVariant = "primary";
             }
 
             return (
@@ -154,8 +154,7 @@ export function DashboardSidebar({
                       className={cn(
                         "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",
                         badgeVariant === "primary" && "bg-primary text-primary-foreground",
-                        badgeVariant === "amber" && "bg-amber-600",
-                        badgeVariant === "emerald" && "bg-emerald-600"
+                        badgeVariant === "amber" && "bg-amber-600"
                       )}
                     >
                       {badge > 99 ? "99+" : badge}

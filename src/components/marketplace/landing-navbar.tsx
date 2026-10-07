@@ -110,7 +110,7 @@ export function LandingNavbar({
                   className={`text-sm font-medium transition-colors ${
                     isScrolled
                       ? "text-foreground hover:text-primary"
-                      : "text-white hover:text-emerald-300 drop-shadow-xs"
+                      : "text-white hover:text-white/90 drop-shadow-xs"
                   }`}
                 >
                   Dashboard

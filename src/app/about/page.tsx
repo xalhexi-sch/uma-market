@@ -76,7 +76,7 @@ export default function AboutPage() {
                 </div>
 
                 <div className="rounded-xl border border-border/70 bg-card p-5 shadow-2xs">
-                  <div className="size-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
+                  <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-3">
                     <RiShieldCheckLine className="size-5" />
                   </div>
                   <h3 className="font-semibold text-foreground text-sm">Verified In-Stock Batches</h3>

@@ -161,7 +161,7 @@ function ProducerCard({ producer }: { producer: ProducerSummary }) {
               </span>
               {producer.isVerified && (
                 <RiCheckboxCircleFill
-                  className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                  className="size-4 shrink-0 text-primary"
                   aria-label="Verified producer"
                 />
               )}
@@ -233,7 +233,7 @@ export async function HomeMarketplace({ isProducer }: { isProducer: boolean }) {
             action={
               <Link
                 href="/products"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary/80 dark:text-emerald-400 dark:hover:text-emerald-300"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
               >
                 View all products
                 <RiArrowRightLine className="size-4" aria-hidden />

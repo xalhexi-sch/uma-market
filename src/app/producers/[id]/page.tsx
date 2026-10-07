@@ -153,7 +153,7 @@ export default async function PublicProducerProfilePage({ params }: PageProps) {
                       {displayName}
                     </h1>
                     {producer.is_verified && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary border border-primary/20">
                         <RiCheckboxCircleFill className="size-3.5" aria-hidden="true" />
                         <span>Verified Producer</span>
                       </span>

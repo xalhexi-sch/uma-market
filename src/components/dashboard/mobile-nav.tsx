@@ -193,7 +193,7 @@ export function DashboardMobileNav({
                     : pathname.startsWith(item.href);
 
                 let badge: number | null = null;
-                let badgeVariant: "primary" | "amber" | "emerald" = "primary";
+                let badgeVariant: "primary" | "amber" = "primary";
 
                 if (item.badgeKey === "cart" && cartCount > 0) {
                   badge = cartCount;
@@ -203,7 +203,7 @@ export function DashboardMobileNav({
                   badgeVariant = "amber";
                 } else if (item.badgeKey === "businessOrders" && businessActiveOrderCount > 0) {
                   badge = businessActiveOrderCount;
-                  badgeVariant = "emerald";
+                  badgeVariant = "primary";
                 }
 
                 return (
@@ -225,8 +225,7 @@ export function DashboardMobileNav({
                           className={cn(
                             "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",
                             badgeVariant === "primary" && "bg-primary text-primary-foreground",
-                            badgeVariant === "amber" && "bg-amber-600",
-                            badgeVariant === "emerald" && "bg-emerald-600"
+                            badgeVariant === "amber" && "bg-amber-600"
                           )}
                         >
                           {badge > 99 ? "99+" : badge}
@@ -282,14 +281,14 @@ export function DashboardMobileNav({
             : pathname.startsWith(item.href);
 
         let badge: number | null = null;
-        let badgeVariant: "primary" | "amber" | "emerald" = "primary";
+        let badgeVariant: "primary" | "amber" = "primary";
 
         if (item.badgeKey === "farmerOrders" && farmerPendingCount > 0) {
           badge = farmerPendingCount;
           badgeVariant = "amber";
         } else if (item.badgeKey === "businessOrders" && businessActiveOrderCount > 0) {
           badge = businessActiveOrderCount;
-          badgeVariant = "emerald";
+          badgeVariant = "primary";
         }
 
         return (
@@ -310,8 +309,7 @@ export function DashboardMobileNav({
                   className={cn(
                     "absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",
                     badgeVariant === "primary" && "bg-primary text-primary-foreground",
-                    badgeVariant === "amber" && "bg-amber-600",
-                    badgeVariant === "emerald" && "bg-emerald-600"
+                    badgeVariant === "amber" && "bg-amber-600"
                   )}
                 >
                   {badge > 99 ? "99+" : badge}

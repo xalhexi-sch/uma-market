@@ -33,7 +33,7 @@ export function ProducerCard({ producer }: { producer: PublicFarmerProfile }) {
               {name}
             </h2>
             {producer.is_verified && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
                 <RiCheckboxCircleFill className="size-3.5" aria-hidden="true" />
                 Verified
               </span>

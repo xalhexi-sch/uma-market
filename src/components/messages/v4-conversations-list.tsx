@@ -77,7 +77,7 @@ export function V4ConversationsList({ conversations }: V4ConversationsListProps)
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-foreground text-sm sm:text-base flex items-center gap-1.5">
                         {conv.counterparty.canSell ? (
-                          <RiPlantLine className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+                          <RiPlantLine className="size-4 text-primary shrink-0" aria-hidden="true" />
                         ) : (
                           <RiStoreLine className="size-4 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true" />
                         )}
@@ -85,7 +85,7 @@ export function V4ConversationsList({ conversations }: V4ConversationsListProps)
                       </span>
 
                       {conv.counterparty.canSell ? (
-                        <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-[11px]">
+                        <Badge variant="outline" className="border-primary/30 text-primary dark:text-primary-foreground text-[11px]">
                           Producer
                         </Badge>
                       ) : (

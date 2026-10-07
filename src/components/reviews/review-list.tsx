@@ -13,7 +13,7 @@ export function ReviewList({ reviews, emptyText = "No verified reviews yet." }: 
         <article key={review.id} className="py-4 first:pt-0 last:pb-0">
           <div className="flex flex-wrap items-center gap-2">
             <Rating rating={review.rating} size="sm" aria-label={`${review.rating} out of 5 stars`} />
-            <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-primary">
               <RiCheckLine className="size-3.5" aria-hidden="true" /> Verified Order
             </span>
             <time className="text-xs text-muted-foreground" dateTime={review.created_at}>

@@ -134,12 +134,7 @@ export function BusinessSwitcher({
           >
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div
-                className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-md",
-                  activeBusiness.canSell
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : "bg-primary/10 text-primary"
-                )}
+                className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
                 aria-hidden="true"
               >
                 {activeBusiness.canSell ? (
@@ -191,12 +186,7 @@ export function BusinessSwitcher({
             className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
           >
             <div
-              className={cn(
-                "flex size-6 shrink-0 items-center justify-center rounded-md",
-                activeBusiness.canSell
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "bg-primary/10 text-primary"
-              )}
+              className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
               aria-hidden="true"
             >
               {activeBusiness.canSell ? (
@@ -243,12 +233,7 @@ export function BusinessSwitcher({
           >
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div
-                className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-md",
-                  activeBusiness.canSell
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : "bg-primary/10 text-primary"
-                )}
+                className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
                 aria-hidden="true"
               >
                 {activeBusiness.canSell ? (
@@ -295,12 +280,7 @@ export function BusinessSwitcher({
             className="hidden min-[430px]:flex items-center gap-1.5 max-w-[140px] truncate rounded-md bg-muted/40 border border-border/50 px-2 py-0.5 text-xs text-foreground cursor-pointer"
           >
             <span
-              className={cn(
-                "flex size-4 shrink-0 items-center justify-center rounded-xs",
-                activeBusiness.canSell
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-primary"
-              )}
+              className="flex size-4 shrink-0 items-center justify-center rounded-xs text-primary"
               aria-hidden="true"
             >
               {activeBusiness.canSell ? (
@@ -365,12 +345,7 @@ export function BusinessSwitcher({
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div
-                        className={cn(
-                          "flex size-6 shrink-0 items-center justify-center rounded-md",
-                          m.canSell
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                            : "bg-primary/10 text-primary"
-                        )}
+                        className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
                         aria-hidden="true"
                       >
                         {m.canSell ? (
@@ -514,7 +489,7 @@ export function BusinessSwitcher({
                       : "border-border hover:bg-muted/50 text-muted-foreground"
                   )}
                 >
-                  <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary mt-0.5">
                     <RiPlantLine className="size-4" />
                   </div>
                   <div>

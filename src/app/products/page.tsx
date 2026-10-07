@@ -125,7 +125,7 @@ async function CuratedDiscovery({
         <section>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
             <div>
-              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
                 <RiCheckDoubleLine className="size-4" />
                 <span>In Stock</span>
               </div>

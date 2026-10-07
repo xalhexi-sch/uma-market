@@ -97,7 +97,7 @@ export function ProfileForm({ profile, role }: ProfileFormProps) {
           )}
 
           {success && (
-            <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-600 dark:text-emerald-400">
+            <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
               <RiCheckboxCircleLine className="size-4 shrink-0" />
               <span>Profile updated successfully!</span>
             </div>
