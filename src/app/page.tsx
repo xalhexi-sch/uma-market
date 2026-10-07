@@ -22,6 +22,9 @@ import {
   HomeMarketplaceSkeleton,
 } from "@/components/marketplace/home-marketplace";
 import { SectionHeading } from "@/components/marketplace/section-heading";
+import { GridPattern } from "@/components/ui/grid-pattern";
+import { AnimatedShinyText } from "@/components/ui/animated-shiny-text";
+import { ShineBorder } from "@/components/ui/shine-border";
 import { cn } from "@/lib/utils";
 
 const FLOW_STEPS = [
@@ -92,10 +95,14 @@ export default async function HomePage() {
           aria-labelledby="hero-heading"
           className="relative isolate overflow-hidden pt-28 pb-20 sm:pt-32 sm:pb-24 lg:pt-36 lg:pb-24"
         >
-          {/* Quiet background: soft accent glow + faint grid */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          {/* Quiet background: soft accent glow + SVG grid pattern */}
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
             <div className="absolute -top-32 right-[-10%] size-[520px] rounded-full bg-primary/10 blur-3xl" />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:48px_48px] opacity-40 [mask-image:radial-gradient(ellipse_at_top_right,black,transparent_70%)]" />
+            <GridPattern
+              width={48}
+              height={48}
+              className="[mask-image:radial-gradient(ellipse_at_top_right,white,transparent_70%)] opacity-50"
+            />
           </div>
 
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-12 lg:gap-10">
@@ -105,7 +112,9 @@ export default async function HomePage() {
                   <span className="absolute inline-flex size-full rounded-full bg-primary/60 motion-safe:animate-ping" />
                   <span className="relative inline-flex size-2 rounded-full bg-primary" />
                 </span>
-                Butuan City&apos;s local agricultural marketplace
+                <AnimatedShinyText className="text-xs font-medium">
+                  Butuan City&apos;s local agricultural marketplace
+                </AnimatedShinyText>
               </p>
 
               <h1
@@ -288,6 +297,7 @@ export default async function HomePage() {
           className="border-t border-border/60 bg-muted/30 px-4 py-16 sm:px-6 sm:py-20 lg:py-24"
         >
           <div className="relative isolate mx-auto max-w-6xl overflow-hidden rounded-3xl border border-border bg-card px-6 py-14 text-center sm:px-12 sm:py-16 shadow-xs">
+            <ShineBorder borderWidth={1.5} duration={16} shineColor="var(--primary)" />
             <div
               aria-hidden
               className="pointer-events-none absolute left-1/2 top-0 -z-10 size-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15 blur-3xl"
