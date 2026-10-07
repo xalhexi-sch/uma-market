@@ -179,14 +179,14 @@ export default async function PublicProductDetailPage({ params }: PageProps) {
         "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium",
         isLowStock
           ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-          : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+          : "bg-primary/10 text-primary"
       )}
     >
       <span
         aria-hidden="true"
         className={cn(
           "size-1.5 rounded-full",
-          isLowStock ? "bg-amber-600" : "bg-emerald-600"
+          isLowStock ? "bg-amber-600" : "bg-primary"
         )}
       />
       {isLowStock ? "Low stock" : "In stock"} · {stock} {product.unit} available

@@ -248,7 +248,7 @@ export function V4ConversationThread({
   }
 
   return (
-    <div className="flex flex-col h-[650px] max-h-[80vh] rounded-xl border border-border bg-card shadow-xs overflow-hidden">
+    <div className="flex flex-col h-[650px] max-h-[calc(100vh-14rem)] min-h-[460px] rounded-xl border border-border bg-card shadow-xs overflow-hidden">
       {/* Thread Header */}
       <div className="border-b border-border bg-muted/30 px-4 py-3 flex items-center justify-between gap-3">
         <div>

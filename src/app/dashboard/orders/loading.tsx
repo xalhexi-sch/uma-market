@@ -15,7 +15,7 @@ export default function SellerOrdersLoading() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         <div className="space-y-2">
           <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-96" />
+          <Skeleton className="h-4 w-full max-w-sm" />
         </div>
 
         {/* Context bar skeleton */}

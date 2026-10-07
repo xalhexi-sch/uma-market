@@ -65,7 +65,8 @@ export function MessageProducerAction({
         onClick={handleMessage}
         disabled={loading}
         data-testid="message-producer-button"
-        aria-label={`Message ${producerName}`}
+        // WCAG 2.5.3 Label in Name: the accessible name starts with the visible label.
+        aria-label={`Message producer — ${producerName}`}
         className="w-full justify-center gap-2"
       >
         {loading ? (

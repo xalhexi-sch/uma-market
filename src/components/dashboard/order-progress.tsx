@@ -18,6 +18,7 @@ interface OrderProgressProps {
   status: OrderStatus;
   fulfillmentType: FulfillmentType;
   cancellationReason?: string | null;
+  className?: string;
 }
 
 /** Shared destructive notice shown instead of progress when cancelled. */
@@ -300,15 +301,17 @@ function ProgressTimeline({
 function ProgressCompact({
   status,
   fulfillmentType,
+  className,
 }: {
   status: OrderStatus;
   fulfillmentType: FulfillmentType;
+  className?: string;
 }) {
   const steps = getOrderFlow(fulfillmentType);
   const currentIndex = steps.indexOf(status);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className={cn("rounded-xl border border-border bg-card p-4", className)}>
       <div className="flex items-center justify-between">
         {steps.map((step, index) => {
           const isCompleted = index < currentIndex;
@@ -333,7 +336,7 @@ function ProgressCompact({
                 </div>
                 <span
                   className={cn(
-                    "text-[10px] font-medium text-center leading-tight",
+                    "text-[10px] font-medium text-center leading-tight line-clamp-2 max-w-[56px] sm:max-w-none",
                     isCurrent && "text-foreground",
                     !isCurrent && "text-muted-foreground"
                   )}
@@ -344,7 +347,7 @@ function ProgressCompact({
               {index < steps.length - 1 && (
                 <div
                   className={cn(
-                    "mx-1 h-0.5 flex-1 rounded-full",
+                    "mx-0.5 sm:mx-1 h-0.5 flex-1 rounded-full",
                     index < currentIndex ? "bg-primary" : "bg-border"
                   )}
                 />
@@ -368,6 +371,7 @@ export function OrderProgress({
   status,
   fulfillmentType,
   cancellationReason,
+  className,
 }: OrderProgressProps) {
   if (status === "cancelled") {
     return <CancelledNotice cancellationReason={cancellationReason} />;
@@ -379,6 +383,6 @@ export function OrderProgress({
     case "steps":
       return <ProgressSteps status={status} fulfillmentType={fulfillmentType} />;
     case "compact":
-      return <ProgressCompact status={status} fulfillmentType={fulfillmentType} />;
+      return <ProgressCompact status={status} fulfillmentType={fulfillmentType} className={className} />;
   }
 }

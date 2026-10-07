@@ -166,6 +166,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               status={order.status}
               fulfillmentType={order.fulfillment_type}
               cancellationReason={order.cancellation_reason}
+              className="border-0 bg-transparent p-0 shadow-none"
             />
           </div>
 
