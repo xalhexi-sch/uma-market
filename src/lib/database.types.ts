@@ -855,6 +855,12 @@ export type Database = {
         Returns: undefined
       }
       place_checkout_orders: { Args: { p_orders?: Json }; Returns: Json }
+      provision_owner_business: {
+        Args: {
+          p_clerk_id: string
+        }
+        Returns: string | null
+      }
       place_order: {
         Args: {
           p_delivery_address?: string

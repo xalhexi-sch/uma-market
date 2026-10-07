@@ -77,7 +77,16 @@ export default async function V4DashboardPage() {
     if (err instanceof AppError && err.code === "ACCOUNT_INACTIVE") {
       redirect("/sign-in?revoked=true");
     }
-    if (err instanceof AppError && (err.code === "UNAUTHORIZED" || err.code === "UNAUTHENTICATED")) {
+    if (err instanceof AppError && err.code === "UNAUTHENTICATED") {
+      redirect(routes.signIn);
+    }
+    if (
+      err instanceof AppError &&
+      (err.message.includes("No active business") || err.message.includes("onboarding"))
+    ) {
+      redirect(routes.onboarding);
+    }
+    if (err instanceof AppError && err.code === "UNAUTHORIZED") {
       redirect(routes.signIn);
     }
     redirect(routes.onboarding);

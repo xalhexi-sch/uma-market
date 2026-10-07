@@ -82,6 +82,13 @@ export async function completeOnboarding(formData: FormData) {
           error: "Your account role and profile do not match. Please contact support.",
         };
       }
+      // Guarantee business is provisioned even if profile already existed
+      const { error: provError } = await supabase.rpc("provision_owner_business", {
+        p_clerk_id: userId,
+      });
+      if (provError) {
+        console.error("[onboarding] Failed to provision business during recovery:", provError.message);
+      }
       redirect(routes.dashboardRoot);
     }
   } else {
@@ -126,12 +133,19 @@ export async function completeOnboarding(formData: FormData) {
     });
   }
 
+  const submittedBusinessName = formData.get("businessName");
+  const businessName =
+    typeof submittedBusinessName === "string" && submittedBusinessName.trim()
+      ? submittedBusinessName.trim().slice(0, 100)
+      : null;
+
   // Profile identity always comes from authenticated Clerk auth(), never form data.
   // The service-role client is needed before a new role is present in the session JWT.
   const { error } = await supabase.from("profiles").upsert(
     {
       clerk_id: userId,
       role,
+      business_name: businessName,
       full_name:
         [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") ||
         null,
@@ -149,6 +163,14 @@ export async function completeOnboarding(formData: FormData) {
       error: `Your ${role} role is saved, but profile setup failed. Please retry to finish setup.`,
       recoveryRole: role as "farmer" | "business",
     };
+  }
+
+  // Explicitly invoke business provisioning to ensure business + OWNER membership exist
+  const { error: provError } = await supabase.rpc("provision_owner_business", {
+    p_clerk_id: userId,
+  });
+  if (provError) {
+    console.error("[onboarding] Failed to provision business:", provError.message);
   }
 
   // 3. Redirect to /onboarding/complete which reloads the session token

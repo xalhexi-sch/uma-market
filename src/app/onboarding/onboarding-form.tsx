@@ -12,6 +12,7 @@ export function OnboardingForm({
 }) {
   const [selectedRole, setSelectedRole] = useState<"farmer" | "business" | null>(existingRole ?? null);
   const [lockedRole, setLockedRole] = useState<"farmer" | "business" | undefined>(existingRole);
+  const [businessName, setBusinessName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +25,9 @@ export function OnboardingForm({
 
     const formData = new FormData();
     formData.append("role", selectedRole);
+    if (businessName.trim()) {
+      formData.append("businessName", businessName.trim());
+    }
 
     try {
       const result = await completeOnboarding(formData);
@@ -51,7 +55,7 @@ export function OnboardingForm({
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl">
       <fieldset disabled={isSubmitting} className="grid gap-4 sm:grid-cols-2">
-        {/* Farmer card */}
+        {/* Producer / Seller card */}
         <label
           htmlFor="role-farmer"
           className="group relative flex cursor-pointer flex-col gap-4 rounded-xl border border-border bg-card p-6 shadow-sm transition-all hover:border-primary hover:shadow-md has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary/20"
@@ -70,9 +74,14 @@ export function OnboardingForm({
             <RiPlantLine className="size-6" />
           </div>
           <div>
-            <p className="font-semibold text-foreground">I&apos;m a Farmer</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              List your produce, manage availability, and fulfill orders from local businesses.
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-foreground">Producer</p>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                Sell produce
+              </span>
+            </div>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              List agricultural produce, manage inventory and availability, and fulfill orders from local buyers.
             </p>
           </div>
           {/* Selected indicator */}
@@ -89,7 +98,7 @@ export function OnboardingForm({
           </span>
         </label>
 
-        {/* Business card */}
+        {/* Business / Buyer card */}
         <label
           htmlFor="role-business"
           className="group relative flex cursor-pointer flex-col gap-4 rounded-xl border border-border bg-card p-6 shadow-sm transition-all hover:border-primary hover:shadow-md has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary/20"
@@ -108,9 +117,14 @@ export function OnboardingForm({
             <RiBuildingLine className="size-6" />
           </div>
           <div>
-            <p className="font-semibold text-foreground">I&apos;m a Business</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Source fresh local produce directly from Butuan&apos;s farms for your restaurant or store.
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-foreground">Business</p>
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                Buy produce
+              </span>
+            </div>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Source fresh local produce directly from verified producers for your restaurant, store, or food business.
             </p>
           </div>
           <span className="absolute right-4 top-4 hidden size-5 items-center justify-center rounded-full bg-primary text-primary-foreground group-has-[:checked]:flex">
@@ -126,6 +140,32 @@ export function OnboardingForm({
           </span>
         </label>
       </fieldset>
+
+      {/* Lightweight business name input */}
+      <div className="mt-6 flex flex-col gap-1.5">
+        <label htmlFor="business-name" className="text-sm font-medium text-foreground">
+          {selectedRole === "farmer" ? "Farm or Producer Name" : "Business Name"}{" "}
+          <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+        </label>
+        <input
+          id="business-name"
+          name="businessName"
+          type="text"
+          placeholder={
+            selectedRole === "farmer"
+              ? "e.g., Green Valley Farm"
+              : "e.g., Butuan Harvest Kitchen"
+          }
+          value={businessName}
+          onChange={(e) => setBusinessName(e.target.value)}
+          maxLength={100}
+          disabled={isSubmitting}
+          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        />
+        <p className="text-xs text-muted-foreground">
+          How your business will appear across UMA Market. You can update this later in profile settings.
+        </p>
+      </div>
 
       {error && (
         <div className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">

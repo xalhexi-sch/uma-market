@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { APP_NAME } from "@/lib/constants";
 import { getProfileByClerkId } from "@/lib/supabase/queries/profiles";
+import { routes } from "@/platform/routes";
 import { OnboardingForm } from "./onboarding-form";
 
 export const metadata: Metadata = {
@@ -25,7 +26,7 @@ export default async function OnboardingPage() {
   let recoveryRole: "farmer" | "business" | undefined;
   if (existingRole === "farmer" || existingRole === "business") {
     const profile = await getProfileByClerkId(userId);
-    if (profile?.role === existingRole) redirect(`/${existingRole}`);
+    if (profile?.role === existingRole) redirect(routes.dashboardRoot);
     recoveryRole = existingRole;
   }
 
