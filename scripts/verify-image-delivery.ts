@@ -46,7 +46,7 @@ async function runImageDeliveryVerification() {
   const rootDir = process.cwd();
 
   // Read target source files
-  const productImageCode = readFileSync(path.join(rootDir, "src/components/ui/product-image.tsx"), "utf8");
+  const productImageCode = readFileSync(path.join(rootDir, "src/components/marketplace/product-image.tsx"), "utf8");
   const marketplaceCardCode = readFileSync(path.join(rootDir, "src/components/marketplace/marketplace-product-card.tsx"), "utf8");
   const productGalleryCode = readFileSync(path.join(rootDir, "src/components/marketplace/product-gallery.tsx"), "utf8");
   const nextConfigCode = readFileSync(path.join(rootDir, "next.config.ts"), "utf8");

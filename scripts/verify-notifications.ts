@@ -671,6 +671,12 @@ async function run() {
       deliveryNotifications.every((row) => row.dedupe_key === `order:${IDS.deliveryChain}:${row.type}`),
       deliveryNotifications.map((row) => row.dedupe_key).join(" "),
     );
+    assert(
+      "buyer status notifications use canonical /orders/:id URLs",
+      deliveryNotifications.length > 0 &&
+        deliveryNotifications.every((row) => row.action_url === `/orders/${IDS.deliveryChain}`),
+      deliveryNotifications.map((row) => row.action_url).join(" "),
+    );
 
     const pickupTransitions: string[] = [];
     for (const next of ["accepted", "preparing", "ready", "completed"] as const) {
@@ -693,6 +699,12 @@ async function run() {
       p_cancellation_reason: "fixture",
     });
     assert("farmer cancellation → business notification", (await countByType("farmer_cancellation", BUYER_A, IDS.farmerCancel)) === 1);
+    const farmerCancelRows = await notificationsFor(IDS.farmerCancel, BUYER_A);
+    assert(
+      "farmer cancellation notification uses canonical buyer order URL",
+      farmerCancelRows.length > 0 && farmerCancelRows.every((row) => row.action_url === `/orders/${IDS.farmerCancel}`),
+      farmerCancelRows.map((row) => row.action_url).join(" "),
+    );
     const businessCancel = await buyerA.client
       .from("orders")
       .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
@@ -700,6 +712,12 @@ async function run() {
       .eq("status", "pending");
     assert("business cancellation path succeeds", !businessCancel.error, businessCancel.error?.message ?? "");
     assert("business cancellation → farmer notification", (await countByType("business_cancellation", FARMER_A, IDS.businessCancel)) === 1);
+    const businessCancelRows = await notificationsFor(IDS.businessCancel, FARMER_A);
+    assert(
+      "business cancellation notification uses canonical seller orders URL",
+      businessCancelRows.length > 0 && businessCancelRows.every((row) => row.action_url === "/dashboard/orders"),
+      businessCancelRows.map((row) => row.action_url).join(" "),
+    );
 
     // -----------------------------------------------------------------------
     // Messages
@@ -717,6 +735,30 @@ async function run() {
       ownMessage.error?.message ?? "",
     );
     assert("sender does not receive own message notification", Boolean(ownMessageId) && (await countByType("new_message", BUYER_A, ownMessageId)) === 0);
+    const buyerToFarmerMsg = ownMessageId
+      ? (await admin.from("notifications").select("action_url").eq("dedupe_key", `message:${ownMessageId}`).single()).data
+      : null;
+    assert(
+      "order message notification uses canonical /messages URL (farmer recipient)",
+      buyerToFarmerMsg?.action_url === "/messages",
+      String(buyerToFarmerMsg?.action_url ?? "none"),
+    );
+
+    const farmerReply = await farmerA.client
+      .from("messages")
+      .insert({ order_id: IDS.messages, sender_clerk_id: FARMER_A, body: "runtime fixture reply" })
+      .select("id")
+      .single();
+    const farmerReplyId = farmerReply.data?.id;
+    if (farmerReplyId) FIXTURE_DEDUPE_KEYS.add(`message:${farmerReplyId}`);
+    const farmerToBuyerMsg = farmerReplyId
+      ? (await admin.from("notifications").select("action_url").eq("dedupe_key", `message:${farmerReplyId}`).single()).data
+      : null;
+    assert(
+      "order message notification uses canonical /messages URL (business recipient)",
+      Boolean(farmerReplyId) && farmerToBuyerMsg?.action_url === "/messages",
+      farmerReply.error?.message ?? String(farmerToBuyerMsg?.action_url ?? "none"),
+    );
 
     // -----------------------------------------------------------------------
     // Reviews
@@ -743,6 +785,14 @@ async function run() {
       "valid seller review → farmer notification",
       Boolean(seller.data?.id) && (await countByType("new_review", FARMER_A, seller.data?.id ?? "")) === 1,
       seller.error?.message ?? "",
+    );
+    const sellerReviewRow = seller.data?.id
+      ? (await admin.from("notifications").select("action_url").eq("dedupe_key", `review:${seller.data.id}`).single()).data
+      : null;
+    assert(
+      "seller review notification uses canonical seller orders URL",
+      sellerReviewRow?.action_url === "/dashboard/orders",
+      String(sellerReviewRow?.action_url ?? "none"),
     );
     const productReview = await buyerA.client
       .from("product_reviews")
@@ -855,6 +905,44 @@ async function run() {
       ? await farmerA.client.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", readOnlyTarget.id).select("read_at").single()
       : null;
     assert("recipient can still mark a notification read", Boolean(readAtUpdate?.data?.read_at), readAtUpdate?.error?.message ?? "");
+
+    // -----------------------------------------------------------------------
+    // Persisted legacy action_url rows — must remain stored byte-for-byte
+    // (no historical rewrite; the redirect bridge keeps them usable)
+    // -----------------------------------------------------------------------
+    const legacyFixtures: { label: string; type: string; recipient: string; entity_type: string; entity_id: string; action_url: string; key: string }[] = [
+      { label: "legacy farmer order", type: "new_order", recipient: FARMER_A, entity_type: "order", entity_id: IDS.accepted, action_url: `/farmer/orders/${IDS.accepted}`, key: `legacy:farmer-order:${runId}` },
+      { label: "legacy business order", type: "order_accepted", recipient: BUYER_A, entity_type: "order", entity_id: IDS.accepted, action_url: `/business/orders/${IDS.accepted}`, key: `legacy:business-order:${runId}` },
+      { label: "legacy farmer messages", type: "new_message", recipient: FARMER_A, entity_type: "message", entity_id: IDS.messages, action_url: "/farmer/messages", key: `legacy:farmer-messages:${runId}` },
+      { label: "legacy business messages", type: "new_message", recipient: BUYER_A, entity_type: "message", entity_id: IDS.messages, action_url: "/business/messages", key: `legacy:business-messages:${runId}` },
+    ];
+    for (const fixture of legacyFixtures) {
+      FIXTURE_DEDUPE_KEYS.add(fixture.key);
+      const { error } = await admin.from("notifications").insert({
+        recipient_clerk_id: fixture.recipient,
+        type: fixture.type,
+        title: fixture.label,
+        body: `Historical ${fixture.label} notification`,
+        entity_type: fixture.entity_type,
+        entity_id: fixture.entity_id,
+        action_url: fixture.action_url,
+        dedupe_key: fixture.key,
+      });
+      assert(`${fixture.label} legacy row inserts`, !error, error?.message ?? "");
+    }
+    const legacyReadback = await admin
+      .from("notifications")
+      .select("dedupe_key, action_url")
+      .in("dedupe_key", legacyFixtures.map((fixture) => fixture.key));
+    assert(
+      "persisted legacy action_url values are stored unchanged (no historical rewrite)",
+      !legacyReadback.error &&
+        legacyFixtures.every(
+          (fixture) =>
+            legacyReadback.data?.find((row) => row.dedupe_key === fixture.key)?.action_url === fixture.action_url,
+        ),
+      legacyReadback.data?.map((row) => `${row.dedupe_key}=${row.action_url}`).join(" ") ?? legacyReadback.error?.message ?? "no rows",
+    );
 
     // -----------------------------------------------------------------------
     // Authorization / isolation

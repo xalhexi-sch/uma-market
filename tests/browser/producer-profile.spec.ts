@@ -138,11 +138,22 @@ test.describe("V4 Producer Profile (/producers/[id])", () => {
           page.getByText("Sustainable lowland organic farm growing indigenous vegetables and tropical fruits.")
         ).toBeVisible();
 
-        // Message producer action
-        const messageBtn = page.getByRole("button", { name: "Message producer" });
+        // Message producer action — V4 relationship messaging is live. The accessible
+        // name begins with the visible label (WCAG 2.5.3 Label in Name) and adds the
+        // producer as context.
+        const messageBtn = page.getByRole("button", {
+          name: "Message producer — Agusan Valley Harvest Co",
+          exact: true,
+        });
         await expect(messageBtn).toBeVisible();
-        await expect(messageBtn).toBeDisabled();
-        await expect(page.getByText(/Direct messaging with Agusan Valley Harvest Co is coming soon/)).toBeVisible();
+        await expect(messageBtn).toBeEnabled();
+        await expect(messageBtn).toHaveText("Message producer");
+        await expect(
+          page.getByText(
+            "Direct messaging with Agusan Valley Harvest Co. Inquiries and order coordination are organized in your business inbox.",
+          ),
+        ).toBeVisible();
+        await expect(page.getByText(/coming soon/i)).toHaveCount(0);
 
         // 2. Active products section & cards
         await expect(

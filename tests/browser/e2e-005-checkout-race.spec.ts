@@ -69,6 +69,13 @@ async function signedInContext(browser: Browser, persona: Persona): Promise<Brow
 }
 
 /**
+ * The canonical V4 checkout form at `/checkout`. Every field selector is scoped
+ * to it, so no other element in the document — e.g. the legacy `CheckoutForm`,
+ * which reuses the same field ids — can satisfy or break an assertion.
+ */
+const V4_CHECKOUT_FORM = '[data-testid="v4-checkout-form"]';
+
+/**
  * Blocks until the checkout form is actually hydrated.
  *
  * `domcontentloaded` only guarantees the server-rendered HTML exists. React event
@@ -78,36 +85,39 @@ async function signedInContext(browser: Browser, persona: Persona): Promise<Brow
  * hydration probe: it only re-renders if a React handler is live.
  */
 async function waitForHydration(page: Page): Promise<void> {
-  const deliveryToggle = page.getByRole("button", { name: /Seller Delivery/i });
-  const pickupToggle = page.getByRole("button", { name: /Pickup/i });
+  const form = page.locator(V4_CHECKOUT_FORM);
+  const deliveryToggle = form.getByRole("button", { name: /Seller Delivery/i });
+  const pickupToggle = form.getByRole("button", { name: /Pickup/i });
 
   await expect(async () => {
     await deliveryToggle.click({ timeout: 5_000 });
-    await expect(page.locator("#delivery-address")).toBeVisible({ timeout: 5_000 });
+    await expect(form.locator("#delivery-address")).toBeVisible({ timeout: 5_000 });
     await pickupToggle.click({ timeout: 5_000 });
-    await expect(page.locator("#delivery-address")).toHaveCount(0, { timeout: 5_000 });
+    await expect(form.locator("#delivery-address")).toHaveCount(0, { timeout: 5_000 });
   }).toPass({ timeout: 60_000, intervals: [250, 500, 1_000] });
 
-  await expect(page.locator("#pickup-date")).toBeVisible({ timeout: 10_000 });
+  await expect(form.locator("#pickup-date")).toBeVisible({ timeout: 10_000 });
 }
 
 async function openCheckout(context: BrowserContext): Promise<Page> {
   const page = await context.newPage();
-  await page.goto("/business/checkout", { waitUntil: "domcontentloaded" });
-  await page.locator("#pickup-date").waitFor({ state: "visible", timeout: 30_000 });
+  await page.goto("/checkout", { waitUntil: "domcontentloaded" });
+  const form = page.locator(V4_CHECKOUT_FORM);
+  const pickupDate = form.locator("#pickup-date");
+  await pickupDate.waitFor({ state: "visible", timeout: 30_000 });
   await waitForHydration(page);
   // React controlled input: set the value through the native setter and dispatch
   // the events React listens for, otherwise React state stays empty.
-  await page.locator("#pickup-date").evaluate((el, value) => {
+  await pickupDate.evaluate((el, value) => {
     const input = el as HTMLInputElement;
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
     setter?.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
   }, manilaTomorrow());
-  await expect(page.locator("#pickup-date")).toHaveValue(manilaTomorrow());
-  await expect(page.locator("#pickup-date-error")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Place Order/i })).toBeEnabled();
+  await expect(pickupDate).toHaveValue(manilaTomorrow());
+  await expect(form.locator("#pickup-date-error")).toHaveCount(0);
+  await expect(form.getByRole("button", { name: /Place Order/i })).toBeEnabled();
   return page;
 }
 
@@ -116,17 +126,19 @@ async function openCheckout(context: BrowserContext): Promise<Page> {
  * hint/error paragraph) also carry role="alert", so the selector is scoped to a
  * direct child of the form to avoid matching those.
  */
-const FORM_ERROR_BANNER = "form > [role=alert]";
+const FORM_ERROR_BANNER = `${V4_CHECKOUT_FORM} > [role=alert]`;
 
 /** Fires the submit button in both pages as close to simultaneously as possible. */
 async function submitBoth(pages: Page[]): Promise<void> {
   await Promise.all(
     pages.map((page) =>
-      page.evaluate(() => {
-        const button = document.querySelector("form button[type=submit]") as HTMLButtonElement | null;
+      page.evaluate((formSelector) => {
+        const button = document.querySelector(
+          `${formSelector} button[type=submit]`,
+        ) as HTMLButtonElement | null;
         if (!button) throw new Error("submit button not found");
         button.click();
-      }),
+      }, V4_CHECKOUT_FORM),
     ),
   );
 }
@@ -136,10 +148,10 @@ type Outcome = "confirmation" | "error" | "timeout";
 async function settle(page: Page): Promise<Outcome> {
   try {
     await page.waitForFunction(
-      () =>
+      (bannerSelector) =>
         window.location.pathname.includes("/checkout/confirmation") ||
-        document.querySelector("form > [role=alert]") !== null,
-      undefined,
+        document.querySelector(bannerSelector) !== null,
+      FORM_ERROR_BANNER,
       { timeout: 45_000 },
     );
   } catch {
@@ -246,7 +258,7 @@ test("REG-E2E-005a: two simultaneous same-account checkout tabs commit exactly o
 
   const [outcomeA, outcomeB] = await Promise.all([settle(pageA), settle(pageB)]);
   const alertA = await pageA.locator(FORM_ERROR_BANNER).first().innerText().catch(() => "<none>");
-  const alertB = await pageB.locator("form [role=alert]").first().innerText().catch(() => "<none>");
+  const alertB = await pageB.locator(`${V4_CHECKOUT_FORM} [role=alert]`).first().innerText().catch(() => "<none>");
   const outcomes = [outcomeA, outcomeB].sort();
 
   expect(

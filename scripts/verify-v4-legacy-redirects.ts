@@ -4,7 +4,8 @@
  * Verifies that:
  * 1. Every legacy V2 route pattern (/farmer/*, /business/*, /farmers/*) has a direct next.config.ts redirect.
  * 2. Every redirect destination is a valid canonical V4 route (not a legacy route).
- * 3. Every dynamic path parameter (:id, :orderId) is mapped 1:1 without parameter drop.
+ * 3. Every dynamic path parameter (:id, :orderId) is mapped 1:1 without parameter drop,
+ *    except the documented INTENTIONAL_PARAM_DROPS (exact source -> destination).
  * 4. Zero redirect loops: no destination targets another redirect source.
  * 5. Role recovery in onboarding/actions.ts routes to canonical dashboard.
  * 6. Admin non-role redirects route to canonical dashboard.
@@ -40,25 +41,70 @@ function assert(id: string, name: string, condition: boolean, details?: string) 
   }
 }
 
+/**
+ * Removes `//` and `/* *\/` comments while leaving string literals intact, so
+ * explanatory comments inside a redirect object do not hide the rule and a
+ * commented-out rule is not counted as active.
+ */
+function stripComments(source: string): string {
+  let out = "";
+  let i = 0;
+  while (i < source.length) {
+    const ch = source[i];
+    const next = source[i + 1];
+    if (ch === '"' || ch === "'" || ch === "`") {
+      let j = i + 1;
+      while (j < source.length && source[j] !== ch) j += source[j] === "\\" ? 2 : 1;
+      out += source.slice(i, j + 1);
+      i = j + 1;
+    } else if (ch === "/" && next === "/") {
+      while (i < source.length && source[i] !== "\n") i++;
+    } else if (ch === "/" && next === "*") {
+      const end = source.indexOf("*/", i + 2);
+      i = end === -1 ? source.length : end + 2;
+    } else {
+      out += ch;
+      i++;
+    }
+  }
+  return out;
+}
+
 function parseRedirectRules(): RedirectRule[] {
-  const configContent = readFileSync(resolve(root, "next.config.ts"), "utf8");
+  const configContent = stripComments(readFileSync(resolve(root, "next.config.ts"), "utf8"));
   const redirectsBlock = configContent.match(/async redirects\(\)\s*\{[\s\S]*?return\s*\[([\s\S]*?)\];/);
   if (!redirectsBlock) {
     throw new Error("Could not extract redirects from next.config.ts");
   }
 
+  // Redirect rules are flat objects, so each `{ ... }` is one rule. Fields are
+  // read independently so their order and surrounding whitespace do not matter.
   const rules: RedirectRule[] = [];
-  const objectRegex = /\{\s*source:\s*"([^"]+)",\s*destination:\s*"([^"]+)",\s*permanent:\s*(true|false),?\s*\}/g;
-  let match;
-  while ((match = objectRegex.exec(redirectsBlock[1])) !== null) {
-    rules.push({
-      source: match[1],
-      destination: match[2],
-      permanent: match[3] === "true",
-    });
+  const objects = redirectsBlock[1].match(/\{[^{}]*\}/g) ?? [];
+  for (const body of objects) {
+    const source = body.match(/\bsource:\s*"([^"]+)"/)?.[1];
+    const destination = body.match(/\bdestination:\s*"([^"]+)"/)?.[1];
+    const permanent = body.match(/\bpermanent:\s*(true|false)\b/)?.[1];
+    if (!source || !destination || !permanent) {
+      throw new Error(`Unparseable redirect rule in next.config.ts: ${body.replace(/\s+/g, " ")}`);
+    }
+    rules.push({ source, destination, permanent: permanent === "true" });
   }
   return rules;
 }
+
+/**
+ * Rules that intentionally drop a path parameter. Each entry must match the
+ * exact destination so the exception cannot silently widen.
+ *
+ * /farmer/orders/:id was the SELLER-side notification URL. /orders/:id is the
+ * BUYER order detail page and V4 has no seller order detail route, so sellers
+ * converge on the /dashboard/orders workspace (see the comment on this rule in
+ * next.config.ts and tests/browser/v4-legacy-redirects.spec.ts).
+ */
+const INTENTIONAL_PARAM_DROPS: Record<string, string> = {
+  "/farmer/orders/:id": "/dashboard/orders",
+};
 
 function main() {
   console.log("\n" + "=".repeat(72));
@@ -133,13 +179,26 @@ function main() {
     const srcParams = (rule.source.match(/:[a-zA-Z0-9_]+/g) || []).sort();
     const dstParams = (rule.destination.match(/:[a-zA-Z0-9_]+/g) || []).sort();
     const match = JSON.stringify(srcParams) === JSON.stringify(dstParams);
+    const intentionalDrop = INTENTIONAL_PARAM_DROPS[rule.source] === rule.destination;
     assert(
       id,
-      `Params preserved in ${rule.source} -> ${rule.destination}`,
-      match,
+      intentionalDrop
+        ? `Intentional param drop ${rule.source} -> ${rule.destination}`
+        : `Params preserved in ${rule.source} -> ${rule.destination}`,
+      match || intentionalDrop,
       `Source params [${srcParams}] != dest params [${dstParams}]`
     );
   });
+
+  // The seller notification URL must converge on the seller workspace, never on
+  // the buyer order detail page.
+  const sellerNotifDest = sourceMap.get("/farmer/orders/:id")?.destination;
+  assert(
+    "LEG-SELLER-01",
+    "/farmer/orders/:id -> /dashboard/orders (never buyer /orders/:id)",
+    sellerNotifDest === "/dashboard/orders",
+    `Destination is ${sellerNotifDest ?? "missing"}`
+  );
 
   // 5. Code inspection checks
   console.log("\n" + "-".repeat(72));

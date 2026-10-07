@@ -7,9 +7,13 @@
 // 3. Authenticated producer legacy URLs route to canonical V4 destinations
 // 4. Admin accesses /admin routes; legacy URLs route to canonical /dashboard
 // 5. Suspended/revoked user terminates at /sign-in?revoked=true without loops
-// 6. Legacy notification URLs (/business/orders/:id, /farmer/orders/:id) -> /orders/:id
+// 6. Legacy notification URLs converge by audience:
+//      /farmer/orders/:id   -> /dashboard/orders  (seller workspace, NEVER buyer order detail)
+//      /business/orders/:id -> /orders/:id        (buyer order detail, authorization unchanged)
+//      /farmer/messages, /business/messages -> /messages
 // 7. Dynamic legacy URLs with IDs preserve path parameters exactly
 // 8. Every legacy URL terminates at exactly ONE V4 canonical destination without redirect loops
+// 9. Bridged legacy URLs do not bypass order authorization (wrong user still 404)
 // =============================================================================
 
 import { expect, test } from "@playwright/test";
@@ -27,6 +31,14 @@ let admin: SupabaseClient;
 let buyer: Persona;
 let farmer: Persona;
 
+// Fixture order used by the notification-convergence authorization test:
+// the farmer is the seller and the buyer persona is an unrelated party.
+const NOTIF_FIXTURE_ORDER_ID = "e4000001-0000-4000-8000-0000000000f1";
+// Deterministic buyer business fixtures — the SAME ids/name as v4-orders.spec.ts
+// so both specs idempotently share one business instead of creating duplicates.
+const BUYER_BUSINESS_ID = "d5000001-0000-4000-8000-000000000010";
+const BUYER_MEMBER_ID = "d5000001-0000-4000-8000-000000000020";
+
 test.beforeAll(async () => {
   admin = serviceClient();
   [buyer, farmer] = await Promise.all([
@@ -38,6 +50,43 @@ test.beforeAll(async () => {
     upsertTestProfile(admin, buyer.clerkUserId, "business", "Redirect Test Buyer"),
     upsertTestProfile(admin, farmer.clerkUserId, "farmer", "Redirect Test Farmer"),
   ]);
+
+  // The wrong-user test needs the buyer persona to hold an active OWNER
+  // business, otherwise /orders/[id] would redirect to onboarding before the
+  // order authorization check could ever run.
+  const { data: member } = await admin
+    .from("business_members")
+    .select("business_id")
+    .eq("user_id", buyer.clerkUserId)
+    .eq("role", "OWNER")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!member?.business_id) {
+    const { error: bizError } = await admin.from("businesses").upsert({
+      id: BUYER_BUSINESS_ID,
+      name: "Valley Fresh Kitchen",
+      can_buy: true,
+      can_sell: false,
+      status: "active",
+      legacy_clerk_id: buyer.clerkUserId,
+    });
+    if (bizError) throw new Error(`buyer business fixture failed: ${bizError.message}`);
+    const { error: memberError } = await admin.from("business_members").upsert({
+      id: BUYER_MEMBER_ID,
+      business_id: BUYER_BUSINESS_ID,
+      user_id: buyer.clerkUserId,
+      role: "OWNER",
+    });
+    if (memberError) throw new Error(`buyer membership fixture failed: ${memberError.message}`);
+  }
+});
+
+test.afterAll(async () => {
+  if (!admin) return;
+  await admin.from("notifications").delete().eq("dedupe_key", `order:new:${NOTIF_FIXTURE_ORDER_ID}`);
+  await admin.from("orders").delete().eq("id", NOTIF_FIXTURE_ORDER_ID);
 });
 
 test.describe("V4 Legacy Route Bridging & Canonical Termination", () => {
@@ -90,18 +139,83 @@ test.describe("V4 Legacy Route Bridging & Canonical Termination", () => {
   });
 
   // ── 3. Legacy notification URLs ───────────────────────────────────────────
-  test("legacy notification URLs (/business/orders/:id and /farmer/orders/:id) bridge to /orders/:id", async ({
+  test("legacy notification URLs bridge to canonical V4 destinations by audience", async ({
     request,
   }) => {
     const testOrderId = "order-notif-uuid-abc";
 
+    // Seller-side legacy notification URL must land on the seller order
+    // workspace — it must never open the buyer order detail page.
     const farmerNotif = await request.get(`/farmer/orders/${testOrderId}`, { maxRedirects: 0 });
     expect(farmerNotif.status()).toBe(307);
-    expect(farmerNotif.headers()["location"]).toBe(`/orders/${testOrderId}`);
+    expect(farmerNotif.headers()["location"]).toBe("/dashboard/orders");
 
+    // Buyer-side legacy notification URL → canonical buyer order detail.
     const buyerNotif = await request.get(`/business/orders/${testOrderId}`, { maxRedirects: 0 });
     expect(buyerNotif.status()).toBe(307);
     expect(buyerNotif.headers()["location"]).toBe(`/orders/${testOrderId}`);
+
+    // Legacy message notifications (both audiences) → canonical inbox.
+    for (const legacyMessages of ["/farmer/messages", "/business/messages"]) {
+      const res = await request.get(legacyMessages, { maxRedirects: 0 });
+      expect(res.status(), `GET ${legacyMessages} must respond with 307`).toBe(307);
+      expect(res.headers()["location"], `GET ${legacyMessages} must redirect to /messages`).toBe(
+        "/messages",
+      );
+    }
+  });
+
+  // ── 3b. New notification URL generation + bridged-URL authorization ───────
+  test("new notifications carry canonical URLs and bridged legacy URLs do not bypass order authorization", async ({
+    browser,
+  }) => {
+    // Fixture order: farmer is the seller, an unrelated party is recorded as
+    // the buyer, so the buyer persona must NOT be able to read it.
+    const insert = await admin.from("orders").insert({
+      id: NOTIF_FIXTURE_ORDER_ID,
+      business_clerk_id: farmer.clerkUserId,
+      farmer_clerk_id: farmer.clerkUserId,
+      status: "pending",
+      fulfillment_type: "pickup",
+      total_amount: 10,
+    });
+    expect(insert.error, `fixture order insert failed: ${insert.error?.message ?? ""}`).toBeNull();
+
+    // Requirement 1: newly generated notifications use canonical V4 URLs.
+    const { data: notif } = await admin
+      .from("notifications")
+      .select("action_url, recipient_clerk_id")
+      .eq("dedupe_key", `order:new:${NOTIF_FIXTURE_ORDER_ID}`)
+      .single();
+    expect(notif?.recipient_clerk_id).toBe(farmer.clerkUserId);
+    expect(notif?.action_url).toBe("/dashboard/orders");
+
+    const { context } = await authenticatedContext(browser, buyer);
+    try {
+      const page = await context.newPage();
+
+      // Legacy seller notification URL → seller workspace, never buyer detail.
+      await page.goto(`/farmer/orders/${NOTIF_FIXTURE_ORDER_ID}`, {
+        waitUntil: "domcontentloaded",
+      });
+      expect(new URL(page.url()).pathname).toBe("/dashboard/orders");
+
+      // Legacy buyer notification URL → canonical detail, but authorization is
+      // unchanged: this order belongs to another party, so only the not-found
+      // boundary may render (same assertion pattern as v4-orders.spec.ts).
+      await page.goto(`/business/orders/${NOTIF_FIXTURE_ORDER_ID}`, {
+        waitUntil: "domcontentloaded",
+      });
+      expect(new URL(page.url()).pathname).toBe(`/orders/${NOTIF_FIXTURE_ORDER_ID}`);
+      await expect(page.locator("body")).toContainText("Page not found");
+      await expect(page.locator("[data-testid='order-status-banner']")).toHaveCount(0);
+
+      // No redirect loop back to a legacy tree after the bridge hop.
+      expect(new URL(page.url()).pathname).not.toMatch(/^\/(farmer|business)(\/|$)/);
+      await page.close();
+    } finally {
+      await context.close();
+    }
   });
 
   // ── 4. Authenticated buyer: legacy navigation reaches canonical destination

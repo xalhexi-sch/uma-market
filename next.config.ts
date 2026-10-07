@@ -50,8 +50,13 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
+        // Legacy SELLER-side notification URL. This must NOT map to
+        // /orders/:id — that route is the BUYER order detail page, and there
+        // is no seller order detail route in V4. Sellers converge on the
+        // canonical /dashboard/orders workspace instead (the order id stays
+        // preserved in notifications.entity_id).
         source: "/farmer/orders/:id",
-        destination: "/orders/:id",
+        destination: "/dashboard/orders",
         permanent: false,
       },
       {
@@ -107,6 +112,7 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
+        // Legacy BUYER-side notification URL → canonical buyer order detail.
         source: "/business/orders/:id",
         destination: "/orders/:id",
         permanent: false,

@@ -111,7 +111,15 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByText(/Low stock · 8 kg available/)).toBeVisible();
       await expect(page.getByText(/Min\. order 2 kg/)).toBeVisible();
       await expect(page.getByRole("link", { name: "Sign in to order" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Message producer" })).toBeDisabled();
+      // V4 relationship messaging is live: the action is enabled and its accessible
+      // name begins with the visible label (WCAG 2.5.3 Label in Name) followed by
+      // the producer (upsertTestProfile sets business_name "<name> Co").
+      const messageBtn = page.getByRole("button", {
+        name: "Message producer — PDP Farmer Co",
+        exact: true,
+      });
+      await expect(messageBtn).toBeEnabled();
+      await expect(messageBtn).toHaveText("Message producer");
       await expect(page.getByRole("link", { name: "View producer profile" })).toBeVisible();
       // more-from-producer shows the sibling but never the sold-out product or itself
       await expect(page.getByRole("heading", { name: /^More from / })).toBeVisible();
