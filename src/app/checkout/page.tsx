@@ -186,7 +186,7 @@ export default async function V4CheckoutPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <MarketplaceHeader />
-      <main className="flex-1 mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
+      <main className="flex-1 mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-6">
           {/* Context + back link */}
           <div className="flex flex-col gap-4">
@@ -207,7 +207,7 @@ export default async function V4CheckoutPage() {
 
           {/* Title */}
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Checkout</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Checkout</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Review your order and choose fulfillment details.
             </p>

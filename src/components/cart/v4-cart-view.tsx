@@ -62,7 +62,7 @@ export function V4CartView({ context, items }: V4CartViewProps) {
         {/* Main Cart Items Column */}
         <div className="flex flex-col gap-6 lg:col-span-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Shopping Cart
             </h1>
             <span className="text-xs sm:text-sm text-muted-foreground">

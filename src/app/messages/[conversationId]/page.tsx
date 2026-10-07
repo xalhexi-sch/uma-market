@@ -8,6 +8,8 @@ import {
   getV4Conversation,
   getV4ConversationMessages,
 } from "@/lib/supabase/queries/conversations";
+import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
+import { MarketplaceFooter } from "@/components/marketplace/marketplace-footer";
 import { V4ConversationThread } from "@/components/messages/v4-conversation-thread";
 import { Badge } from "@/components/ui/badge";
 
@@ -82,56 +84,62 @@ export default async function ConversationPage({
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-6 max-w-5xl mx-auto w-full">
-      {/* Navigation Header */}
-      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/70">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/messages"
-            className="flex size-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            aria-label="Back to all conversations"
-          >
-            <RiArrowLeftLine className="size-4" aria-hidden="true" />
-          </Link>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-lg font-bold text-foreground flex items-center gap-1.5">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <MarketplaceHeader />
+
+      <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8 flex flex-col gap-4">
+        {/* Navigation Header */}
+        <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/70">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/messages"
+              className="flex size-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label="Back to all conversations"
+            >
+              <RiArrowLeftLine className="size-4" aria-hidden="true" />
+            </Link>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-lg font-bold text-foreground flex items-center gap-1.5">
+                  {conversation.counterparty.canSell ? (
+                    <RiPlantLine className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                  ) : (
+                    <RiStoreLine className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                  )}
+                  <span>{conversation.counterparty.name}</span>
+                </h1>
                 {conversation.counterparty.canSell ? (
-                  <RiPlantLine className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs">
+                    Producer
+                  </Badge>
                 ) : (
-                  <RiStoreLine className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                  <Badge variant="outline" className="border-blue-500/30 text-blue-700 dark:text-blue-400 text-xs">
+                    Buyer
+                  </Badge>
                 )}
-                <span>{conversation.counterparty.name}</span>
-              </h1>
-              {conversation.counterparty.canSell ? (
-                <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs">
-                  Producer
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="border-blue-500/30 text-blue-700 dark:text-blue-400 text-xs">
-                  Buyer
-                </Badge>
-              )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Representing <span className="font-medium text-foreground">{context.business.name}</span> ({context.role})
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Representing <span className="font-medium text-foreground">{context.business.name}</span> ({context.role})
-            </p>
           </div>
         </div>
-      </div>
 
-      {/* Main Conversation Thread Component */}
-      <V4ConversationThread
-        conversationId={conversationId}
-        activeBusinessId={context.business.id}
-        currentUserId={context.user.userId}
-        counterpartyName={conversation.counterparty.name}
-        initialMessages={initialMessages}
-        initialProductId={productId}
-        initialOrderId={orderId}
-        initialProductContext={initialProductContext}
-        initialOrderContext={initialOrderContext}
-      />
+        {/* Main Conversation Thread Component */}
+        <V4ConversationThread
+          conversationId={conversationId}
+          activeBusinessId={context.business.id}
+          currentUserId={context.user.userId}
+          counterpartyName={conversation.counterparty.name}
+          initialMessages={initialMessages}
+          initialProductId={productId}
+          initialOrderId={orderId}
+          initialProductContext={initialProductContext}
+          initialOrderContext={initialOrderContext}
+        />
+      </main>
+
+      <MarketplaceFooter />
     </div>
   );
 }
