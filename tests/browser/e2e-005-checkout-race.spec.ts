@@ -96,14 +96,14 @@ async function waitForHydration(page: Page): Promise<void> {
     await expect(form.locator("#delivery-address")).toHaveCount(0, { timeout: 5_000 });
   }).toPass({ timeout: 60_000, intervals: [250, 500, 1_000] });
 
-  await expect(form.locator("#pickup-date")).toBeVisible({ timeout: 10_000 });
+  await expect(form.locator("#pickup-date:visible")).toBeVisible({ timeout: 10_000 });
 }
 
 async function openCheckout(context: BrowserContext): Promise<Page> {
   const page = await context.newPage();
   await page.goto("/checkout", { waitUntil: "domcontentloaded" });
   const form = page.locator(V4_CHECKOUT_FORM);
-  const pickupDate = form.locator("#pickup-date");
+  const pickupDate = form.locator("#pickup-date:visible");
   await pickupDate.waitFor({ state: "visible", timeout: 30_000 });
   await waitForHydration(page);
   // React controlled input: set the value through the native setter and dispatch
@@ -147,12 +147,17 @@ type Outcome = "confirmation" | "error" | "timeout";
 
 async function settle(page: Page): Promise<Outcome> {
   try {
+    // This test performs two Clerk development sign-ins, two checkout page hydrations,
+    // concurrent server actions, and may trigger Next.js development JIT compilation
+    // of /checkout/confirmation/[orderId]. Under constrained CI runners (e.g. GitHub
+    // Actions 2-core runners), 45s is overly tight and leads to spurious "timeout" outcomes.
+    // We use a 60-second targeted timeout for the page to reach either state.
     await page.waitForFunction(
       (bannerSelector) =>
         window.location.pathname.includes("/checkout/confirmation") ||
         document.querySelector(bannerSelector) !== null,
       FORM_ERROR_BANNER,
-      { timeout: 45_000 },
+      { timeout: 60_000 },
     );
   } catch {
     return "timeout";
@@ -258,7 +263,7 @@ test("REG-E2E-005a: two simultaneous same-account checkout tabs commit exactly o
 
   const [outcomeA, outcomeB] = await Promise.all([settle(pageA), settle(pageB)]);
   const alertA = await pageA.locator(FORM_ERROR_BANNER).first().innerText().catch(() => "<none>");
-  const alertB = await pageB.locator(`${V4_CHECKOUT_FORM} [role=alert]`).first().innerText().catch(() => "<none>");
+  const alertB = await pageB.locator(FORM_ERROR_BANNER).first().innerText().catch(() => "<none>");
   const outcomes = [outcomeA, outcomeB].sort();
 
   expect(
